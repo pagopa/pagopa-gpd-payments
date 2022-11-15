@@ -1,88 +1,108 @@
-# Template for Java Spring Microservice project
+# Payments
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=TODO-set-your-id&metric=alert_status)](https://sonarcloud.io/dashboard?id=TODO-set-your-id)
-
-TODO: add a description
-
-TODO: generate a index with this tool: https://ecotrust-canada.github.io/markdown-toc/
-
-TODO: resolve all the TODOs in this template
-
+- [Payments](#payments)
+  * [Api Documentation 📖](#api-documentation---)
+  * [Technology Stack 📚](#technology-stack---)
+  * [Start Project Locally 🚀](#start-project-locally---)
+    + [Prerequisites](#prerequisites)
+    + [Run docker container](#run-docker-container)
+  * [Develop Locally 💻](#develop-locally---)
+    + [Prerequisites](#prerequisites-1)
+    + [Run the project](#run-the-project)
+  * [Testing 🧪](#testing---)
+    - [Unit testing](#unit-testing)
+    - [Integration testing](#integration-testing)
+    - [Load testing](#load-testing)
+  * [Mainteiners 👨‍💻](#mainteiners------)
+  
 ---
 ## Api Documentation 📖
-See the [OpenApi 3 here.](TODO: set your url)
+See the [OpenApi 3 here.](https://editor.swagger.io/?url=https://raw.githubusercontent.com/pagopa/pagopa-debt-position/main/payments/openapi/openapi.json)
 
 ---
 
-## Technology Stack
+## Technology Stack 📚
+
 - Java 11
 - Spring Boot
 - Spring Web
-- Hibernate
-- JPA
-- ...
-- TODO
----
+- Feign Client
+
+---  
 
 ## Start Project Locally 🚀
 
 ### Prerequisites
+
 - docker
+- a runnign GPD mock (see `mock` folder of this repository)
 
 ### Run docker container
-from `./docker` directory
 
-`sh ./run_docker.sh dev`
+Under `payments` folder typing:
 
-ℹ️ Note: for PagoPa ACR is required the login `az acr login -n <acr-name>`
+`docker-compose up --build`
 
 ---
 
 ## Develop Locally 💻
 
 ### Prerequisites
+
 - git
 - maven
 - jdk-11
+- docker
 
 ### Run the project
 
-Start the springboot application with this command:
+Under `payments` folder typing:
 
 `mvn spring-boot:run -Dspring-boot.run.profiles=local`
 
+---
 
+## Testing 🧪
 
-### Spring Profiles
+### Prerequisites
 
-- **local**: to develop locally.
-- _default (no profile set)_: The application gets the properties from the environment (for Azure).
+- maven
+- [newman](https://www.npmjs.com/package/newman)
+- [postman-to-k6](https://github.com/apideck-libraries/postman-to-k6)
+- [k6](https://k6.io/)
 
+### Unit testing
 
-### Testing 🧪
-
-#### Unit testing
-
-To run the **Junit** tests:
+Under `payments` folder typing:
 
 `mvn clean verify`
 
-#### Integration testing
-From `./integration-test/src`
+### Integration testing
 
-1. `yarn install`
-2. `yarn test`
+Under `payments` folder typing:
 
-#### Performance testing
-install [k6](https://k6.io/) and then from `./performance-test/src`
+```sh
+ newman run api-test/GPD.postman_collection.json --environment=api-test/local.postman_environment.json 
+```
 
-1. `k6 run --env VARS=local.environment.json --env TEST_TYPE=./test-types/load.json main_scenario.js`
+> **NOTE**: suppose `Started Payments` on port `8080`
 
+### Load testing
+
+Under `payments` folder typing:
+
+```sh
+postman-to-k6 api-test/GPD.postman_collection.json --environment api-test/local.postman_environment.json -o ./k6-script.js
+k6 run --vus 2 --duration 30s ./k6-script.js
+```
+
+> **NOTE**: suppose `Started Payments` on port `8085`
 
 ---
 
-## Contributors 👥
-Made with ❤️ by PagoPa S.p.A.
+## Mainteiners 👨‍💻
 
-### Mainteiners
 See `CODEOWNERS` file
+
+
+
