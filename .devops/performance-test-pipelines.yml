@@ -1,0 +1,43 @@
+# azure-pipelines.yml
+trigger: none
+
+pool:
+  name: pagopa-dev-loadtest-linux
+
+parameters:
+  - name: "API_SUBSCRIPTION_KEY"
+    displayName: "API_SUBSCRIPTION_KEY"
+    type: string
+  - name: "ENVIRONMENT"
+    displayName: "Environment"
+    type: string
+    values:
+      - "dev"
+      - "uat"
+      - "prod"
+  - name: "TEST_TYPE"
+    displayName: "Test type"
+    type: string
+    values:
+      - "load"
+      - "spike"
+      - "stress"
+      - "soak"
+      - # TODO: add your values
+  - name: "SCRIPT"
+    displayName: "Script name"
+    type: string
+    values:
+      - yourscriptname # TODO: add your script
+
+steps:
+  - script: |
+      cd ./performance-tests/src
+      docker pull grafana/k6
+    displayName: Pull k6 image
+
+    # TODO: add your env params
+  - script: |
+      cd ./performance-test
+      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} afmcalculatork6 ${{ parameters.API_SUBSCRIPTION_KEY }}
+    displayName: Run k6 ${{ parameters.SCRIPT }} on ${{ parameters.ENVIRONMENT }}
