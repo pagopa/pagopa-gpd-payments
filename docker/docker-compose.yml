@@ -1,9 +1,8 @@
 version: '3.8'
 
-# TODO edit this file properly
 services:
   app:
-    container_name: 'app'
+    container_name: 'payments'
     image: ${image}
     build:
       dockerfile: Dockerfile
@@ -35,16 +34,16 @@ services:
 #    networks:
 #      afm_net:
 
-#  azure-storage:
-#    container_name: 'azure-storage'
-#    image: mcr.microsoft.com/azure-storage/azurite
-#    ports:
-#      - '10000:10000'
-#      - '10001:10001'
-#      - '10002:10002'
-#    networks:
-#      app_net:
-#        ipv4_address: 10.20.0.3
+  azure-storage:
+    container_name: 'azure-storage'
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - '10000:10000'
+      - '10001:10001'
+      - '10002:10002'
+    networks:
+      app_net:
+        ipv4_address: 10.20.0.3
 
 #  cosmosdb:
 #    container_name: 'cosmosdb'
@@ -68,5 +67,3 @@ networks:
       config:
         - subnet: 10.20.0.0/16
           gateway: 10.20.0.1
-
-
