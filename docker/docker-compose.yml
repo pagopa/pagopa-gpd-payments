@@ -16,7 +16,6 @@ services:
     networks:
       app_net:
 
-
 #  service-1:
 #    container_name: 'service-1'
 #    image: ${containerRegistry}/service1:latest
