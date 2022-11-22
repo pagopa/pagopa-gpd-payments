@@ -1,20 +1,6 @@
 version: '3.8'
 
 services:
-
-#  tests:
-#    image: maven:3
-#    stop_signal: SIGKILL
-#    stdin_open: true
-#    tty: true
-#    working_dir: $PWD
-#    volumes:
-#      - $PWD:$PWD
-#      - /var/run/docker.sock:/var/run/docker.sock
-#      # Maven cache (optional)
-#      - ~/.m2:/root/.m2
-#    command: mvn test
-
   app:
     container_name: 'payments'
     image: ${image}
@@ -27,8 +13,8 @@ services:
       - "8080:8080"
     #    depends_on:
     #      - service1
-    # networks:
-      # app_net:
+    networks:
+      app_net:
 
 #  service-1:
 #    container_name: 'service-1'
@@ -47,16 +33,16 @@ services:
 #    networks:
 #      afm_net:
 
-#  azure-storage:
-#    container_name: 'azure-storage'
-#    image: mcr.microsoft.com/azure-storage/azurite
-#    ports:
-#      - '10000:10000'
-#      - '10001:10001'
-#      - '10002:10002'
-#    networks:
-#      app_net:
-#        ipv4_address: 10.20.0.3
+  azure-storage:
+    container_name: 'azure-storage'
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - '10000:10000'
+      - '10001:10001'
+      - '10002:10002'
+    networks:
+      app_net:
+        ipv4_address: 10.20.0.3
 
 #  cosmosdb:
 #    container_name: 'cosmosdb'
@@ -73,10 +59,10 @@ services:
 #        ipv4_address: 10.20.0.2
 
 
-#networks:
-#  app_net:
-#    driver: bridge
-#    ipam:
-#      config:
-#        - subnet: 10.20.0.0/16
-#          gateway: 10.20.0.1
+networks:
+  app_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.0.0/16
+          gateway: 10.20.0.1

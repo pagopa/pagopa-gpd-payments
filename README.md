@@ -35,13 +35,17 @@ See the [OpenApi 3 here.](https://editor.swagger.io/?url=https://raw.githubuserc
 ### Prerequisites
 
 - docker
-- a runnign GPD mock (see `mock` folder of this repository)
+- a running GPD mock (see `mock` folder of this repository)
 
 ### Run docker container
 
-Under `payments` folder typing:
+Under main folder typing:
 
 `docker-compose up --build`
+
+if you have a Mac with m1 processor and you want to start the project locally using the Docker Compose, you must update 
+this instruction in the Dockerfile as follows `FROM --platform=linux/amd64 adoptopenjdk/openjdk16:alpine`
+
 
 ---
 
@@ -56,7 +60,7 @@ Under `payments` folder typing:
 
 ### Run the project
 
-Under `payments` folder typing:
+Under main folder typing:
 
 `mvn spring-boot:run -Dspring-boot.run.profiles=local`
 

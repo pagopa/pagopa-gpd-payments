@@ -9,7 +9,7 @@ RUN mvn -f /home/app/pom.xml clean package -Dmaven.test.skip=true
 #
 # Package stage
 #
-FROM adoptopenjdk/openjdk16:alpine
+FROM --platform=linux/amd64 adoptopenjdk/openjdk16:alpine
 COPY --from=build /home/app/target/*.jar /usr/local/lib/app.jar
 
 EXPOSE 8080
