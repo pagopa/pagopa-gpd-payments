@@ -2,27 +2,27 @@ version: '3.8'
 
 services:
 
-#  tests:
-#    image: maven:3
-#    stop_signal: SIGKILL
-#    stdin_open: true
-#    tty: true
-#    working_dir: $PWD
-#    volumes:
-#      - $PWD:$PWD
-#      - /var/run/docker.sock:/var/run/docker.sock
-#      # Maven cache (optional)
-#      - ~/.m2:/root/.m2
-#    command: mvn test
+  tests:
+    image: maven:3
+    stop_signal: SIGKILL
+    stdin_open: true
+    tty: true
+    working_dir: $PWD
+    volumes:
+      - $PWD:$PWD
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Maven cache (optional)
+      - ~/.m2:/root/.m2
+    command: mvn test
 
   app:
     container_name: 'payments'
     image: ${image}
     build:
       dockerfile: Dockerfile
-      context: ../
+      context: ./
     env_file:
-      - ./config/.env
+      - .env
     ports:
       - "8080:8080"
     #    depends_on:
