@@ -7,5 +7,5 @@
   "iuv_generator_host": "https://api.dev.platform.pagopa.it/shared/iuv-generator-service/v1",
   "api_config_host": "https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1",
   "gpd_host": "https://api.dev.platform.pagopa.it/gpd/api/v1",
-  "PAYMENTS_SUBSCRIPTION_KEY": "insert_here_your_subkey"
+  "PAYMENTS_SUBSCRIPTION_KEY": "insert_here_your_key"
 }
