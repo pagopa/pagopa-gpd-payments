@@ -1,20 +1,18 @@
 const axios = require("axios");
 const fs = require('fs');
 
-
-
-function get(url) {
-    return axios.get(url)
-        .then(res => {
-            return res;
-        })
-        .catch(error => {
-            return error.response;
-        });
+function get(url, config) {
+    return axios.get(url, config)
+         .then(res => {
+             return res;
+         })
+         .catch(error => {
+             return error.response;
+         });
 }
 
-function post(url, body) {
-    return axios.post(url, body)
+function post(url, body, config) {
+    return axios.post(url, body, config)
         .then(res => {
             return res;
         })
@@ -44,20 +42,4 @@ function del(url) {
         });
 }
 
-function call(method, url, body) {
-    if (method === 'GET') {
-        return get(url)
-    }
-    if (method === 'POST') {
-        return post(url, body)
-    }
-    if (method === 'PUT') {
-        return put(url, body)
-    }
-    if (method === 'DELETE') {
-        return del(url)
-    }
-
-}
-
-module.exports = {get, post, put, del, call}
+module.exports = {get, post, put, del}
