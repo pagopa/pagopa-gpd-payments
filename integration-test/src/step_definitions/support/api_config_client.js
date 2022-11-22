@@ -8,7 +8,8 @@ const api_config_host = properties.api_config_host;
 function apiConfigHealthCheck() {    
     return get(api_config_host + `/info`, {
         headers: {
-            "Ocp-Apim-Subscription-Key": process.env.API_CONFIG_SUBSCRIPTION_KEY
+            /* "Ocp-Apim-Subscription-Key": process.env.PAYMENTS_SUBSCRIPTION_KEY */
+            "Ocp-Apim-Subscription-Key": properties.PAYMENTS_SUBSCRIPTION_KEY
         }
     })
 }

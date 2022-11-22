@@ -29,14 +29,12 @@ Given('GPD running', async function () {
     assert.strictEqual(response.status, 200);
 });
 Given('IUV Generator running', async function () {
-	//TODO expose health check on APIM
-    //const response = await iuvGenHealthCheck();
-    //assert.strictEqual(response.status, 200);
+	const response = await iuvGenHealthCheck();
+    assert.strictEqual(response.status, 200);
 });
 Given('DonationService running', async function () {
-	//TODO expose health check on APIM
-    //const response = await donationHealthCheck();
-    //assert.strictEqual(response.status, 200);
+	const response = await donationHealthCheck();
+    assert.strictEqual(response.status, 200);
 });
 Given('ApiConfig running', async function () {
     const response = await apiConfigHealthCheck();
@@ -93,7 +91,7 @@ When('the client sends the DemandPaymentNoticeRequest', async function () {
                 <idPA>${organizationCode}</idPA>
                 <idBrokerPA>15376371009</idBrokerPA>
                 <idStation>15376371009_01</idStation>
-                <idServizio>12345</idServizio>
+                <idServizio>12346</idServizio>
                 <datiSpecificiServizioRequest>PHNlcnZpY2UgeG1sbnM9Imh0dHA6Ly9QdW50b0FjY2Vzc29QU1Auc3Bjb29wLmdvdi5pdC9HZW5lcmFsU2VydmljZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vUHVudG9BY2Nlc3NvUFNQLnNwY29vcC5nb3YuaXQvR2VuZXJhbFNlcnZpY2Ugc2NoZW1hLnhzZCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+CiAgPGFtb3VudD4xMDA8L2Ftb3VudD4KICA8ZGVzY3JpcHRpb24+ZG9uYXRpb248L2Rlc2NyaXB0aW9uPgo8L3NlcnZpY2U+</datiSpecificiServizioRequest>
             </pafn:paDemandPaymentNoticeRequest>
         </soapenv:Body>
@@ -106,7 +104,7 @@ When(/^the client sends a wrong DemandPaymentNoticeRequest$/, async function () 
                 <idPA>${organizationCode}</idPA>
                 <idBrokerPA>15376371009</idBrokerPA>
                 <idStation>15376371009_01</idStation>
-                <idServizio>12345</idServizio>
+                <idServizio>12347</idServizio>
                 <datiSpecificiServizioRequest>PHNlcnZpY2UgeG1sbnM9Imh0dHA6Ly9QdW50b0FjY2Vzc29QU1Auc3Bjb29wLmdvdi5pdC9HZW5lcmFsU2VydmljZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vUHVudG9BY2Nlc3NvUFNQLnNwY29vcC5nb3YuaXQvR2VuZXJhbFNlcnZpY2Ugc2NoZW1hLnhzZCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+CiAgPGRlc2NyaXB0aW9uPmRvbmF0aW9uPC9kZXNjcmlwdGlvbj4KPC9zZXJ2aWNlPg==</datiSpecificiServizioRequest>
             </pafn:paDemandPaymentNoticeRequest>
         </soapenv:Body>
