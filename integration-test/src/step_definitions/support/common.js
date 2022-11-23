@@ -32,8 +32,8 @@ function put(url, body) {
 }
 
 
-function del(url) {
-    return axios.delete(url)
+function del(url, config) {
+    return axios.delete(url, config)
         .then(res => {
             return res;
         })

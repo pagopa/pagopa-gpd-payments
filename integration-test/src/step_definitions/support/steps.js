@@ -8,9 +8,8 @@ const {gpdHealthCheck} = require("./gpd_client");
 const assert = require("assert");
 const fs = require("fs");
 
-let rawdata = fs.readFileSync('./config/properties.json');
-let properties = JSON.parse(rawdata);
-const donation_host = properties.donation_host;
+const donation_host = process.env.donation_host;
+
 
 let responseToCheck;
 let serviceCode;
@@ -42,8 +41,7 @@ Given('ApiConfig running', async function () {
 });
 
 Given('the service {string} for donations', async function (serviceId) {
-    serviceCode = serviceId;
-    await deleteService(serviceCode)
+    await deleteService(serviceId)
     let response = await createService({
         "id": serviceId,
         "name": "DonationpagoPAservice",
@@ -51,7 +49,7 @@ Given('the service {string} for donations', async function (serviceId) {
         "transferCategory": "tassonomia-1",
         "status": "ENABLED",
         "endpoint": donation_host,
-        "basePath": "/donations/paymentoptions",
+        "basePath": "/paymentoptions",
         "properties": [
             {
                 "name": "amount",
@@ -91,7 +89,7 @@ When('the client sends the DemandPaymentNoticeRequest', async function () {
                 <idPA>${organizationCode}</idPA>
                 <idBrokerPA>15376371009</idBrokerPA>
                 <idStation>15376371009_01</idStation>
-                <idServizio>12346</idServizio>
+                <idServizio>12345</idServizio>
                 <datiSpecificiServizioRequest>PHNlcnZpY2UgeG1sbnM9Imh0dHA6Ly9QdW50b0FjY2Vzc29QU1Auc3Bjb29wLmdvdi5pdC9HZW5lcmFsU2VydmljZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vUHVudG9BY2Nlc3NvUFNQLnNwY29vcC5nb3YuaXQvR2VuZXJhbFNlcnZpY2Ugc2NoZW1hLnhzZCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+CiAgPGFtb3VudD4xMDA8L2Ftb3VudD4KICA8ZGVzY3JpcHRpb24+ZG9uYXRpb248L2Rlc2NyaXB0aW9uPgo8L3NlcnZpY2U+</datiSpecificiServizioRequest>
             </pafn:paDemandPaymentNoticeRequest>
         </soapenv:Body>
@@ -104,7 +102,7 @@ When(/^the client sends a wrong DemandPaymentNoticeRequest$/, async function () 
                 <idPA>${organizationCode}</idPA>
                 <idBrokerPA>15376371009</idBrokerPA>
                 <idStation>15376371009_01</idStation>
-                <idServizio>12347</idServizio>
+                <idServizio>12345</idServizio>
                 <datiSpecificiServizioRequest>PHNlcnZpY2UgeG1sbnM9Imh0dHA6Ly9QdW50b0FjY2Vzc29QU1Auc3Bjb29wLmdvdi5pdC9HZW5lcmFsU2VydmljZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vUHVudG9BY2Nlc3NvUFNQLnNwY29vcC5nb3YuaXQvR2VuZXJhbFNlcnZpY2Ugc2NoZW1hLnhzZCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+CiAgPGRlc2NyaXB0aW9uPmRvbmF0aW9uPC9kZXNjcmlwdGlvbj4KPC9zZXJ2aWNlPg==</datiSpecificiServizioRequest>
             </pafn:paDemandPaymentNoticeRequest>
         </soapenv:Body>
