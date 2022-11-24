@@ -49,7 +49,7 @@ Given('the service {string} for donations', async function (serviceId) {
         "transferCategory": "tassonomia-1",
         "status": "ENABLED",
         "endpoint": donation_host,
-        "basePath": "/paymentoptions",
+        "basePath": "/donations/paymentoptions",
         "properties": [
             {
                 "name": "amount",
