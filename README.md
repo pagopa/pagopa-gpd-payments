@@ -17,7 +17,7 @@
   
 ---
 ## Api Documentation 📖
-See the [OpenApi 3 here.](https://editor.swagger.io/?url=https://raw.githubusercontent.com/pagopa/pagopa-debt-position/main/payments/openapi/openapi.json)
+See the [OpenApi 3 here.](https://editor.swagger.io/?url=https://raw.githubusercontent.com/pagopa/pagopa-gpd-payments/main/openapi/openapi.json)
 
 ---
 
