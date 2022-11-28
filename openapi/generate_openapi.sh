@@ -7,6 +7,7 @@ fi
 
 if ! $(curl --output /dev/null --silent --head --fail http://localhost:8080/actuator/info); then
   # create containers
+  echo $PWD
   cd ../docker || exit
   sh ./run_docker.sh "$1" "$2"
   cd ../openapi || exit
