@@ -15,18 +15,20 @@ To invoke k6 load test passing parameter use -e (or --env) flag:
 
 ## 01. Payment workflow
 
-Call to test the payment workflow:
-On Gpd
-1. create debt position without validity date
-2. publish the debt position
-On Payments
-1. VerifyPayment
-2. ActivatePayment
-3. SendRT
+### Description
 
-For Azure
+The test consists of several API call to test the payment workflow:
+ - Calling the service GPD
+   1. create debt position without validity date
+   2. publish the debt position
+ - Calling the service Payments
+   1. VerifyPayment
+   2. ActivatePayment
+   3. SendRT
 
-_Payment workflow_
+### Payment workflow
+
+For testing the workflow previously defined, execute the following commands with the needed parameters:
 ```
 k6 run -e BASE_GPD_URL=https://api.dev.platform.pagopa.it/gpd/api/v1 -e BASE_PAYMENTS_URL=https://api.dev.platform.pagopa.it/gpd-payments/api/v1 -e ID_BROKER_PA=15376371009 -e ID_STATION=15376371009_01 -e ID_PA=77777777777 -e PAYMENTS_SUBKEY=insert_here_your_subkey performance-test/src/payments_workflow.js
 ```
@@ -34,29 +36,35 @@ k6 run -e BASE_GPD_URL=https://api.dev.platform.pagopa.it/gpd/api/v1 -e BASE_PAY
 
 ## 02. CU Scenario Payment workflow
 
-Call to test the payment workflow: 
-> Given a CSV input file (see `example.csv` file)
+### Description
 
-On Payments
-1. VerifyPayment
-2. ActivatePayment
-3. SendRT
+Given a CSV input file (see `example.csv` file), the test consists of several API call to test the payment workflow:
+- Calling the service
+  1. VerifyPayment
+  2. ActivatePayment
+  3. SendRT
 
-For Azure   
+### Payment workflow
 
-_CU scenario : Payment workflow_ given a specific input csv
+For testing the workflow previously defined, execute the following commands with the needed parameters:
 ```
-k6 run -e FILENAME=example.csv -e BASE_PAYMENTS_URL=https://api.dev.platform.pagopa.it/gpd-payments/api/v1 -e ID_BROKER_PA=15376371009 -e ID_STATION=15376371009_01 payments/load-test/src/payments_workflow.oneshot.js
+k6 run -e FILENAME=example.csv -e BASE_PAYMENTS_URL=https://api.dev.platform.pagopa.it/gpd-payments/api/v1 -e ID_BROKER_PA=15376371009 -e ID_STATION=15376371009_01 performance-test/src/payments_workflow.oneshot.js
 ```
 
 
 ## 03. DemandNotice
 
-To run the test:
+### Description
 
+The test consist of some API call to test the payment workflow on demand payment notice
+
+### Payment workflow
+
+For testing the workflow previously defined, execute the following commands with the needed parameters:
 ```
-k6 run --env VARS=dev.environment.json --env TEST_TYPE=./test-types/load.json create_spontaneous_payment.js
+k6 run --env VARS=dev.environment.json --env TEST_TYPE=./test-types/load.json performance-test/src/payments_demand_notice.js
 ```
 
-1. See `./test-type` folder for `TEST_TYPE` values
-2. See `dev.environment.json` file to set your environment
+In particular:
+ - See `./test-type` folder for the different `TEST_TYPE` values from the defined folders
+ - See `dev.environment.json` file to set your environment variables
