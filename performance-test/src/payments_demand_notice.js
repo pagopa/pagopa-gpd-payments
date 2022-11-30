@@ -15,6 +15,7 @@ const vars = varsArray[0];
 const paymentsHost = `${vars.payments_host}`;
 const gpsHost = `${vars.gps_host}`;
 const donation_host = `${vars.donation_host}`;
+const subscriptionKey = `${vars.subscription_key}`
 
 
 export function setup() {
@@ -24,8 +25,8 @@ export function setup() {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            ''
-        },
+            'Ocp-Apim-Subscription-Key': subscriptionKey
+        }
     };
     let payload = JSON.stringify({
         "id": "12345",
