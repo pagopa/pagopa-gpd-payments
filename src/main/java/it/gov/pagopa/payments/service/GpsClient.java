@@ -1,7 +1,7 @@
 package it.gov.pagopa.payments.service;
 
 import feign.FeignException;
-import it.gov.pagopa.payments.config.FeignConfig;
+import it.gov.pagopa.payments.config.AuthFeignConfig;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
 import it.gov.pagopa.payments.model.spontaneous.SpontaneousPaymentModel;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 
-@FeignClient(value = "gps", url = "${service.gps.host}", configuration = FeignConfig.class)
+@FeignClient(value = "gps", url = "${service.gps.host}", configuration = AuthFeignConfig.class)
 public interface GpsClient {
 
     @Retryable(exclude = FeignException.FeignClientException.class, maxAttemptsExpression = "${retry.maxAttempts}",
