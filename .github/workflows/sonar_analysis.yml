@@ -22,7 +22,7 @@ jobs:
         uses: jacopocarlini/azure-pipelines@v1.3
         with:
           azure-devops-project-url: https://dev.azure.com/pagopaspa/pagoPA-projects
-          azure-pipeline-name: 'pagopa-gdb-payments.code-review' # TODO: set the name
+          azure-pipeline-name: 'pagopa-gdb-payments.code-review'
           azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }} # TODO: set this secret in repository
           azure-pipeline-variables: '{"system.debug": "true"}'
 
