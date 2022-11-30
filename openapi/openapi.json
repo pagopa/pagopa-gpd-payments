@@ -109,13 +109,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProblemJson"
+                                    "$ref": "#/components/schemas/AppInfo"
                                 }
                             }
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
+                    "429": {
+                        "description": "Too many requests",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
@@ -233,6 +233,13 @@
                                     "$ref": "#/components/schemas/ReceiptsInfo"
                                 }
                             }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemJson"
+                                }
+                            }
                         }
                     },
                     "200": {
@@ -253,8 +260,8 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "No receipts found.",
+                    "500": {
+                        "description": "Service unavailable.",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
@@ -353,9 +360,9 @@
                             }
                         },
                         "content": {
-                            "application/json": {
+                            "application/xml": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProblemJson"
+                                    "type": "string"
                                 }
                             }
                         }
@@ -405,7 +412,7 @@
                             }
                         },
                         "content": {
-                            "application/xml": {
+                            "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ProblemJson"
                                 }
