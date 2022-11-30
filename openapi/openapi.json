@@ -4,7 +4,7 @@
         "title": "PagoPA API Payments",
         "description": "Payments",
         "termsOfService": "https://www.pagopa.gov.it/",
-        "version": "0.0.13"
+        "version": "0.0.16-4"
     },
     "servers": [
         {
@@ -27,8 +27,48 @@
                 "description": "Return OK if application is started",
                 "operationId": "healthCheck",
                 "responses": {
+                    "429": {
+                        "description": "Too many requests",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
                     "400": {
                         "description": "Bad Request",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemJson"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Service unavailable",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
@@ -56,28 +96,6 @@
                             }
                         }
                     },
-                    "429": {
-                        "description": "Too many requests",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
                     "200": {
                         "description": "OK",
                         "headers": {
@@ -92,24 +110,6 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/AppInfo"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Service unavailable",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProblemJson"
                                 }
                             }
                         }
@@ -195,6 +195,24 @@
                     }
                 ],
                 "responses": {
+                    "500": {
+                        "description": "Service unavailable.",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemJson"
+                                }
+                            }
+                        }
+                    },
                     "401": {
                         "description": "Wrong or missing function key.",
                         "headers": {
@@ -226,24 +244,6 @@
                     },
                     "404": {
                         "description": "No receipts found.",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProblemJson"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Service unavailable.",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
@@ -309,13 +309,20 @@
                     }
                 ],
                 "responses": {
-                    "401": {
-                        "description": "Wrong or missing function key.",
+                    "500": {
+                        "description": "Service unavailable.",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
                                 "schema": {
                                     "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemJson"
                                 }
                             }
                         }
@@ -343,25 +350,13 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "Unable to process the request.",
+                    "401": {
+                        "description": "Wrong or missing function key.",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
                                 "schema": {
                                     "type": "string"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/xml": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProblemJson"
-                                }
-                            },
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProblemJson"
                                 }
                             }
                         }
@@ -384,8 +379,8 @@
                             }
                         }
                     },
-                    "500": {
-                        "description": "Service unavailable.",
+                    "422": {
+                        "description": "Unable to process the request.",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
@@ -395,6 +390,11 @@
                             }
                         },
                         "content": {
+                            "application/xml": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemJson"
+                                }
+                            },
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ProblemJson"
@@ -426,6 +426,28 @@
     },
     "components": {
         "schemas": {
+            "ProblemJson": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "A short, summary of the problem type. Written in english and readable for engineers (usually not suited for non technical stakeholders and not localized); example: Service Unavailable"
+                    },
+                    "status": {
+                        "maximum": 600,
+                        "minimum": 100,
+                        "type": "integer",
+                        "description": "The HTTP status code generated by the origin server for this occurrence of the problem.",
+                        "format": "int32",
+                        "example": 200
+                    },
+                    "detail": {
+                        "type": "string",
+                        "description": "A human readable explanation specific to this occurrence of the problem.",
+                        "example": "There was an error processing the request"
+                    }
+                }
+            },
             "PageInfo": {
                 "required": [
                     "items_found",
@@ -484,28 +506,6 @@
                     },
                     "page_info": {
                         "$ref": "#/components/schemas/PageInfo"
-                    }
-                }
-            },
-            "ProblemJson": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "description": "A short, summary of the problem type. Written in english and readable for engineers (usually not suited for non technical stakeholders and not localized); example: Service Unavailable"
-                    },
-                    "status": {
-                        "maximum": 600,
-                        "minimum": 100,
-                        "type": "integer",
-                        "description": "The HTTP status code generated by the origin server for this occurrence of the problem.",
-                        "format": "int32",
-                        "example": 200
-                    },
-                    "detail": {
-                        "type": "string",
-                        "description": "A human readable explanation specific to this occurrence of the problem.",
-                        "example": "There was an error processing the request"
                     }
                 }
             },
