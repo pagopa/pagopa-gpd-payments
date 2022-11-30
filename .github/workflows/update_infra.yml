@@ -28,13 +28,13 @@ jobs:
       - name: Create pull request
         uses: jacopocarlini/action-pull-request-another-repo@main
         env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }} # TODO: set this secret in repository
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }} # repository secret
         with:
           source_folder: 'infra'
           destination_repo: 'pagopa/pagopa-infra'
-          destination_folder: 'src/your-path-here/v1' # TODO: set the path
+          destination_folder: 'src/core/api/gpd_api/payments/v1'
           destination_base_branch: 'main'
-          destination_head_branch: 'projectName-swagger-update' # TODO: set the name
+          destination_head_branch: 'gpd-payments-swagger-update'
           user_email: 'github-bot@pagopa.it'
           user_name: 'pagopa-github-bot'
           allow_force_push: 'true'
