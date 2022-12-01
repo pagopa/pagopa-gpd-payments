@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.service;
 
+import it.gov.pagopa.payments.config.AuthFeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.retry.annotation.Backoff;
@@ -16,7 +17,7 @@ import it.gov.pagopa.payments.model.PaymentOptionModelResponse;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
 
 
-@FeignClient(value = "gpd", url = "${service.gpd.host}", configuration = FeignConfig.class)
+@FeignClient(value = "gpd", url = "${service.gpd.host}", configuration = AuthFeignConfig.class)
 public interface GpdClient {
 
     @Retryable(exclude = FeignException.FeignClientException.class, maxAttemptsExpression = "${retry.maxAttempts}",
