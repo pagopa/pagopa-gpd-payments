@@ -242,8 +242,8 @@
                             }
                         }
                     },
-                    "200": {
-                        "description": "Obtained all organization payment positions.",
+                    "500": {
+                        "description": "Service unavailable.",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
@@ -273,7 +273,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ProblemJson"
+                                    "$ref": "#/components/schemas/ReceiptsInfo"
                                 }
                             }
                         }
@@ -390,13 +390,20 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Wrong or missing function key.",
+                    "500": {
+                        "description": "Service unavailable.",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
                                 "schema": {
                                     "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemJson"
                                 }
                             }
                         }
