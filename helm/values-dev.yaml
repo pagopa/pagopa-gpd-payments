@@ -66,7 +66,7 @@ microservice-chart:
           type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
           value: "75"
   envConfig:
-    WEBSITE_SITE_NAME: 'pagopagpdpaymentsservice'
+    WEBSITE_SITE_NAME: 'pagopa-d-gpd-payments-service'
     PAA_ID_INTERMEDIARIO: "15376371009"
     PAA_STAZIONE_INT: "15376371009_01"
     RETRY_MAX_DELAY: "2000"
