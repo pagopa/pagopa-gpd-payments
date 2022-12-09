@@ -1,24 +1,30 @@
 microservice-chart:
-  namespace: "your-namespace" # TODO: set your AKS namespace
+  namespace: "gps"
   nameOverride: ""
   fullnameOverride: ""
   image:
-    repository: pagopadcommonacr.azurecr.io/yourname # TODO
-    tag: "0.0.3"
+    repository: pagopadcommonacr.azurecr.io/pagopagpdpaymentsservice
+    tag: "0.0.1"
     pullPolicy: Always
   livenessProbe:
     httpGet:
-      path: /actuator/health/liveness
+      path: /info
       port: 8080
     initialDelaySeconds: 90
     failureThreshold: 6
     periodSeconds: 10
   readinessProbe:
     httpGet:
-      path: /actuator/health/readiness
+      path: /info
       port: 8080
     initialDelaySeconds: 90
     failureThreshold: 6
+    periodSeconds: 10
+  startupProbe:
+    httpGet:
+      path: /info
+      port: 8080
+    failureThreshold: 30
     periodSeconds: 10
   deployment:
     create: true
@@ -28,8 +34,8 @@ microservice-chart:
     port: 8080
   ingress:
     create: true
-    host: "your.host" # TODO: set the host
-    path: /your-path-here/(.*) # TODO: set your path
+    host: "weudev.gps.internal.dev.platform.pagopa.it"
+    path: /pagopa-gpd-payments/(.*)
   serviceAccount:
     create: false
     annotations: {}
@@ -49,8 +55,8 @@ microservice-chart:
       cpu: "0.25"
   autoscaling:
     enable: true
-    minReplica: 3
-    maxReplica: 10
+    minReplica: 1
+    maxReplica: 3
     pollingInterval: 10 # seconds
     cooldownPeriod: 50 # seconds
     triggers:
@@ -60,13 +66,26 @@ microservice-chart:
           type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
           value: "75"
   envConfig:
-    # TODO: set your name
-    WEBSITE_SITE_NAME: 'yourProjectName' # required to show cloud role name in application insights
+    WEBSITE_SITE_NAME: 'pagopagpdpaymentsservice'
+    PAA_ID_INTERMEDIARIO: "15376371009"
+    PAA_STAZIONE_INT: "15376371009_01"
+    RETRY_MAX_DELAY: "2000"
+    RETRY_MAX_ATTEMPTS: "1"
+    CONNECTION_TIMEOUT: "3000"
+    LOGGING_LEVEL: "INFO"
+    CACHE_SIZE: "1000"
+    CACHE_EXPIRATION_TIME: "0.5d"
+    RECEIPTS_TABLE: "pagopadpaymentssareceiptstable"
+    API_CONFIG_HOST: "https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1"
+    GPS_HOST: "https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1"
+    GPD_HOST: "https://api.dev.platform.pagopa.it/gpd/api/v1"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-d-connection-string'
+    PAYMENTS_SA_CONNECTION_STRING: "gpd-payments-d-sa-connection-string"
+    APICONFIG_SUBSCRIPTION_KEY: "gpd-d-apiconfig-subscription-key"
   keyvault:
-    name: "pagopa-d-afm-kv"
+    name: "pagopa-d-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
   nodeSelector: {}
   tolerations: []
