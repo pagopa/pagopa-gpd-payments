@@ -82,6 +82,8 @@ microservice-chart:
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-u-connection-string'
+    PAYMENTS_SA_CONNECTION_STRING: "gpd-payments-u-sa-connection-string"
+    APICONFIG_SUBSCRIPTION_KEY: "gpd-u-apiconfig-subscription-key"
   keyvault:
     name: "pagopa-u-afm-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
