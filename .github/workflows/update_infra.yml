@@ -32,7 +32,7 @@ jobs:
         with:
           source_folder: 'infra'
           destination_repo: 'pagopa/pagopa-infra'
-          destination_folder: 'src/core/api/gpd_api/payments/v1'
+          destination_folder: 'src/domains/gps-app/api/payments-service/v1/rest/external/'
           destination_base_branch: 'main'
           destination_head_branch: 'gpd-payments-swagger-update'
           user_email: 'github-bot@pagopa.it'
