@@ -1,0 +1,16 @@
+{
+  "environment": [
+    {
+      "env": "uat",
+      "payments_host": "https://api.uat.platform.pagopa.it/gpd-payments/api/v1",
+      "gps_host": "https://api.uat.platform.pagopa.it/gps/spontaneous-payments-service/v1",
+      "donation_host": "https://api.uat.platform.pagopa.it/gps/donation-service/v1",
+      "base_gpd_url": "https://api.uat.platform.pagopa.it/gpd/api/v1",
+      "base_payments_url": "https://api.uat.platform.pagopa.it/gpd-payments/api/v1",
+      "id_broker_pa": "15376371009",
+      "id_station": "15376371009_01",
+      "id_pa": "77777777777",
+      "oneshot_filename": "example.csv"
+    }
+  ]
+}

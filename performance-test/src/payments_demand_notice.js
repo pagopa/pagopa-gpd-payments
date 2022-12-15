@@ -1,7 +1,7 @@
 import http from 'k6/http';
-import {check} from 'k6';
-import {parseHTML} from "k6/html";
-import {SharedArray} from 'k6/data';
+import { check } from 'k6';
+import { parseHTML } from "k6/html";
+import { SharedArray } from 'k6/data';
 // This will export to HTML as filename "result.html" AND also stdout using the text summary
 import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
@@ -15,7 +15,8 @@ const vars = varsArray[0];
 const paymentsHost = `${vars.payments_host}`;
 const gpsHost = `${vars.gps_host}`;
 const donation_host = `${vars.donation_host}`;
-const subscriptionKey = `${vars.subscription_key}`
+
+const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
 
 
 export function setup() {
