@@ -11,9 +11,6 @@ pool:
   name: $(poolImage)
 
 parameters:
-  - name: "API_SUBSCRIPTION_KEY"
-    displayName: "API_SUBSCRIPTION_KEY"
-    type: string
   - name: "ENVIRONMENT"
     displayName: "Environment"
     type: string
@@ -47,7 +44,5 @@ steps:
     displayName: Pull k6 image
   - script: |
       cd ./performance-test
-      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} ${{ parameters.DB_NAME }} ${{ parameters.API_SUBSCRIPTION_KEY }}
+      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} ${{ parameters.DB_NAME }} NO_API_KEY
     displayName: Run k6 ${{ parameters.SCRIPT }} on ${{ parameters.ENVIRONMENT }}
-    env:
-      x: y
