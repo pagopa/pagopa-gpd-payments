@@ -75,7 +75,7 @@ microservice-chart:
     LOGGING_LEVEL: "INFO"
     CACHE_SIZE: "1000"
     CACHE_EXPIRATION_TIME: "1d"
-    RECEIPTS_TABLE: "pagopadpaymentssareceiptstable"
+    RECEIPTS_TABLE: "pagopadweugpspaymentssareceiptstable"
     API_CONFIG_HOST: "https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.dev.platform.pagopa.it/gpd/api/v1"
