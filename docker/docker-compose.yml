@@ -4,6 +4,7 @@ services:
   app:
     container_name: 'payments'
     image: ${image}
+    platform: linux/amd64
     build:
       dockerfile: Dockerfile
       context: ../
