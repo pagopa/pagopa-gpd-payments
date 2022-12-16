@@ -35,7 +35,7 @@ parameters:
     displayName: "K6 DB name"
     type: string
     values:
-      - gpdpayments_service-k6
+      - gpdpaymentsk6
 
 steps:
   - script: |
