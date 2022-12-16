@@ -3,7 +3,7 @@ microservice-chart:
   nameOverride: ""
   fullnameOverride: ""
   image:
-    repository: pagopadcommonacr.azurecr.io/gpdpaymentsaks
+    repository: pagopadcommonacr.azurecr.io/pagopagpdpayments
     tag: "0.0.16-4"
     pullPolicy: Always
   livenessProbe:
