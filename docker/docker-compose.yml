@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    container_name: 'gpdpaymentsaks'
+    container_name: 'pagopagpdpayments'
     image: ${image}
     build:
       dockerfile: Dockerfile
