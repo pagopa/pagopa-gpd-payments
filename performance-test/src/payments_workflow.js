@@ -2,35 +2,28 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { parseHTML } from "k6/html";
 import { sleep } from 'k6';
+import { SharedArray } from 'k6/data';
 import { makeidNumber, makeidMix, randomString } from './modules/helpers.js';
 
-export let options = {
-	summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'p(99.99)', 'count'],
-	stages: [
-		{ duration: '1m', target: 50 }, // simulate ramp-up of traffic from 1 to 50 users over 1 minutes.
-	],
-	thresholds: {
-		http_req_failed: ['rate<0.01'], // http errors should be less than 1%
-		http_req_duration: ['p(99)<1500'], // 99% of requests must complete below 1500ms
-		'http_req_duration{gpdMethod:CreateDebtPosition}': ['p(95)<1000'], // threshold on creation API requests only
-		'http_req_duration{gpdMethod:PublishDebtPosition}': ['p(95)<1000'], // threshold on publication API requests only
-		'http_req_duration{paymentRequest:VerifyPayment}': ['p(95)<1000'], // threshold on payment API requests only
-		'http_req_duration{paymentRequest:GetPayment}': ['p(95)<1000'], // threshold on report API requests only
-		'http_req_duration{paymentRequest:SendRT}': ['p(95)<1000'], // threshold on get API requests only
-	},
+export let options = JSON.parse(open(__ENV.TEST_TYPE));
 
-};
+// read configuration
+const varsArray = new SharedArray('vars', function() {
+	return JSON.parse(open(`./${__ENV.VARS}`)).environment;
+});
+const vars = varsArray[0];
+
+// initialize parameters taken from env
+const urlGPDBasePath = `${vars.gpd_host}`
+const urlPaymentsBasePath = `${vars.soap_payments_host}`
+const creditorInstitutionCode = `${vars.id_pa}`
+const idBrokerPA = `${vars.id_broker_pa}`
+const idStation = `${vars.id_station}`
+const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
+
+const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
 
 export default function() {
-
-    // initialize parameters taken from env
-	var urlGPDBasePath = `${__ENV.BASE_GPD_URL}`
-	var urlPaymentsBasePath = `${__ENV.BASE_PAYMENTS_URL}`
-	var creditorInstitutionCode = `${__ENV.ID_PA}`
-	var idBrokerPA = `${__ENV.ID_BROKER_PA}`
-	var idStation = `${__ENV.ID_STATION}`
-	var service = `${__ENV.LOCAL}`.toLowerCase() === "yes" ? "partner" : ""
-	var subscriptionKey = `${__ENV.PAYMENTS_SUBKEY}`
 
     // initialize constant values for this execution
 	const iupd = makeidMix(35);
