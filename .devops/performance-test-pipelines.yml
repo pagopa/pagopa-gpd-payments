@@ -1,20 +1,24 @@
 # azure-pipelines.yml
 trigger: none
 
+variables:
+  ${{ if eq(parameters['ENVIRONMENT'], 'dev') }}:
+    poolImage: 'pagopa-dev-loadtest-linux'
+    apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
+  ${{ if eq(parameters['ENVIRONMENT'], 'uat') }}:
+    poolImage: 'pagopa-uat-loadtest-linux'
+    apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
+
 pool:
-  name: pagopa-dev-loadtest-linux
+  name: $(poolImage)
 
 parameters:
-  - name: "API_SUBSCRIPTION_KEY"
-    displayName: "API_SUBSCRIPTION_KEY"
-    type: string
   - name: "ENVIRONMENT"
     displayName: "Environment"
     type: string
     values:
       - "dev"
       - "uat"
-      - "prod"
   - name: "TEST_TYPE"
     displayName: "Test type"
     type: string
@@ -22,22 +26,25 @@ parameters:
       - "load"
       - "spike"
       - "stress"
-      - "soak"
-      - # TODO: add your values
   - name: "SCRIPT"
     displayName: "Script name"
     type: string
     values:
-      - yourscriptname # TODO: add your script
+      - payments_demand_notice
+      - payments_workflow
+      - payments_workflow.oneshot
+  - name: "DB_NAME"
+    displayName: "K6 DB name"
+    type: string
+    values:
+      - gpdpaymentsk6
 
 steps:
   - script: |
-      cd ./performance-tests/src
+      cd ./performance-test/src
       docker pull grafana/k6
     displayName: Pull k6 image
-
-    # TODO: add your env params
   - script: |
       cd ./performance-test
-      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} afmcalculatork6 ${{ parameters.API_SUBSCRIPTION_KEY }}
+      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} ${{ parameters.DB_NAME }} $(apiConfigSubscriptionKey)
     displayName: Run k6 ${{ parameters.SCRIPT }} on ${{ parameters.ENVIRONMENT }}

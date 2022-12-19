@@ -12,10 +12,10 @@
   "stages": [
     {
       "duration": "1s",
-      "target": 1
+      "target": 5
     },
     {
-      "duration": "10s",
+      "duration": "2s",
       "target": 5
     },
     {
@@ -30,9 +30,23 @@
     "http_req_duration": [
       "p(99)<3000"
     ],
-    "http_req_duration{paymentRequest:DemandPaymentNotice}": [
+    "http_req_duration{gpdMethod:CreateDebtPosition}": [
+      "p(95)<1000"
+    ],
+    "http_req_duration{gpdMethod:PublishDebtPosition}": [
+      "p(95)<1000"
+    ],
+    "http_req_duration{paymentRequest:VerifyPayment}": [
+      "p(95)<1000"
+    ],
+    "http_req_duration{paymentRequest:GetPayment}": [
+      "p(95)<1000"
+    ],
+    "http_req_duration{paymentRequest:SendRT}": [
       "p(95)<1000"
     ]
-  }
+  },
+  "setupTimeout": "360s",
+  "teardownTimeout": "360s"
 }
 
