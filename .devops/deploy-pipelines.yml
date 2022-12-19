@@ -220,3 +220,5 @@ stages:
                 cd ./integration-test/src
                 yarn install
                 yarn test:${{ parameters.ENV }}
+            env:
+              PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.API_SUBSCRIPTION_KEY }}
