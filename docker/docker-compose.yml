@@ -4,11 +4,14 @@ services:
   app:
     container_name: 'payments'
     image: ${image}
+    platform: linux/amd64
     build:
       dockerfile: Dockerfile
       context: ../
     env_file:
       - ./config/.env
+    environment:
+      - APICONFIG_SUBSCRIPTION_KEY=${PAYMENTS_SUBSCRIPTION_KEY}
     ports:
       - "8080:8080"
     #    depends_on:

@@ -9,7 +9,7 @@ RUN mvn clean package -Dmaven.test.skip=true
 #
 # Package stage
 #
-FROM adoptopenjdk/openjdk11:alpine-jre as builder
+FROM --platform=linux/amd64 adoptopenjdk/openjdk16:alpine as builder
 COPY --from=buildtime /build/target/*.jar application.jar
 RUN java -Djarmode=layertools -jar application.jar extract
 

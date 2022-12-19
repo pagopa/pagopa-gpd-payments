@@ -27,48 +27,19 @@
                 "description": "Return OK if application is started",
                 "operationId": "healthCheck",
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "429": {
+                        "description": "Too many requests",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
                                 "schema": {
                                     "type": "string"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AppInfo"
                                 }
                             }
                         }
                     },
                     "403": {
                         "description": "Forbidden",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "429": {
-                        "description": "Too many requests",
                         "headers": {
                             "X-Request-Id": {
                                 "description": "This header identifies the call",
@@ -96,6 +67,17 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Service unavailable",
                         "headers": {
@@ -110,6 +92,24 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ProblemJson"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppInfo"
                                 }
                             }
                         }
@@ -213,6 +213,17 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Wrong or missing function key.",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
                     "200": {
                         "description": "Obtained all organization payment positions.",
                         "headers": {
@@ -245,17 +256,6 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ProblemJson"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Wrong or missing function key.",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
-                                "schema": {
-                                    "type": "string"
                                 }
                             }
                         }
@@ -350,6 +350,17 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Wrong or missing function key.",
+                        "headers": {
+                            "X-Request-Id": {
+                                "description": "This header identifies the call",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
                     "200": {
                         "description": "Obtained receipt details.",
                         "headers": {
@@ -362,17 +373,6 @@
                         },
                         "content": {
                             "application/xml": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Wrong or missing function key.",
-                        "headers": {
-                            "X-Request-Id": {
-                                "description": "This header identifies the call",
                                 "schema": {
                                     "type": "string"
                                 }

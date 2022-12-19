@@ -1,5 +1,7 @@
 # example: sh ./run_integration_test.sh <local|dev|uat|prod>
 
+export PAYMENTS_SUBSCRIPTION_KEY=$2
+
 # create containers
 cd ../docker || exit
 sh ./run_docker.sh "$1"
