@@ -161,7 +161,7 @@ stages:
     dependsOn:
       - Release
       - Build
-      - Smoke_Test
+      # - Smoke_Test
     variables:
       deploy_version: $[ stageDependencies.Release.make_release.outputs['current_version.value'] ]
     jobs:
