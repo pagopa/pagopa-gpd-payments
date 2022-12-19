@@ -15,7 +15,7 @@ const vars = varsArray[0];
 
 // initialize parameters taken from env
 const urlGPDBasePath = `${vars.gpd_host}`
-const urlPaymentsBasePath = `${vars.soap_payments_url}`
+const urlPaymentsBasePath = `${vars.soap_payments_host}`
 const creditorInstitutionCode = `${vars.id_pa}`
 const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`

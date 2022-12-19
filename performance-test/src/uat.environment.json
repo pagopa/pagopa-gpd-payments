@@ -2,7 +2,7 @@
   "environment": [
     {
       "env": "uat",
-      "soap_payments_url": "https://api.uat.platform.pagopa.it/gps/gpd-payments/api/v1",
+      "soap_payments_host": "https://api.uat.platform.pagopa.it/gps/gpd-payments/api/v1",
       "rest_payments_host": "https://api.uat.platform.pagopa.it/gpd-payments-receipts/api/v1",
       "gps_host": "https://api.uat.platform.pagopa.it/gps/spontaneous-payments-service/v1",
       "donation_host": "https://api.uat.platform.pagopa.it/gps/donation-service/v1",

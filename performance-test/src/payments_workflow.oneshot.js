@@ -15,7 +15,7 @@ const vars = varsArray[0];
 const filename = `${vars.oneshot_filename}`;
 const data = open(filename);
 
-const urlPaymentsBasePath = `${vars.soap_payments_url}`
+const urlPaymentsBasePath = `${vars.soap_payments_host}`
 const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
@@ -26,7 +26,6 @@ export function setup() {
 
 export default function (results) {
     for (let row of results.data) {
-        // console.log(JSON.stringify(row));
         if (row.hasOwnProperty("pa_id_istat")) {
             callPayments(row.pa_id_istat, row.payment_notice_number, row.amount, `payment_token_${row.id}`, row.debtor_name, row.debtor_email, row.debtor_id_fiscal_code);
         }
@@ -43,19 +42,19 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
     let url = `${urlPaymentsBasePath}/${service}`;
 
     let payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-    <soapenv:Header />
-    <soapenv:Body>
-        <nod:paVerifyPaymentNoticeReq>
-            <idPA>${creditor_institution_code}</idPA>
-            <idBrokerPA>${idBrokerPA}</idBrokerPA>
-            <idStation>${idStation}</idStation>
-            <qrCode>
-                <fiscalCode>${creditor_institution_code}</fiscalCode>
-                <noticeNumber>${notice_number}</noticeNumber>
-            </qrCode>
-        </nod:paVerifyPaymentNoticeReq>
-    </soapenv:Body>
-</soapenv:Envelope>`;
+                       <soapenv:Header />
+                        <soapenv:Body>
+                            <nod:paVerifyPaymentNoticeReq>
+                                <idPA>${creditor_institution_code}</idPA>
+                                <idBrokerPA>${idBrokerPA}</idBrokerPA>
+                                <idStation>${idStation}</idStation>
+                                <qrCode>
+                                    <fiscalCode>${creditor_institution_code}</fiscalCode>
+                                    <noticeNumber>3${notice_number}</noticeNumber>
+                                </qrCode>
+                            </nod:paVerifyPaymentNoticeReq>
+                        </soapenv:Body>
+                    </soapenv:Envelope>`;
 
 
     let params = {
@@ -64,10 +63,7 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
             'SOAPAction': 'paVerifyPaymentNotice'
         },
     };
-    console.log(JSON.stringify(payload));
     let r = http.post(url, payload, params);
-    console.log(JSON.stringify(r));
-    console.log("VerifyPayment req - creditor_institution_code = " + creditor_institution_code + ", iuv = " + notice_number + ", Status = " + r.status);
     if (r.status != 200 && r.status != 504) {
         console.error("-> VerifyPayment req - creditor_institution_code = " + creditor_institution_code + ", iuv = " + notice_number + ", Status = " + r.status + ", Body=" + r.body);
     }
@@ -88,20 +84,20 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
         url = `${urlPaymentsBasePath}/${service}`;
 
         payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-    <soapenv:Header />
-    <soapenv:Body>
-        <pafn:paGetPaymentReq>
-            <idPA>${creditor_institution_code}</idPA>
-            <idBrokerPA>${idBrokerPA}</idBrokerPA>
-            <idStation>${idStation}</idStation>
-            <qrCode>
-                <fiscalCode>${creditor_institution_code}</fiscalCode>
-                <noticeNumber>${notice_number}</noticeNumber>
-            </qrCode>
-            <amount>${amount}</amount>
-        </pafn:paGetPaymentReq>
-    </soapenv:Body>
-</soapenv:Envelope>`;
+                        <soapenv:Header />
+                        <soapenv:Body>
+                            <pafn:paGetPaymentReq>
+                                <idPA>${creditor_institution_code}</idPA>
+                                <idBrokerPA>${idBrokerPA}</idBrokerPA>
+                                <idStation>${idStation}</idStation>
+                                <qrCode>
+                                    <fiscalCode>${creditor_institution_code}</fiscalCode>
+                                    <noticeNumber>3${notice_number}</noticeNumber>
+                                </qrCode>
+                                <amount>${amount}</amount>
+                            </pafn:paGetPaymentReq>
+                        </soapenv:Body>
+                    </soapenv:Envelope>`;
 
         params = {
             headers: {
@@ -132,74 +128,74 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
             url = `${urlPaymentsBasePath}/${service}`;
 
             payload = `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
-    <soapenv:Body>
-        <pafn:paSendRTReq>
-            <idPA>${creditor_institution_code}</idPA>
-            <idBrokerPA>${idBrokerPA}</idBrokerPA>
-            <idStation>${idStation}</idStation>
-            <receipt>
-                <receiptId>${receiptId}</receiptId>
-                <noticeNumber>${notice_number}</noticeNumber>
-                <fiscalCode>${creditor_institution_code}</fiscalCode>
-                <outcome>OK</outcome>
-                <creditorReferenceId>${notice_number}</creditorReferenceId>
-                <paymentAmount>${amount}</paymentAmount>
-                <description>test</description>
-                <companyName>company Name</companyName>
-                <officeName>office Name</officeName>
-                <debtor>
-                    <uniqueIdentifier>
-                        <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
-                        <entityUniqueIdentifierValue>${fiscalcode}</entityUniqueIdentifierValue>
-                    </uniqueIdentifier>
-                    <fullName>${debtorName}</fullName>
-                    <streetName>via roma</streetName>
-                    <civicNumber>1</civicNumber>
-                    <postalCode>00111</postalCode>
-                    <city>rome</city>
-                    <stateProvinceRegion>MI</stateProvinceRegion>
-                    <country>IT</country>
-                    <e-mail>${debtorMail}</e-mail>
-                </debtor>
-                <transferList>
-                    <transfer>
-                        <idTransfer>1</idTransfer>
-                        <transferAmount>${amount}</transferAmount>
-                        <fiscalCodePA>${creditor_institution_code}</fiscalCodePA>
-                        <IBAN>IT23X0000100001000000000999</IBAN>
-                        <remittanceInformation>remittanceInformation1</remittanceInformation>
-                        <transferCategory>G</transferCategory>
-                    </transfer>
-                </transferList>
-                <idPSP>88888888888</idPSP>
-                <pspFiscalCode>88888888888</pspFiscalCode>
-                <pspPartitaIVA>88888888888</pspPartitaIVA>
-                <PSPCompanyName>PSP name</PSPCompanyName>
-                <idChannel>88888888888_01</idChannel>
-                <channelDescription>app</channelDescription>
-                <payer>
-                    <uniqueIdentifier>
-                        <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
-                        <entityUniqueIdentifierValue>JHNDOE00A01F205N</entityUniqueIdentifierValue>
-                    </uniqueIdentifier>
-                    <fullName>John Doe</fullName>
-                    <streetName>street</streetName>
-                    <civicNumber>12</civicNumber>
-                    <postalCode>89020</postalCode>
-                    <city>city</city>
-                    <stateProvinceRegion>MI</stateProvinceRegion>
-                    <country>IT</country>
-                    <e-mail>john.doe@test.it</e-mail>
-                </payer>
-                <paymentMethod>creditCard</paymentMethod>
-                <fee>2.00</fee>
-                <paymentDateTime>2021-10-01T17:48:22</paymentDateTime>
-                <applicationDate>2021-10-01</applicationDate>
-                <transferDate>2021-10-02</transferDate>
-            </receipt>
-        </pafn:paSendRTReq>
-    </soapenv:Body>
-</soapenv:Envelope>`;
+                            <soapenv:Body>
+                                <pafn:paSendRTReq>
+                                    <idPA>${creditor_institution_code}</idPA>
+                                    <idBrokerPA>${idBrokerPA}</idBrokerPA>
+                                    <idStation>${idStation}</idStation>
+                                    <receipt>
+                                        <receiptId>${receiptId}</receiptId>
+                                        <noticeNumber>3${notice_number}</noticeNumber>
+                                        <fiscalCode>${creditor_institution_code}</fiscalCode>
+                                        <outcome>OK</outcome>
+                                        <creditorReferenceId>${notice_number}</creditorReferenceId>
+                                        <paymentAmount>${amount}</paymentAmount>
+                                        <description>test</description>
+                                        <companyName>company Name</companyName>
+                                        <officeName>office Name</officeName>
+                                        <debtor>
+                                            <uniqueIdentifier>
+                                                <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
+                                                <entityUniqueIdentifierValue>${fiscalcode}</entityUniqueIdentifierValue>
+                                            </uniqueIdentifier>
+                                            <fullName>${debtorName}</fullName>
+                                            <streetName>via roma</streetName>
+                                            <civicNumber>1</civicNumber>
+                                            <postalCode>00111</postalCode>
+                                            <city>rome</city>
+                                            <stateProvinceRegion>MI</stateProvinceRegion>
+                                            <country>IT</country>
+                                            <e-mail>${debtorMail}</e-mail>
+                                        </debtor>
+                                        <transferList>
+                                            <transfer>
+                                                <idTransfer>1</idTransfer>
+                                                <transferAmount>${amount}</transferAmount>
+                                                <fiscalCodePA>${creditor_institution_code}</fiscalCodePA>
+                                                <IBAN>IT23X0000100001000000000999</IBAN>
+                                                <remittanceInformation>remittanceInformation1</remittanceInformation>
+                                                <transferCategory>G</transferCategory>
+                                            </transfer>
+                                        </transferList>
+                                        <idPSP>88888888888</idPSP>
+                                        <pspFiscalCode>88888888888</pspFiscalCode>
+                                        <pspPartitaIVA>88888888888</pspPartitaIVA>
+                                        <PSPCompanyName>PSP name</PSPCompanyName>
+                                        <idChannel>88888888888_01</idChannel>
+                                        <channelDescription>app</channelDescription>
+                                        <payer>
+                                            <uniqueIdentifier>
+                                                <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
+                                                <entityUniqueIdentifierValue>JHNDOE00A01F205N</entityUniqueIdentifierValue>
+                                            </uniqueIdentifier>
+                                            <fullName>John Doe</fullName>
+                                            <streetName>street</streetName>
+                                            <civicNumber>12</civicNumber>
+                                            <postalCode>89020</postalCode>
+                                            <city>city</city>
+                                            <stateProvinceRegion>MI</stateProvinceRegion>
+                                            <country>IT</country>
+                                            <e-mail>john.doe@test.it</e-mail>
+                                        </payer>
+                                        <paymentMethod>creditCard</paymentMethod>
+                                        <fee>2.00</fee>
+                                        <paymentDateTime>2021-10-01T17:48:22</paymentDateTime>
+                                        <applicationDate>2021-10-01</applicationDate>
+                                        <transferDate>2021-10-02</transferDate>
+                                    </receipt>
+                                </pafn:paSendRTReq>
+                            </soapenv:Body>
+                        </soapenv:Envelope>`;
 
             params = {
                 headers: {
