@@ -3,8 +3,8 @@ microservice-chart:
   nameOverride: ""
   fullnameOverride: ""
   image:
-    repository: pagopadcommonacr.azurecr.io/pagopagpdpaymentsservice
-    tag: "0.0.1"
+    repository: pagopadcommonacr.azurecr.io/pagopagpdpayments
+    tag: "0.0.16-4"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -24,8 +24,8 @@ microservice-chart:
     httpGet:
       path: /info
       port: 8080
-    failureThreshold: 30
-    periodSeconds: 10
+    failureThreshold: 60
+    periodSeconds: 30
   deployment:
     create: true
   service:
@@ -52,7 +52,7 @@ microservice-chart:
       cpu: "0.25"
     limits:
       memory: "512Mi"
-      cpu: "0.25"
+      cpu: "0.5"
   autoscaling:
     enable: true
     minReplica: 1
@@ -74,8 +74,8 @@ microservice-chart:
     CONNECTION_TIMEOUT: "3000"
     LOGGING_LEVEL: "INFO"
     CACHE_SIZE: "1000"
-    CACHE_EXPIRATION_TIME: "0.5d"
-    RECEIPTS_TABLE: "pagopadpaymentssareceiptstable"
+    CACHE_EXPIRATION_TIME: "1d"
+    RECEIPTS_TABLE: "pagopadweugpspaymentssareceiptstable"
     API_CONFIG_HOST: "https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.dev.platform.pagopa.it/gpd/api/v1"

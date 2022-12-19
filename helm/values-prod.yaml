@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: pagopapcommonacr.azurecr.io/yourname # TODO
-    tag: "0.0.3"
+    tag: "0.0.16-4"
     pullPolicy: Always
   livenessProbe:
     httpGet:
