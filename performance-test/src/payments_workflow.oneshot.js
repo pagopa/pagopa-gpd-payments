@@ -52,7 +52,7 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
                                 <idStation>${idStation}</idStation>
                                 <qrCode>
                                     <fiscalCode>${creditor_institution_code}</fiscalCode>
-                                    <noticeNumber>3${notice_number}</noticeNumber>
+                                    <noticeNumber>${notice_number}</noticeNumber>
                                 </qrCode>
                             </nod:paVerifyPaymentNoticeReq>
                         </soapenv:Body>

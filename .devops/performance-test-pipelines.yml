@@ -4,10 +4,10 @@ trigger: none
 variables:
   ${{ if eq(parameters['ENVIRONMENT'], 'dev') }}:
     poolImage: 'pagopa-dev-loadtest-linux'
-    apiConfigSubscriptionKey: 'DEV_API_CONFIG_SUBSCRIPTION_KEY'
+    apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENVIRONMENT'], 'uat') }}:
     poolImage: 'pagopa-uat-loadtest-linux'
-    apiConfigSubscriptionKey: 'UAT_API_CONFIG_SUBSCRIPTION_KEY'
+    apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
 
 pool:
   name: $(poolImage)
