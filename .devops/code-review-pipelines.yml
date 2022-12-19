@@ -10,9 +10,20 @@ trigger: none
 pool:
   vmImage: 'ubuntu-22.04'
 
+parameters:
+  - name: ENV
+    displayName: Target Environment
+    type: string
+    default: dev
+    values:
+      - dev
+      - uat
+      - prod
+
 variables:
   MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+
 
   ${{ if eq(parameters['ENV'], 'dev') }}:
     API_SUBSCRIPTION_KEY: "$(DEV_API_CONFIG_SUBSCRIPTION_KEY)"
