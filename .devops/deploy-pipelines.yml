@@ -47,7 +47,7 @@ variables:
     poolImage: 'pagopa-dev-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_DEV)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_DEV)"
-    API_SUBSCRIPTION_KEY: "$(DEV_API_CONFIG_SUBSCRIPTION_KEY)"
+    apiSubscriptionKey: "$(DEV_API_CONFIG_SUBSCRIPTION_KEY)"
   ${{ if eq(parameters['ENV'], 'uat') }}:
     dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(UAT_CONTAINER_NAMESPACE)
@@ -55,7 +55,7 @@ variables:
     poolImage: 'pagopa-uat-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_UAT)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_UAT)"
-    API_SUBSCRIPTION_KEY: "$(UAT_API_CONFIG_SUBSCRIPTION_KEY)"
+    apiSubscriptionKey: "$(UAT_API_CONFIG_SUBSCRIPTION_KEY)"
   ${{ if eq(parameters['ENV'], 'prod') }}:
     dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(PROD_CONTAINER_NAMESPACE)
@@ -153,7 +153,7 @@ stages:
                 sh run_integration_test.sh local $(API_SUBSCRIPTION_KEY)
             env:
               containerRegistry: $(dockerRegistryFqdn)
-              API_SUBSCRIPTION_KEY: ${{ variables.API_SUBSCRIPTION_KEY }}
+              API_SUBSCRIPTION_KEY: ${{ variables.apiSubscriptionKey }}
 
   # Deploy on K8s with Helm
   - stage: Deploy
@@ -221,4 +221,4 @@ stages:
                 yarn install
                 yarn test:${{ parameters.ENV }}
             env:
-              PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.API_SUBSCRIPTION_KEY }}
+              PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.apiSubscriptionKey }}
