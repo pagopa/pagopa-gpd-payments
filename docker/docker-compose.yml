@@ -10,6 +10,8 @@ services:
       context: ../
     env_file:
       - ./config/.env
+    environment:
+      - APICONFIG_SUBSCRIPTION_KEY=${PAYMENTS_SUBSCRIPTION_KEY}
     ports:
       - "8080:8080"
     #    depends_on:
