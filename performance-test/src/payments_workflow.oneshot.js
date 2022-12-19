@@ -15,7 +15,7 @@ const vars = varsArray[0];
 const filename = `${vars.oneshot_filename}`;
 const data = open(filename);
 
-const urlPaymentsBasePath = `${vars.base_payments_url}`
+const urlPaymentsBasePath = `${vars.soap_payments_url}`
 const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""

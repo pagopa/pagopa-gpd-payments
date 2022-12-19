@@ -14,8 +14,8 @@ const varsArray = new SharedArray('vars', function() {
 const vars = varsArray[0];
 
 // initialize parameters taken from env
-const urlGPDBasePath = `${vars.base_gpd_url}`
-const urlPaymentsBasePath = `${vars.base_payments_url}`
+const urlGPDBasePath = `${vars.gpd_host}`
+const urlPaymentsBasePath = `${vars.soap_payments_url}`
 const creditorInstitutionCode = `${vars.id_pa}`
 const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`

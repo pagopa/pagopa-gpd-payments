@@ -12,7 +12,7 @@ const varsArray = new SharedArray('vars', function () {
     return JSON.parse(open(`./${__ENV.VARS}`)).environment;
 });
 const vars = varsArray[0];
-const paymentsHost = `${vars.payments_host}`;
+const paymentsHost = `${vars.soap_payments_host}`;
 const gpsHost = `${vars.gps_host}`;
 const donation_host = `${vars.donation_host}`;
 
