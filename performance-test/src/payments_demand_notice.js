@@ -21,7 +21,7 @@ const donation_host = `${vars.donation_host}`;
 const creditorInstitutionCode = `${vars.id_pa}`
 const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
-const serviceId = "12345"
+const serviceId = `${vars.service_id}`
 
 const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
 

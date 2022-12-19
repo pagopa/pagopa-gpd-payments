@@ -20,6 +20,8 @@ const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
 
+const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
+
 export function setup() {
     return Papa.parse(data, {header: true});
 }
@@ -60,7 +62,8 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
     let params = {
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'paVerifyPaymentNotice'
+            'SOAPAction': 'paVerifyPaymentNotice',
+            'Ocp-Apim-Subscription-Key': subscriptionKey
         },
     };
     let r = http.post(url, payload, params);
@@ -102,7 +105,8 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
         params = {
             headers: {
                 'Content-Type': 'text/xml',
-                'SOAPAction': 'paGetPayment'
+                'SOAPAction': 'paGetPayment',
+                'Ocp-Apim-Subscription-Key': subscriptionKey
             },
         };
 
@@ -200,7 +204,8 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
             params = {
                 headers: {
                     'Content-Type': 'text/xml',
-                    'SOAPAction': 'paSendRT'
+                    'SOAPAction': 'paSendRT',
+                    'Ocp-Apim-Subscription-Key': subscriptionKey
                 },
             };
 
