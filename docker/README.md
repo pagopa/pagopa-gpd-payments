@@ -4,6 +4,9 @@
 ## How to use 💻
 You can use `local`, `dev`, `uat` or `prod` images
 
+Precondition: `<API_SUBSCRIPTION_KEY>` must be an environment variables:\
+`export PAYMENTS_SUBSCRIPTION_KEY=<api-subscritpion-key>`
+
 `sh ./run_docker.sh <local|dev|uat|prod>`
 
 ---
