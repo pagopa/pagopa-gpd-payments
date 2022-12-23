@@ -20,8 +20,6 @@ const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
 
-const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
-
 export function setup() {
     return Papa.parse(data, {header: true});
 }

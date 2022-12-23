@@ -25,8 +25,6 @@ const serviceId = `${vars.service_id}`
 
 const gpsSubscriptionKey = `${__ENV.GPS_SUBSCRIPTION_KEY}`
 
-
-
 export function setup() {
     // 2. setup code (once)
     // The setup code runs, setting up the test environment (optional) and generating data

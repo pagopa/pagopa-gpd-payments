@@ -47,7 +47,6 @@ variables:
     poolImage: 'pagopa-dev-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_DEV)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_DEV)"
-    apiSubscriptionKey: '$(DEV_API_SUBSCRIPTION_KEY)'
     apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
     gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
@@ -60,7 +59,6 @@ variables:
     poolImage: 'pagopa-uat-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_UAT)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_UAT)"
-    apiSubscriptionKey: '$(UAT_API_SUBSCRIPTION_KEY)'
     apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
     gpdSubscriptionKey: '$(UAT_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
@@ -73,7 +71,6 @@ variables:
     poolImage: 'pagopa-prod-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_PROD)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_PROD)"
-    apiSubscriptionKey: '$(PROD_API_SUBSCRIPTION_KEY)'
     apiConfigSubscriptionKey: '$(PROD_API_CONFIG_SUBSCRIPTION_KEY)'
     gpdSubscriptionKey: '$(PROD_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(PROD_GPS_SUBSCRIPTION_KEY)'
@@ -166,7 +163,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh local $(apiSubscriptionKey) $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey)
+                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
 
@@ -236,7 +233,6 @@ stages:
                 yarn install
                 yarn test:${{ parameters.ENV }}
             env:
-              API_SUBSCRIPTION_KEY: ${{ variables.apiSubscriptionKey }}
               APICONFIG_SUBSCRIPTION_KEY: ${{ variables.apiConfigSubscriptionKey }}
               GPD_SUBSCRIPTION_KEY: ${{ variables.gpdSubscriptionKey }}
               GPS_SUBSCRIPTION_KEY: ${{ variables.gpsSubscriptionKey }}
