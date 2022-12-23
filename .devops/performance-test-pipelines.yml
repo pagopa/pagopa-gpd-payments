@@ -4,14 +4,14 @@ trigger: none
 variables:
   ${{ if eq(parameters['ENVIRONMENT'], 'dev') }}:
     poolImage: 'pagopa-dev-loadtest-linux'
-    apiSubscriptionKey: '$(DEV_PAYMENTS_SUBSCRIPTION_KEY)'
+    apiSubscriptionKey: '$(DEV_API_SUBSCRIPTION_KEY)'
     apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
     gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENVIRONMENT'], 'uat') }}:
     poolImage: 'pagopa-uat-loadtest-linux'
-    apiSubscriptionKey: '$(UAT_PAYMENTS_SUBSCRIPTION_KEY)'
+    apiSubscriptionKey: '$(UAT_API_SUBSCRIPTION_KEY)'
     apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
     gpdSubscriptionKey: '$(UAT_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
