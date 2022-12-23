@@ -87,7 +87,7 @@ microservice-chart:
     GPD_SUBSCRIPTION_KEY: "gpd-u-gpd-subscription-key"
     GPS_SUBSCRIPTION_KEY: "gpd-u-gps-subscription-key"
   keyvault:
-    name: "pagopa-u-afm-kv"
+    name: "pagopa-u-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
   nodeSelector: {}
   tolerations: []
