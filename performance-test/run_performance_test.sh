@@ -5,6 +5,10 @@ TYPE=$2
 SCRIPT=$3
 DB_NAME=$4
 API_SUBSCRIPTION_KEY=$5
+APICONFIG_SUBSCRIPTION_KEY=$6
+GPD_SUBSCRIPTION_KEY=$7
+GPS_SUBSCRIPTION_KEY=$8
+DONATIONS_SUBSCRIPTION_KEY=$9
 
 if [ -z "$ENVIRONMENT" ]
 then
@@ -28,6 +32,10 @@ export type=${TYPE}
 export script=${SCRIPT}
 export db_name=${DB_NAME}
 export sub_key=${API_SUBSCRIPTION_KEY}
+export apiconfig_sub_key=${APICONFIG_SUBSCRIPTION_KEY}
+export gpd_sub_key=${GPD_SUBSCRIPTION_KEY}
+export gps_sub_key=${GPS_SUBSCRIPTION_KEY}
+export donations_sub_key=${DONATIONS_SUBSCRIPTION_KEY}
 
 stack_name=$(cd .. && basename "$PWD")
 docker compose -p "${stack_name}" up -d --remove-orphans --force-recreate --build

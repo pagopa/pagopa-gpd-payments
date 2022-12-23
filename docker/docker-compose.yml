@@ -11,7 +11,9 @@ services:
     env_file:
       - ./config/.env
     environment:
-      - APICONFIG_SUBSCRIPTION_KEY=${PAYMENTS_SUBSCRIPTION_KEY}
+      - APICONFIG_SUBSCRIPTION_KEY=${APICONFIG_SUBSCRIPTION_KEY}
+      - GPD_SUBSCRIPTION_KEY=${GPD_SUBSCRIPTION_KEY}
+      - GPS_SUBSCRIPTION_KEY=${GPS_SUBSCRIPTION_KEY}
     ports:
       - "8080:8080"
     #    depends_on:

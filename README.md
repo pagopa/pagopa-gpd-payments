@@ -41,6 +41,10 @@ See the [OpenApi 3 here.](https://editor.swagger.io/?url=https://raw.githubuserc
 
 Under main folder typing:
 
+`docker build pagopagpdpayments`
+
+or under docker folder typing:
+
 `docker-compose up --build`
 
 if you have a Mac with m1 processor and you want to start the project locally using the Docker Compose, you must update 

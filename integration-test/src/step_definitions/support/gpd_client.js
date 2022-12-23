@@ -6,7 +6,7 @@ const gpd_host = process.env.gpd_host;
 function gpdHealthCheck() {
     return get(gpd_host + `/info`, {
         headers: {
-            "Ocp-Apim-Subscription-Key": process.env.PAYMENTS_SUBSCRIPTION_KEY
+            "Ocp-Apim-Subscription-Key": process.env.GPD_SUBSCRIPTION_KEY
         }
     })
 }

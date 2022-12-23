@@ -1,6 +1,11 @@
 # example: sh ./run_integration_test.sh <local|dev|uat|prod>
 
-export PAYMENTS_SUBSCRIPTION_KEY=$2
+export API_SUBSCRIPTION_KEY=$2
+export APICONFIG_SUBSCRIPTION_KEY=$3
+export GPD_SUBSCRIPTION_KEY=$4
+export GPS_SUBSCRIPTION_KEY=$5
+export DONATIONS_SUBSCRIPTION_KEY=$6
+export IUVGENERATOR_SUBSCRIPTION_KEY=$7
 
 # create containers
 cd ../docker || exit

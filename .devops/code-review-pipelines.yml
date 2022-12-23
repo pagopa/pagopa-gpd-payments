@@ -26,9 +26,19 @@ variables:
 
 
   ${{ if eq(parameters['ENV'], 'dev') }}:
-    API_SUBSCRIPTION_KEY: "$(DEV_API_CONFIG_SUBSCRIPTION_KEY)"
+    apiSubscriptionKey: '$(DEV_PAYMENTS_SUBSCRIPTION_KEY)'
+    apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
+    gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
+    gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
+    donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
+    iuvGeneratorSubscriptionKey: '$(DEV_IUVGENERATOR_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'uat') }}:
-    API_SUBSCRIPTION_KEY: "$(UAT_API_CONFIG_SUBSCRIPTION_KEY)"
+    apiSubscriptionKey: '$(UAT_PAYMENTS_SUBSCRIPTION_KEY)'
+    apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
+    gpdSubscriptionKey: '$(UAT_GPD_SUBSCRIPTION_KEY)'
+    gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
+    donationsSubscriptionKey: '$(UAT_DONATIONS_SUBSCRIPTION_KEY)'
+    iuvGeneratorSubscriptionKey: '$(UAT_IUVGENERATOR_SUBSCRIPTION_KEY)'
   # ${{ if eq(parameters['ENV'], 'prod') }}:
   # todo
 
@@ -104,6 +114,4 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh local $(API_SUBSCRIPTION_KEY)
-            env:
-              API_SUBSCRIPTION_KEY: ${{ variables.API_SUBSCRIPTION_KEY }}
+                sh run_integration_test.sh local $(apiSubscriptionKey) $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey)
