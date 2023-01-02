@@ -5,6 +5,7 @@ export GPD_SUBSCRIPTION_KEY=$3
 export GPS_SUBSCRIPTION_KEY=$4
 export DONATIONS_SUBSCRIPTION_KEY=$5
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6
+export PAYMENTS_SUBSCRIPTION_KEY=$7
 
 # create containers
 cd ../docker || exit
