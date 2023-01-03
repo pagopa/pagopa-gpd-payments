@@ -249,8 +249,8 @@ stages:
                 export DONATIONS_SUBSCRIPTION_KEY=$DONATIONS_SUBSCRIPTION_KEY \
                 export IUVGENERATOR_SUBSCRIPTION_KEY=$IUVGENERATOR_SUBSCRIPTION_KEY \
                 export REST_PAYMENTS_SUBSCRIPTION_KEY=$REST_PAYMENTS_SUBSCRIPTION_KEY \
-                export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$SOAP_PAYMENTS_SUBSCRIPTION_KEY
-                yarn install
+                export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$SOAP_PAYMENTS_SUBSCRIPTION_KEY && \
+                yarn install && \
                 yarn test:${{ parameters.ENV }}"
             env:
               APICONFIG_SUBSCRIPTION_KEY: ${{ variables.apiConfigSubscriptionKey }}
