@@ -239,7 +239,7 @@ stages:
                 docker run -dit --name node_container node
                 docker cp ./integration-test/src node_container:/integration-test
                 docker exec -i node_container /bin/bash -c " \
-                cd ./integration-test/src
+                cd ./integration-test
                 yarn install
                 yarn test:${{ parameters.ENV }}"
             env:
