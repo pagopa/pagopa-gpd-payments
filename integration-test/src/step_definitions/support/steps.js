@@ -17,6 +17,7 @@ let organizationCode;
 
 Given('Payments running', async function () {
     const response = await healthCheck();
+    console.log(response);
     assert.strictEqual(response.status, 200);
 });
 Given('GPS running', async function () {

@@ -5,6 +5,7 @@ const payments_host = process.env.payments_host;
 const payments_info = process.env.payments_info;
 
 function healthCheck() {
+    console.log(payments_info);
     return get(payments_info, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.REST_PAYMENTS_SUBSCRIPTION_KEY
