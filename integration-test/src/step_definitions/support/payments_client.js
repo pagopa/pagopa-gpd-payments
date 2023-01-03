@@ -1,13 +1,15 @@
 const {post, get, put, del} = require("./common");
 const fs = require("fs");
+const ip = require('ip');
 
 const payments_host = process.env.payments_host;
 const payments_info = process.env.payments_info;
+const ipAddress = ip.address();
 
 function healthCheck() {
-    console.log(payments_info);
     return get(payments_info, {
         headers: {
+            "X-Forwarded-For": ipAddress,
             "Ocp-Apim-Subscription-Key": process.env.REST_PAYMENTS_SUBSCRIPTION_KEY
         }
     })
