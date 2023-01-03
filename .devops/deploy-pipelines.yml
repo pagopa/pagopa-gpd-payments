@@ -143,35 +143,38 @@ stages:
               FORCE_REPLACE_DOCKER_IMAGE: ${{ parameters.FORCE_REPLACE_DOCKER_IMAGE }}
 
   # Testing the docker image
-#  - stage: Smoke_Test
-#    dependsOn:
-#      - Build
-#    condition: and(succeeded(), eq('${{ parameters.TEST }}', 'true'))
-#    jobs:
-#      - job: smoke_tests
-#        steps:
-#          - checkout: self
-#            persistCredentials: true
-#
-#          - script: |
-#              git checkout $(sourceBranch)
-#            displayName: Checkout and update branch
-#
-#          - task: Docker@2
-#            displayName: "Docker login"
-#            inputs:
-#              containerRegistry: "$(dockerRegistryServiceConnection)"
-#              command: "login"
-#
-#          - task: Bash@3
-#            displayName: 'Run Smoke Tests'
-#            inputs:
-#              targetType: 'inline'
-#              script: |
-#                cd ./integration-test
-#                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
-#            env:
-#              containerRegistry: $(dockerRegistryFqdn)
+  - stage: Smoke_Test
+    dependsOn:
+      - Build
+    condition: and(succeeded(), eq('${{ parameters.TEST }}', 'true'))
+    jobs:
+      - job: smoke_tests
+        pool:
+          name: $(poolImage)
+        steps:
+          - checkout: self
+            persistCredentials: true
+
+          - script: |
+              git checkout $(sourceBranch)
+              git pull
+            displayName: Checkout and update branch
+
+          - task: Docker@2
+            displayName: "Docker login"
+            inputs:
+              containerRegistry: "$(dockerRegistryServiceConnection)"
+              command: "login"
+
+          - task: Bash@3
+            displayName: 'Run Smoke Tests'
+            inputs:
+              targetType: 'inline'
+              script: |
+                cd ./integration-test
+                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
+            env:
+              containerRegistry: $(dockerRegistryFqdn)
 
   # Deploy on K8s with Helm
   - stage: Deploy
@@ -179,7 +182,7 @@ stages:
     dependsOn:
       - Release
       - Build
-      # - Smoke_Test
+      - Smoke_Test
     variables:
       deploy_version: $[ stageDependencies.Release.make_release.outputs['current_version.value'] ]
     jobs:
@@ -196,6 +199,7 @@ stages:
 
                 - script: |
                     git checkout $(sourceBranch)
+                    git pull
                   displayName: Checkout and update branch
 
                 - template: templates/helm-microservice-chart-setup/template.yaml@pagopaCommons
