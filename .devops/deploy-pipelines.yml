@@ -231,6 +231,7 @@ stages:
 
           - script: |
               git checkout $(sourceBranch)
+              git pull
             displayName: Checkout and update branch
 
           - task: Bash@3
