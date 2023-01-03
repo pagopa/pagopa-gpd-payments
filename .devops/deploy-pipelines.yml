@@ -243,12 +243,12 @@ stages:
                 docker cp ./integration-test/src node_container:/integration-test
                 docker exec -i node_container /bin/bash -c " \
                 cd ./integration-test
-                export APICONFIG_SUBSCRIPTION_KEY=$APICONFIG_SUBSCRIPTION_KEY
-                export GPD_SUBSCRIPTION_KEY=$GPD_SUBSCRIPTION_KEY
-                export GPS_SUBSCRIPTION_KEY=$GPS_SUBSCRIPTION_KEY
-                export DONATIONS_SUBSCRIPTION_KEY=$DONATIONS_SUBSCRIPTION_KEY
-                export IUVGENERATOR_SUBSCRIPTION_KEY=$IUVGENERATOR_SUBSCRIPTION_KEY
-                export REST_PAYMENTS_SUBSCRIPTION_KEY=$REST_PAYMENTS_SUBSCRIPTION_KEY
+                export APICONFIG_SUBSCRIPTION_KEY=$APICONFIG_SUBSCRIPTION_KEY \
+                export GPD_SUBSCRIPTION_KEY=$GPD_SUBSCRIPTION_KEY \
+                export GPS_SUBSCRIPTION_KEY=$GPS_SUBSCRIPTION_KEY \
+                export DONATIONS_SUBSCRIPTION_KEY=$DONATIONS_SUBSCRIPTION_KEY \
+                export IUVGENERATOR_SUBSCRIPTION_KEY=$IUVGENERATOR_SUBSCRIPTION_KEY \
+                export REST_PAYMENTS_SUBSCRIPTION_KEY=$REST_PAYMENTS_SUBSCRIPTION_KEY \
                 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$SOAP_PAYMENTS_SUBSCRIPTION_KEY
                 yarn install
                 yarn test:${{ parameters.ENV }}"
