@@ -7,7 +7,7 @@ const payments_info = process.env.payments_info;
 function healthCheck() {
     return get(payments_info, {
         headers: {
-            "Ocp-Apim-Subscription-Key": process.env.PAYMENTS_SUBSCRIPTION_KEY
+            "Ocp-Apim-Subscription-Key": process.env.REST_PAYMENTS_SUBSCRIPTION_KEY
         }
     })
 }
@@ -17,7 +17,7 @@ function demandPaymentNotice(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paDemandPaymentNotice',
-            "Ocp-Apim-Subscription-Key": process.env.PAYMENTS_SUBSCRIPTION_KEY
+            "Ocp-Apim-Subscription-Key": process.env.SOAP_PAYMENTS_SUBSCRIPTION_KEY
         }
     })
 }

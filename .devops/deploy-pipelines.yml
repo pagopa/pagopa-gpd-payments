@@ -52,7 +52,8 @@ variables:
     gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(DEV_IUV_GENERATOR_SUBSCRIPTION_KEY)'
-    paymentsSubscriptionKey: '$(DEV_PAYMENTS_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(DEV_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'uat') }}:
     dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(UAT_CONTAINER_NAMESPACE)
@@ -65,7 +66,8 @@ variables:
     gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(UAT_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(UAT_IUV_GENERATOR_SUBSCRIPTION_KEY)'
-    paymentsSubscriptionKey: '$(UAT_PAYMENTS_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(UAT_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(UAT_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'prod') }}:
     dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(PROD_CONTAINER_NAMESPACE)
@@ -78,7 +80,8 @@ variables:
     gpsSubscriptionKey: '$(PROD_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(PROD_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(PROD_IUV_GENERATOR_SUBSCRIPTION_KEY)'
-    paymentsSubscriptionKey: '$(PROD_PAYMENTS_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(PROD_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(PROD_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
 
   ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
     sourceBranch: "main" # force to main branch
@@ -166,7 +169,7 @@ stages:
 #              targetType: 'inline'
 #              script: |
 #                cd ./integration-test
-#                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(paymentsSubscriptionKey)
+#                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
 #            env:
 #              containerRegistry: $(dockerRegistryFqdn)
 
@@ -245,7 +248,8 @@ stages:
                 export GPS_SUBSCRIPTION_KEY=$GPS_SUBSCRIPTION_KEY && \
                 export DONATIONS_SUBSCRIPTION_KEY=$DONATIONS_SUBSCRIPTION_KEY && \
                 export IUVGENERATOR_SUBSCRIPTION_KEY=$IUVGENERATOR_SUBSCRIPTION_KEY && \
-                export PAYMENTS_SUBSCRIPTION_KEY=$PAYMENTS_SUBSCRIPTION_KEY && \
+                export REST_PAYMENTS_SUBSCRIPTION_KEY=$REST_PAYMENTS_SUBSCRIPTION_KEY && \
+                export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$SOAP_PAYMENTS_SUBSCRIPTION_KEY && \
                 yarn install && \
                 yarn test:${{ parameters.ENV }}"
             env:
@@ -254,4 +258,5 @@ stages:
               GPS_SUBSCRIPTION_KEY: ${{ variables.gpsSubscriptionKey }}
               DONATIONS_SUBSCRIPTION_KEY: ${{ variables.donationsSubscriptionKey }}
               IUVGENERATOR_SUBSCRIPTION_KEY: ${{ variables.iuvGeneratorSubscriptionKey }}
-              PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.paymentsSubscriptionKey }}
+              REST_PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.restPaymentsSubscriptionKey }}
+              SOAP_PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.soapPaymentsSubscriptionKey }}

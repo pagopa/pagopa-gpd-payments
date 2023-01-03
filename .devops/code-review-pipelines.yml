@@ -31,12 +31,16 @@ variables:
     gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(DEV_IUV_GENERATOR_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(DEV_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'uat') }}:
     apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
     gpdSubscriptionKey: '$(UAT_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(UAT_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(UAT_IUV_GENERATOR_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(UAT_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(UAT_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   # ${{ if eq(parameters['ENV'], 'prod') }}:
   # todo
 
@@ -112,4 +116,4 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey)
+                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
