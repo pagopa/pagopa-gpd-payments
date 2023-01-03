@@ -83,7 +83,7 @@ Under main folder typing:
 
 Under `payments` folder typing:
 
-`mvn clean verify`
+`clean verify -DGPD_SUBSCRIPTION_KEY=secret -DGPS_SUBSCRIPTION_KEY=secret -DAPICONFIG_SUBSCRIPTION_KEY=secret -DGPD_HOST=host -DGPS_HOST=host -DAPI_CONFIG_HOST=host`
 
 ### Integration testing
 
