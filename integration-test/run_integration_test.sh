@@ -19,6 +19,7 @@ docker stop node-container-test && docker rm node-container-test
 docker run -dit --name node-container-test node
 docker cp ./src node-container-test:/integration-test
 docker exec -i node-container-test /bin/bash -c " \
+echo 'Exporting needed parameters...'
 cd ./integration-test
 export APICONFIG_SUBSCRIPTION_KEY=$2 \
 export GPD_SUBSCRIPTION_KEY=$3 \
@@ -27,6 +28,7 @@ export DONATIONS_SUBSCRIPTION_KEY=$5 \
 export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
+echo 'Starting yarn tests...' && \
 yarn install && \
 yarn test"
-docker stop node-container-test && docker rm node-container-test
+# docker stop node-container-test && docker rm node-container-test
