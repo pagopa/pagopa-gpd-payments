@@ -39,6 +39,7 @@ export containerRegistry=${containerRegistry}
 export image=${image}
 
 stack_name=$(cd .. && basename "$PWD")
+apt-get install -y docker-compose
 docker-compose -p "${stack_name}" up -d --remove-orphans --force-recreate
 
 # waiting the containers
