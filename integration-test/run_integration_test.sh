@@ -16,7 +16,7 @@ sh ./run_docker.sh "$1"
 cd ../integration-test || exit
 
 docker stop node-container-test && docker rm node-container-test
-docker run -dit --name node-container-test node
+docker run -dit  --network app_net --name node-container-test node
 docker cp ./src node-container-test:/integration-test
 docker exec -i node-container-test /bin/bash -c " \
 echo 'Exporting needed parameters...'

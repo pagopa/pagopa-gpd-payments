@@ -233,7 +233,7 @@ stages:
   - stage: Integration_Test
     dependsOn:
       - Deploy
-    condition: and(and(succeeded(), eq('${{ parameters.INTEGRATION_TEST }}', 'true')), ne('${{ parameters.ENV }}', 'prod'))
+    condition: and(and(succeeded(), or(eq('${{ parameters.INTEGRATION_TEST }}', 'true'), eq('${{ parameters.INTEGRATION_TEST }}', 'True'))), ne('${{ parameters.ENV }}', 'prod'))
     jobs:
       - job: integration_tests
         pool:
