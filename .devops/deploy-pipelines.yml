@@ -34,17 +34,17 @@ parameters:
   - name: SMOKE_TEST
     displayName: Run smoke tests
     type: boolean
-    default: True
+    default: true
     values:
-      - False
-      - True
+      - false
+      - true
   - name: INTEGRATION_TEST
     displayName: Run integration tests
     type: boolean
-    default: True
+    default: true
     values:
-      - False
-      - True
+      - false
+      - true
 
 variables:
   imageRepository: '$(IMAGE_REPOSITORY_NAME)'
@@ -156,7 +156,7 @@ stages:
   - stage: Smoke_Test
     dependsOn:
       - Build
-    condition: and(succeeded(), eq('${{ parameters.SMOKE_TEST }}', 'True'))
+    condition: and(succeeded(), eq('${{ parameters.SMOKE_TEST }}', 'true'))
     jobs:
       - job: smoke_tests
         pool:
@@ -233,7 +233,7 @@ stages:
   - stage: Integration_Test
     dependsOn:
       - Deploy
-    condition: and(and(succeeded(), eq('${{ parameters.INTEGRATION_TEST }}', 'True')), ne('${{ parameters.ENV }}', 'prod'))
+    condition: and(and(succeeded(), eq('${{ parameters.INTEGRATION_TEST }}', 'true')), ne('${{ parameters.ENV }}', 'prod'))
     jobs:
       - job: integration_tests
         pool:
