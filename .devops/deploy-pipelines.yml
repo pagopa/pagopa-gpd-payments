@@ -31,8 +31,12 @@ parameters:
     values:
       - False
       - True
-  - name: TEST
-    displayName: Run integration/smoke tests
+  - name: SMOKE_TEST
+    displayName: Run smoke tests
+    type: boolean
+    default: true
+  - name: INTEGRATION_TEST
+    displayName: Run integration tests
     type: boolean
     default: true
 
@@ -146,7 +150,7 @@ stages:
   - stage: Smoke_Test
     dependsOn:
       - Build
-    condition: and(succeeded(), eq('${{ parameters.TEST }}', 'true'))
+    condition: and(succeeded(), eq('${{ parameters.SMOKE_TEST }}', 'true'))
     jobs:
       - job: smoke_tests
         pool:
@@ -182,7 +186,7 @@ stages:
     dependsOn:
       - Release
       - Build
-      # - Smoke_Test
+      - Smoke_Test
     variables:
       deploy_version: $[ stageDependencies.Release.make_release.outputs['current_version.value'] ]
     jobs:
@@ -223,7 +227,7 @@ stages:
   - stage: Integration_Test
     dependsOn:
       - Deploy
-    condition: and(and(succeeded(), eq('${{ parameters.TEST }}', 'true')), ne('${{ parameters.ENV }}', 'prod'))
+    condition: and(and(succeeded(), eq('${{ parameters.INTEGRATION_TEST }}', 'true')), ne('${{ parameters.ENV }}', 'prod'))
     jobs:
       - job: integration_tests
         pool:
