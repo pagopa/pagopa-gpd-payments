@@ -44,7 +44,7 @@ variables:
     dockerRegistryServiceConnection: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(DEV_CONTAINER_NAMESPACE)
     kubernetesServiceConnection: '$(DEV_KUBERNETES_SERVICE_CONN)'
-    poolImage: 'pagopa-dev-linux'
+    poolImage: 'pagopa-dev-loadtest-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_DEV)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_DEV)"
     apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
