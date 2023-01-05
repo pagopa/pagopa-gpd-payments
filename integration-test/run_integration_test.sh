@@ -26,4 +26,4 @@ export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
 yarn install && \
-yarn test"
+yarn test --verbose"
