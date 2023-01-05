@@ -28,7 +28,8 @@ export DONATIONS_SUBSCRIPTION_KEY=$5 \
 export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
-echo 'Starting yarn tests...' && \
+echo 'Starting yarn installation...' && \
 yarn install && \
+echo 'Starting yarn testing...' && \
 yarn test"
 # docker stop node-container-test && docker rm node-container-test
