@@ -18,6 +18,7 @@ cd ../integration-test || exit
 docker stop node-container-test && docker rm node-container-test
 docker run -dit --name node-container-test node
 docker cp ./src node-container-test:/integration-test
+docker exec -u 0 node-container-test /bin/bash -c "echo '34.141.48.9 yarnpkg.com' >> /etc/hosts"
 docker exec -i node-container-test /bin/bash -c " \
 echo 'Exporting needed parameters...'
 cd ./integration-test
