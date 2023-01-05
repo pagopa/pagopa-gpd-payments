@@ -30,7 +30,7 @@ export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
 echo 'Starting yarn installation...' && \
-yarn install && \
+yarn install --network-timeout 1000000 && \
 echo 'Starting yarn testing...' && \
 yarn test"
 # docker stop node-container-test && docker rm node-container-test

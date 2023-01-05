@@ -155,15 +155,6 @@ stages:
           - checkout: self
             persistCredentials: true
 
-          - template: templates/node-job-setup/template.yaml@pagopaCommons
-            parameters:
-              # On the assumption that this stage is executed only when Release stage is,
-              #  with this parameter we set the reference the deploy script must pull changes from.
-              # The branch/tag name is calculated from the source branch
-              #  ex: Build.SourceBranch=refs/heads/master --> master
-              #  ex: Build.SourceBranch=refs/tags/v1.2.3-RELEASE --> v1.2.3-RELEASE
-              gitReference: ${{ replace(replace(variables['Build.SourceBranch'], 'refs/tags/', ''), 'refs/heads/', '') }}
-
           - script: |
               git checkout $(sourceBranch)
               git pull
