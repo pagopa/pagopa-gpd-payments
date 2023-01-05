@@ -109,6 +109,7 @@ stages:
       - job: smoke_tests
         pool:
           name: $(poolImage)
+        environment: ${{ parameters['ENV'] }}
         dependsOn: # parallel running job
         steps:
           - checkout: self
