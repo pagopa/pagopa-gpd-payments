@@ -20,6 +20,7 @@ services:
     #      - service1
     networks:
       app_net:
+        ipv4_address: 10.20.0.5
 
 #  service-1:
 #    container_name: 'service-1'
@@ -53,9 +54,6 @@ services:
     container_name: 'node-container'
     image: node:latest
     tty: true
-    networks:
-      app_net:
-        ipv4_address: 10.20.0.5
 
 #  cosmosdb:
 #    container_name: 'cosmosdb'
