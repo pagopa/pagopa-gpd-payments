@@ -49,6 +49,14 @@ services:
       app_net:
         ipv4_address: 10.20.0.3
 
+  node-container:
+    container_name: 'node-container'
+    image: node:latest
+    tty: true
+    networks:
+      app_net:
+        ipv4_address: 10.20.0.5
+
 #  cosmosdb:
 #    container_name: 'cosmosdb'
 #    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator

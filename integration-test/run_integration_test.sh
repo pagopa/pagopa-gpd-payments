@@ -15,12 +15,8 @@ sh ./run_docker.sh "$1"
 # run integration tests
 cd ../integration-test || exit
 
-docker stop node-container-test && docker rm node-container-test
-docker run -dit --name node-container-test node
-docker cp ./src node-container-test:/integration-test
-docker exec -u 0 node-container-test /bin/bash -c "echo '34.141.48.9 yarnpkg.com' >> /etc/hosts"
-docker exec -i node-container-test /bin/bash -c " \
-echo 'Exporting needed parameters...'
+docker cp ./src node-container:/integration-test
+docker exec -i node-container /bin/bash -c " \
 cd ./integration-test
 export APICONFIG_SUBSCRIPTION_KEY=$2 \
 export GPD_SUBSCRIPTION_KEY=$3 \
@@ -29,8 +25,5 @@ export DONATIONS_SUBSCRIPTION_KEY=$5 \
 export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
-echo 'Starting yarn installation...' && \
-yarn install --network-timeout 1000000 && \
-echo 'Starting yarn testing...' && \
+yarn install && \
 yarn test"
-# docker stop node-container-test && docker rm node-container-test
