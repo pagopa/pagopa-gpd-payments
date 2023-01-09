@@ -21,7 +21,7 @@ const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
 
-const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
+const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`
 
 export default function() {
 
@@ -44,10 +44,10 @@ export default function() {
 
     // defining URL, body and headers related to the CreateDebtPosition call
 	var url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions`;
-	var params = {
+	var gpdParams = {
     	headers: {
     		'Content-Type': 'application/json',
-    		'Ocp-Apim-Subscription-Key': subscriptionKey
+    		'Ocp-Apim-Subscription-Key': gpdSubscriptionKey
     	},
     };
 	var payload = JSON.stringify(
@@ -147,7 +147,7 @@ export default function() {
 		});
 
     // execute the call and check the response
-	var response = http.post(url, payload, params);
+	var response = http.post(url, payload, gpdParams);
 	console.log("CreateDebtPosition call - creditor_institution_code = " + creditorInstitutionCode + ", Status = " + response.status + " \n\t[URL: " + url + "]");
 	check(response, {
 		'CreateDebtPosition status is 201': (response) => response.status === 201,
@@ -165,7 +165,7 @@ export default function() {
         url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions/${iupd}/publish`;
 
 		// execute the call and check the response
-        response = http.post(url, JSON.stringify(""), params);
+        response = http.post(url, JSON.stringify(""), gpdParams);
 		console.log("PublishDebtPosition call - creditor_institution_code = " + creditorInstitutionCode + ", iupd = " + iupd + ", Status = " + response.status + " \n\t[URL: " + url + "]");
 		check(response, {
 			'PublishDebtPosition status is 200': (response) => response.status === 200,
@@ -182,11 +182,10 @@ export default function() {
 
 			// defining URL, body and headers related to the VerifyPayment call
             url = `${urlPaymentsBasePath}/${service}`;
-            params = {
+            var soapParams = {
 				headers: {
 					'Content-Type': 'text/xml',
-					'SOAPAction': 'paVerifyPaymentNotice',
-					'Ocp-Apim-Subscription-Key': subscriptionKey
+					'SOAPAction': 'paVerifyPaymentNotice'
 				},
 			};
 			payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
@@ -205,7 +204,7 @@ export default function() {
                         </soapenv:Envelope>`;
 
             // execute the call and check the response
-            response = http.post(url, payload, params);
+            response = http.post(url, payload, soapParams);
             console.log("VerifyPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + " \n\t[URL: " + url + "]");
             if (response.status != 200 && response.status != 504) {
                 console.error("-> VerifyPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + ", Body=" + response.body);
@@ -225,11 +224,10 @@ export default function() {
 
 				// defining URL, body and headers related to the GetPayment call
                 url = `${urlPaymentsBasePath}/${service}`;
-				params = {
+				soapParams = {
 					headers: {
 						'Content-Type': 'text/xml',
-						'SOAPAction': 'paGetPayment',
-						'Ocp-Apim-Subscription-Key': subscriptionKey
+						'SOAPAction': 'paGetPayment'
 					},
 				};
 				payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
@@ -249,7 +247,7 @@ export default function() {
                             </soapenv:Envelope>`;
 
 				// execute the call and check the response
-                response = http.post(url, payload, params);
+                response = http.post(url, payload, soapParams);
                 console.log("GetPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + + " \n\t[URL: " + url + "]");
 				if (response.status != 200 && response.status != 504) {
                     console.error("-> GetPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + ", Body=" + response.body);
@@ -269,11 +267,10 @@ export default function() {
 
                     // defining URL, body and headers related to the SendRT call
                     url = `${urlPaymentsBasePath}/${service}`;
-                    params = {
+                    soapParams = {
                         headers: {
                             'Content-Type': 'text/xml',
-                            'SOAPAction': 'paSendRT',
-                            'Ocp-Apim-Subscription-Key': subscriptionKey
+                            'SOAPAction': 'paSendRT'
                         },
                     };
                     payload = `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -361,7 +358,7 @@ export default function() {
                                 </soapenv:Envelope>`;
 
                     // execute the call and check the response
-                    response = http.post(url, payload, params);
+                    response = http.post(url, payload, soapParams);
                     console.log("SendRT req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + " \n\t[URL: " + url + "]");
                     if (response.status != 200 && response.status != 504) {
                         console.error("-> SendRT req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + ", Body=" + response.body);

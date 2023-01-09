@@ -20,8 +20,6 @@ const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
 
-const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
-
 export function setup() {
     return Papa.parse(data, {header: true});
 }
@@ -59,14 +57,13 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
                     </soapenv:Envelope>`;
 
 
-    let params = {
+    let soapParams = {
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'paVerifyPaymentNotice',
-            'Ocp-Apim-Subscription-Key': subscriptionKey
+            'SOAPAction': 'paVerifyPaymentNotice'
         },
     };
-    let r = http.post(url, payload, params);
+    let r = http.post(url, payload, soapParams);
     if (r.status != 200 && r.status != 504) {
         console.error("-> VerifyPayment req - creditor_institution_code = " + creditor_institution_code + ", iuv = " + notice_number + ", Status = " + r.status + ", Body=" + r.body);
     }
@@ -102,15 +99,14 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
                         </soapenv:Body>
                     </soapenv:Envelope>`;
 
-        params = {
+        soapParams = {
             headers: {
                 'Content-Type': 'text/xml',
-                'SOAPAction': 'paGetPayment',
-                'Ocp-Apim-Subscription-Key': subscriptionKey
+                'SOAPAction': 'paGetPayment'
             },
         };
 
-        r = http.post(url, payload, params);
+        r = http.post(url, payload, soapParams);
 
         console.log("GetPayment req - creditor_institution_code = " + creditor_institution_code + ", iuv = " + notice_number + ", Status = " + r.status);
         if (r.status != 200 && r.status != 504) {
@@ -201,15 +197,14 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
                             </soapenv:Body>
                         </soapenv:Envelope>`;
 
-            params = {
+            soapParams = {
                 headers: {
                     'Content-Type': 'text/xml',
-                    'SOAPAction': 'paSendRT',
-                    'Ocp-Apim-Subscription-Key': subscriptionKey
+                    'SOAPAction': 'paSendRT'
                 },
             };
 
-            r = http.post(url, payload, params);
+            r = http.post(url, payload, soapParams);
 
             console.log("SendRT req - creditor_institution_code = " + creditor_institution_code + ", iuv = " + notice_number + ", Status = " + r.status);
             if (r.status != 200 && r.status != 504) {

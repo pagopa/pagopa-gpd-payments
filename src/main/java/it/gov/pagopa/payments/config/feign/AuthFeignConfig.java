@@ -1,18 +1,15 @@
-package it.gov.pagopa.payments.config;
+package it.gov.pagopa.payments.config.feign;
 
 import feign.RequestInterceptor;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
 
-@Component
-public class AuthFeignConfig {
+public abstract class AuthFeignConfig {
 
-    @Value("${apiconfig.subscription-key}")
-    private String subscriptionKey;
+    protected String subscriptionKey;
 
     static final String HEADER_REQUEST_ID = "X-Request-Id";
+
     static final String HEADER_SUBSCRIBTION_KEY = "Ocp-Apim-Subscription-Key";
 
     @Bean

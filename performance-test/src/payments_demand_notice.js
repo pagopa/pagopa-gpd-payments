@@ -23,8 +23,7 @@ const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const serviceId = `${vars.service_id}`
 
-const subscriptionKey = `${__ENV.API_SUBSCRIPTION_KEY}`
-
+const gpsSubscriptionKey = `${__ENV.GPS_SUBSCRIPTION_KEY}`
 
 export function setup() {
     // 2. setup code (once)
@@ -33,7 +32,7 @@ export function setup() {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'Ocp-Apim-Subscription-Key': subscriptionKey
+            'Ocp-Apim-Subscription-Key': gpsSubscriptionKey
         }
     };
     let payload = JSON.stringify({
@@ -114,12 +113,18 @@ export default function () {
 }
 
 export function teardown() {
-    let response = http.del(gpsHost + "/services/" + serviceId)
+    const params = {
+        headers: {
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Key': gpsSubscriptionKey
+        }
+    };
+    let response = http.del(gpsHost + "/services/" + serviceId, params)
     check(response, {
         'delete service status is 200': () => response.status === 200,
     })
 
-    response = http.del(gpsHost + "/organizations/" + creditorInstitutionCode)
+    response = http.del(gpsHost + "/organizations/" + creditorInstitutionCode, params)
     check(response, {
         'delete organization status is 200': () => response.status === 200,
     })

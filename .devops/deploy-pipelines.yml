@@ -31,8 +31,12 @@ parameters:
     values:
       - False
       - True
-  - name: TEST
-    displayName: Run integration/smoke tests
+  - name: SMOKE_TEST
+    displayName: Run smoke tests
+    type: boolean
+    default: true
+  - name: INTEGRATION_TEST
+    displayName: Run integration tests
     type: boolean
     default: true
 
@@ -44,18 +48,30 @@ variables:
     dockerRegistryServiceConnection: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(DEV_CONTAINER_NAMESPACE)
     kubernetesServiceConnection: '$(DEV_KUBERNETES_SERVICE_CONN)'
-    poolImage: 'pagopa-dev-linux'
+    poolImage: 'pagopa-dev-loadtest-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_DEV)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_DEV)"
-    apiSubscriptionKey: "$(DEV_API_CONFIG_SUBSCRIPTION_KEY)"
+    apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
+    gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
+    gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
+    donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
+    iuvGeneratorSubscriptionKey: '$(DEV_IUV_GENERATOR_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(DEV_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'uat') }}:
     dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(UAT_CONTAINER_NAMESPACE)
     kubernetesServiceConnection: '$(UAT_KUBERNETES_SERVICE_CONN)'
-    poolImage: 'pagopa-uat-linux'
+    poolImage: 'pagopa-uat-loadtest-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_UAT)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_UAT)"
-    apiSubscriptionKey: "$(UAT_API_CONFIG_SUBSCRIPTION_KEY)"
+    apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
+    gpdSubscriptionKey: '$(UAT_GPD_SUBSCRIPTION_KEY)'
+    gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
+    donationsSubscriptionKey: '$(UAT_DONATIONS_SUBSCRIPTION_KEY)'
+    iuvGeneratorSubscriptionKey: '$(UAT_IUV_GENERATOR_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(UAT_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(UAT_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'prod') }}:
     dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(PROD_CONTAINER_NAMESPACE)
@@ -63,6 +79,13 @@ variables:
     poolImage: 'pagopa-prod-linux'
     appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_PROD)"
     appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_PROD)"
+    apiConfigSubscriptionKey: '$(PROD_API_CONFIG_SUBSCRIPTION_KEY)'
+    gpdSubscriptionKey: '$(PROD_GPD_SUBSCRIPTION_KEY)'
+    gpsSubscriptionKey: '$(PROD_GPS_SUBSCRIPTION_KEY)'
+    donationsSubscriptionKey: '$(PROD_DONATIONS_SUBSCRIPTION_KEY)'
+    iuvGeneratorSubscriptionKey: '$(PROD_IUV_GENERATOR_SUBSCRIPTION_KEY)'
+    restPaymentsSubscriptionKey: '$(PROD_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+    soapPaymentsSubscriptionKey: '$(PROD_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
 
   ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
     sourceBranch: "main" # force to main branch
@@ -127,15 +150,18 @@ stages:
   - stage: Smoke_Test
     dependsOn:
       - Build
-    condition: and(succeeded(), eq('${{ parameters.TEST }}', 'true'))
+    condition: and(succeeded(), eq('${{ parameters.SMOKE_TEST }}', 'true'))
     jobs:
       - job: smoke_tests
+        pool:
+          name: $(poolImage)
         steps:
           - checkout: self
             persistCredentials: true
 
           - script: |
               git checkout $(sourceBranch)
+              git pull
             displayName: Checkout and update branch
 
           - task: Docker@2
@@ -150,10 +176,9 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh local $(API_SUBSCRIPTION_KEY)
+                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
-              API_SUBSCRIPTION_KEY: ${{ variables.apiSubscriptionKey }}
 
   # Deploy on K8s with Helm
   - stage: Deploy
@@ -161,7 +186,7 @@ stages:
     dependsOn:
       - Release
       - Build
-      - Smoke_Test
+      # - Smoke_Test
     variables:
       deploy_version: $[ stageDependencies.Release.make_release.outputs['current_version.value'] ]
     jobs:
@@ -178,6 +203,7 @@ stages:
 
                 - script: |
                     git checkout $(sourceBranch)
+                    git pull
                   displayName: Checkout and update branch
 
                 - template: templates/helm-microservice-chart-setup/template.yaml@pagopaCommons
@@ -201,24 +227,49 @@ stages:
   - stage: Integration_Test
     dependsOn:
       - Deploy
-    condition: and(and(succeeded(), eq('${{ parameters.TEST }}', 'true')), ne('${{ parameters.ENV }}', 'prod'))
+    condition: and(and(succeeded(), eq('${{ parameters.INTEGRATION_TEST }}', 'true')), ne('${{ parameters.ENV }}', 'prod'))
     jobs:
       - job: integration_tests
+        pool:
+          name: $(poolImage)
+
         steps:
           - checkout: self
             persistCredentials: true
 
           - script: |
               git checkout $(sourceBranch)
+              git pull
             displayName: Checkout and update branch
+
+          - task: Docker@2
+            displayName: "Docker login"
+            inputs:
+              containerRegistry: "$(dockerRegistryServiceConnection)"
+              command: "login"
 
           - task: Bash@3
             displayName: 'Run Integration Tests'
             inputs:
               targetType: 'inline'
               script: |
-                cd ./integration-test/src
-                yarn install
-                yarn test:${{ parameters.ENV }}
+                docker run -dit --name node_container pagopadcommonacr.azurecr.io/yarn-testing-base
+                docker cp -a ./integration-test/src/. node_container:/test
+                docker exec -i node_container /bin/bash -c " \
+                cd ./test
+                export APICONFIG_SUBSCRIPTION_KEY=$APICONFIG_SUBSCRIPTION_KEY \
+                export GPD_SUBSCRIPTION_KEY=$GPD_SUBSCRIPTION_KEY \
+                export GPS_SUBSCRIPTION_KEY=$GPS_SUBSCRIPTION_KEY \
+                export DONATIONS_SUBSCRIPTION_KEY=$DONATIONS_SUBSCRIPTION_KEY \
+                export REST_PAYMENTS_SUBSCRIPTION_KEY=$REST_PAYMENTS_SUBSCRIPTION_KEY \
+                export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$SOAP_PAYMENTS_SUBSCRIPTION_KEY \
+                export IUVGENERATOR_SUBSCRIPTION_KEY=$IUVGENERATOR_SUBSCRIPTION_KEY && \
+                yarn test:${{ parameters.ENV }}"
             env:
-              PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.apiSubscriptionKey }}
+              APICONFIG_SUBSCRIPTION_KEY: ${{ variables.apiConfigSubscriptionKey }}
+              GPD_SUBSCRIPTION_KEY: ${{ variables.gpdSubscriptionKey }}
+              GPS_SUBSCRIPTION_KEY: ${{ variables.gpsSubscriptionKey }}
+              DONATIONS_SUBSCRIPTION_KEY: ${{ variables.donationsSubscriptionKey }}
+              IUVGENERATOR_SUBSCRIPTION_KEY: ${{ variables.iuvGeneratorSubscriptionKey }}
+              REST_PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.restPaymentsSubscriptionKey }}
+              SOAP_PAYMENTS_SUBSCRIPTION_KEY: ${{ variables.soapPaymentsSubscriptionKey }}

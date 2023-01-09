@@ -10,5 +10,5 @@ To invoke k6 tests use `run_performance_test.sh` script.
 Open a CLI in this folder and use this command to launch the tests:
 
 ``` shell
-sh run_performance_test.sh <local|dev|uat> <load|stress|spike> <script-filename> <k6-dbname> <subkey>
+sh run_performance_test.sh <local|dev|uat> <load|stress|spike> <script-filename> <k6-dbname> <subkey> <apiconfig_subkey> <gpd_subkey> <gps_spontaneouspayments_subkey> <gps_donations_subkey>
 ```
