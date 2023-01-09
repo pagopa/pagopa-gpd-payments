@@ -33,7 +33,7 @@ services:
 
   node-container:
     container_name: 'node-container'
-    image: node:latest
+    image: pagopadcommonacr.azurecr.io/yarn-testing-base:latest
     tty: true
     networks:
       app_net:
