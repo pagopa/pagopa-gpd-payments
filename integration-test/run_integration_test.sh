@@ -15,9 +15,9 @@ sh ./run_docker.sh "$1"
 # run integration tests
 cd ../integration-test || exit
 
-docker cp ./src node-container:/integration-test
+docker cp -a ./src/. node-container:/test
 docker exec -i node-container /bin/bash -c " \
-cd ./integration-test
+cd ./test
 export APICONFIG_SUBSCRIPTION_KEY=$2 \
 export GPD_SUBSCRIPTION_KEY=$3 \
 export GPS_SUBSCRIPTION_KEY=$4 \
