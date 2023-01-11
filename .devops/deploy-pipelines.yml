@@ -176,7 +176,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
+                sh run_integration_test.sh ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
 
