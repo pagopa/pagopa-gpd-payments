@@ -10,12 +10,6 @@ trigger: none
 pool:
   vmImage: 'ubuntu-22.04'
 
-parameters:
-  - name: ENV
-    displayName: Target Environment
-    type: string
-    default: dev
-
 variables:
   MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
