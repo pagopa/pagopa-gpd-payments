@@ -14,7 +14,6 @@ variables:
   MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
 
-
   poolImage: 'pagopa-dev-loadtest-linux'
   apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
   gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
@@ -26,6 +25,7 @@ variables:
   gpdHost: 'https://api.dev.platform.pagopa.it/gpd/api/v1'
   gpsHost: 'https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1'
   apiConfigHost: 'https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1'
+
 
 stages:
   - stage: Test
