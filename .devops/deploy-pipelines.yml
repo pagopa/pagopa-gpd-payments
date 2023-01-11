@@ -154,7 +154,7 @@ stages:
     jobs:
       - job: smoke_tests
         pool:
-          name: $(poolImage)
+          name: pagopa-dev-loadtest-linux
         steps:
           - checkout: self
             persistCredentials: true
