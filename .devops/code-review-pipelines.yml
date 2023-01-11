@@ -10,48 +10,21 @@ trigger: none
 pool:
   vmImage: 'ubuntu-22.04'
 
-parameters:
-  - name: ENV
-    displayName: Target Environment
-    type: string
-    default: dev
-    values:
-      - dev
-      - uat
-      - prod
-
 variables:
   MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
 
-
-  ${{ if eq(parameters['ENV'], 'dev') }}:
-    poolImage: 'pagopa-dev-loadtest-linux'
-    apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
-    gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
-    gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
-    donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
-    iuvGeneratorSubscriptionKey: '$(DEV_IUV_GENERATOR_SUBSCRIPTION_KEY)'
-    restPaymentsSubscriptionKey: '$(DEV_PAYMENTS_REST_SUBSCRIPTION_KEY)'
-    soapPaymentsSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
-    gpdHost: 'https://api.dev.platform.pagopa.it/gpd/api/v1'
-    gpsHost: 'https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1'
-    apiConfigHost: 'https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1'
-  ${{ if eq(parameters['ENV'], 'uat') }}:
-    poolImage: 'pagopa-uat-loadtest-linux'
-    apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
-    gpdSubscriptionKey: '$(UAT_GPD_SUBSCRIPTION_KEY)'
-    gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
-    donationsSubscriptionKey: '$(UAT_DONATIONS_SUBSCRIPTION_KEY)'
-    iuvGeneratorSubscriptionKey: '$(UAT_IUV_GENERATOR_SUBSCRIPTION_KEY)'
-    restPaymentsSubscriptionKey: '$(UAT_PAYMENTS_REST_SUBSCRIPTION_KEY)'
-    soapPaymentsSubscriptionKey: '$(UAT_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
-    gpdHost: 'https://api.uat.platform.pagopa.it/gpd/api/v1'
-    gpsHost: 'https://api.uat.platform.pagopa.it/gps/spontaneous-payments-service/v1'
-    apiConfigHost: 'https://api.uat.platform.pagopa.it/apiconfig/auth/api/v1'
-  # ${{ if eq(parameters['ENV'], 'prod') }}:
-  # todo
-
+  poolImage: 'pagopa-dev-loadtest-linux'
+  apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
+  gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
+  gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
+  donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
+  iuvGeneratorSubscriptionKey: '$(DEV_IUV_GENERATOR_SUBSCRIPTION_KEY)'
+  restPaymentsSubscriptionKey: '$(DEV_PAYMENTS_REST_SUBSCRIPTION_KEY)'
+  soapPaymentsSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
+  gpdHost: 'https://api.dev.platform.pagopa.it/gpd/api/v1'
+  gpsHost: 'https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1'
+  apiConfigHost: 'https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1'
 
 
 stages:
