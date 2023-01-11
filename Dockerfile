@@ -4,7 +4,7 @@
 FROM maven:3.8.4-jdk-11-slim as buildtime
 WORKDIR /build
 COPY . .
-RUN mvn clean package -Dmaven.test.skip=true
+RUN mvn clean package
 
 #
 # Package stage
