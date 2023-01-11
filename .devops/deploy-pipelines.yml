@@ -253,7 +253,7 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                docker run -dit --name node_container pagopadcommonacr.azurecr.io/yarn-testing-base
+                docker run -dit --name node_container $(dockerRegistryFqdn)/yarn-testing-base
                 docker cp -a ./integration-test/src/. node_container:/test
                 docker exec -i node_container /bin/bash -c " \
                 cd ./test
