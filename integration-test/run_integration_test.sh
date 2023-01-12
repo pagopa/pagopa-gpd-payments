@@ -15,7 +15,6 @@ if [ "$ENV" = "local" ]; then
   cd ../docker || exit
   sh ./run_docker.sh --test "$ENV"
 else
-  containerRegistry=pagopa${ENV:0:1}commonacr.azurecr.io
   docker pull ${containerRegistry}/yarn-testing-base:latest
   docker run -dit --name node-container ${containerRegistry}/yarn-testing-base:latest
   test_type=:$ENV
