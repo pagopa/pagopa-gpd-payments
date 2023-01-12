@@ -8,9 +8,17 @@ export IUVGENERATOR_SUBSCRIPTION_KEY=$6
 export REST_PAYMENTS_SUBSCRIPTION_KEY=$7
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8
 
-# create containers
-cd ../docker || exit
-sh ./run_docker.sh --test "$1"
+ENV=$1
+
+if [ "$ENV" = "local" ]; then
+  # create containers
+  cd ../docker || exit
+  sh ./run_docker.sh --test "$ENV"
+else
+  containerRegistry=pagopa${ENV:0:1}commonacr.azurecr.io
+  docker pull ${containerRegistry}/yarn-testing-base:latest
+  docker run -dit --name node-container ${containerRegistry}/yarn-testing-base:latest
+fi
 
 # run integration tests
 cd ../integration-test || exit
@@ -25,4 +33,4 @@ export DONATIONS_SUBSCRIPTION_KEY=$5 \
 export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
-yarn test"
+yarn test:${ENV}"
