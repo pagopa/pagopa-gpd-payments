@@ -18,6 +18,7 @@ else
   containerRegistry=pagopa${ENV:0:1}commonacr.azurecr.io
   docker pull ${containerRegistry}/yarn-testing-base:latest
   docker run -dit --name node-container ${containerRegistry}/yarn-testing-base:latest
+  test_type=:$ENV
 fi
 
 # run integration tests
@@ -33,4 +34,4 @@ export DONATIONS_SUBSCRIPTION_KEY=$5 \
 export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
-yarn test:${ENV}"
+yarn test${test_type}"
