@@ -257,3 +257,5 @@ stages:
                 cd ./integration-test
                 sh run_integration_test.sh ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) \
                 $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
+              env:
+                containerRegistry: $(dockerRegistryFqdn)
