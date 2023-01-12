@@ -1,6 +1,13 @@
-# sh ./run_docker.sh <local|dev|uat|prod>
+# sh ./run_docker.sh --test <local|dev|uat|prod>
 
-ENV=$1
+# number of arguments checking
+if [ -z "$2" ]; then
+  ENV=$1
+else
+  OPTION=$1
+  ENV=$2
+fi
+
 
 if [ -z "$ENV" ]
 then
@@ -39,7 +46,12 @@ export containerRegistry=${containerRegistry}
 export image=${image}
 
 stack_name=$(cd .. && basename "$PWD")
-docker compose -p "${stack_name}" up -d --remove-orphans --force-recreate
+docker compose -p "${stack_name}" up app -d --remove-orphans --force-recreate
+docker compose -p "${stack_name}" up azure-storage -d --remove-orphans --force-recreate
+
+if [ "$OPTION" = "--test" ]; then
+  docker compose -p "${stack_name}" up node-container -d --remove-orphans --force-recreate
+fi
 
 # waiting the containers
 printf 'Waiting for the service'

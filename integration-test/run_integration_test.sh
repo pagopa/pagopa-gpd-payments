@@ -10,7 +10,7 @@ export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8
 
 # create containers
 cd ../docker || exit
-sh ./run_docker.sh "$1"
+sh ./run_docker.sh --test "$1"
 
 # run integration tests
 cd ../integration-test || exit
