@@ -47,9 +47,14 @@ or under docker folder typing:
 
 `docker-compose up --build`
 
-if you have a Mac with m1 processor and you want to start the project locally using the Docker Compose, you must update 
+#### Known issues:
+ - if you have a Mac with m1 processor and you want to start the project locally using the Docker Compose, you must update 
 this instruction in the Dockerfile as follows `FROM --platform=linux/amd64 adoptopenjdk/openjdk16:alpine`
-
+ - If you run this command on Mac device, you may find an error related to the impossibility to generate the Docker containers:  
+`... SomeServiceTest IllegalState Previous attempts to find a Docker environment`  
+This could be caused by a permission issue during the generation of these containers. In order to perform correctly the
+`docker-compose` command in local, is recommended to leave the `test.skip` parameter in the `maven package` phase to `true` and
+rely on code-review pipeline for the execution of the unit tests.
 
 ---
 
