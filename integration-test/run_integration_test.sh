@@ -49,3 +49,6 @@ export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
 export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
 yarn test${test_type}"
+
+# clean up container
+docker stop ${containerName} && docker rm ${containerName}
