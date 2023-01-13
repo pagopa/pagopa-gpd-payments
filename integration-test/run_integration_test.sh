@@ -11,6 +11,9 @@ export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$9
 TYPE=$1
 ENV=$2
 
+docker stop node-container && docker rm node-container
+docker stop integration-node-container && docker rm integration-node-container
+
 if [ "$TYPE" = "smoke" ]; then
   containerName="node-container"
 
