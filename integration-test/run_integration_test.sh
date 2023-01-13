@@ -12,6 +12,8 @@ TYPE=$1
 ENV=$2
 
 if [ "$TYPE" = "smoke" ]; then
+  containerName="node-container"
+
   # create containers
   cd ../docker || exit
   sh ./run_docker.sh --test "$ENV"
@@ -25,14 +27,16 @@ if [ "$TYPE" = "smoke" ]; then
   fi
 
 else
-  docker pull ${containerRegistry}/yarn-testing-base:latest
-  docker run -dit --name node-container ${containerRegistry}/yarn-testing-base:latest
+  containerName="integration-node-container"
   test_type=:$ENV
+
+  docker pull ${containerRegistry}/yarn-testing-base:latest
+  docker run -dit --name ${containerName} ${containerRegistry}/yarn-testing-base:latest
 fi
 
 # run integration tests with yarn
-docker cp -a ./src/. node-container:/test
-docker exec -i node-container /bin/bash -c " \
+docker cp -a ./src/. ${containerName}:/test
+docker exec -i ${containerName} /bin/bash -c " \
 cd ./test
 export APICONFIG_SUBSCRIPTION_KEY=$2 \
 export GPD_SUBSCRIPTION_KEY=$3 \
