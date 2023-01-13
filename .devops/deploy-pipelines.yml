@@ -161,6 +161,7 @@ stages:
 
           - script: |
               git checkout $(sourceBranch)
+              git pull
             displayName: Checkout and update branch
 
           - task: Docker@2
@@ -203,6 +204,7 @@ stages:
 
                 - script: |
                     git checkout $(sourceBranch)
+                    git pull
                   displayName: Checkout and update branch
 
                 - template: templates/helm-microservice-chart-setup/template.yaml@pagopaCommons
@@ -238,6 +240,7 @@ stages:
 
           - script: |
               git checkout $(sourceBranch)
+              git pull
             displayName: Checkout and update branch
 
           - task: Docker@2
