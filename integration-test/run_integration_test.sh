@@ -1,28 +1,36 @@
-# example: sh ./run_integration_test.sh <local|dev|uat|prod>
+# example: sh ./run_integration_test.sh <smoke|integration> <local|dev|uat|prod>
 
-export APICONFIG_SUBSCRIPTION_KEY=$2
-export GPD_SUBSCRIPTION_KEY=$3
-export GPS_SUBSCRIPTION_KEY=$4
-export DONATIONS_SUBSCRIPTION_KEY=$5
-export IUVGENERATOR_SUBSCRIPTION_KEY=$6
-export REST_PAYMENTS_SUBSCRIPTION_KEY=$7
-export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8
+export APICONFIG_SUBSCRIPTION_KEY=$3
+export GPD_SUBSCRIPTION_KEY=$4
+export GPS_SUBSCRIPTION_KEY=$5
+export DONATIONS_SUBSCRIPTION_KEY=$6
+export IUVGENERATOR_SUBSCRIPTION_KEY=$7
+export REST_PAYMENTS_SUBSCRIPTION_KEY=$8
+export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$9
 
-ENV=$1
+TYPE=$1
+ENV=$2
 
-if [ "$ENV" = "local" ]; then
+if [ "$TYPE" = "smoke" ]; then
   # create containers
   cd ../docker || exit
   sh ./run_docker.sh --test "$ENV"
+
+  cd ../integration-test || exit
+
+  if [ "$ENV" = "uat" ]; then
+    sed -i '' 's/dev/uat/' src/config/.env.local
+  elif [ "$ENV" = "prod" ]; then
+    sed -i '' 's/dev.//' src/config/.env.local
+  fi
+
 else
   docker pull ${containerRegistry}/yarn-testing-base:latest
   docker run -dit --name node-container ${containerRegistry}/yarn-testing-base:latest
   test_type=:$ENV
 fi
 
-# run integration tests
-cd ../integration-test || exit
-
+# run integration tests with yarn
 docker cp -a ./src/. node-container:/test
 docker exec -i node-container /bin/bash -c " \
 cd ./test

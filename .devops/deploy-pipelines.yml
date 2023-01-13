@@ -154,7 +154,7 @@ stages:
     jobs:
       - job: smoke_tests
         pool:
-          name: pagopa-dev-loadtest-linux
+          name: $(poolImage)
         steps:
           - checkout: self
             persistCredentials: true
@@ -176,7 +176,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
+                sh run_integration_test.sh smoke ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
                 $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
@@ -255,7 +255,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) \
+                sh run_integration_test.sh integration ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) \
                 $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
