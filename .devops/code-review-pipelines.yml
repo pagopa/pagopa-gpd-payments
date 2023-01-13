@@ -15,6 +15,7 @@ variables:
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
 
   poolImage: 'pagopa-dev-loadtest-linux'
+  dockerRegistryFqdn: 'pagopadcommonacr.azurecr.io'
   apiConfigSubscriptionKey: '$(DEV_API_CONFIG_SUBSCRIPTION_KEY)'
   gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
   gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
@@ -99,4 +100,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
+                sh run_integration_test.sh smoke local $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
+                $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
+            env:
+              containerRegistry: $(dockerRegistryFqdn)
