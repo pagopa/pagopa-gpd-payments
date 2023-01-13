@@ -21,9 +21,9 @@ if [ "$TYPE" = "smoke" ]; then
   cd ../integration-test || exit
 
   if [ "$ENV" = "uat" ]; then
-    sed -i '' 's/dev/uat/' src/config/.env.local
+    sed -i 's/dev/uat/' src/config/.env.local
   elif [ "$ENV" = "prod" ]; then
-    sed -i '' 's/dev.//' src/config/.env.local
+    sed -i 's/dev.//' src/config/.env.local
   fi
 
 else
