@@ -41,13 +41,13 @@ fi
 docker cp -a ./src/. ${containerName}:/test
 docker exec -i ${containerName} /bin/bash -c " \
 cd ./test
-export APICONFIG_SUBSCRIPTION_KEY=$2 \
-export GPD_SUBSCRIPTION_KEY=$3 \
-export GPS_SUBSCRIPTION_KEY=$4 \
-export DONATIONS_SUBSCRIPTION_KEY=$5 \
+export APICONFIG_SUBSCRIPTION_KEY=$3 \
+export GPD_SUBSCRIPTION_KEY=$4 \
+export GPS_SUBSCRIPTION_KEY=$5 \
+export DONATIONS_SUBSCRIPTION_KEY=$6 \
 export REST_PAYMENTS_SUBSCRIPTION_KEY=$7 \
 export SOAP_PAYMENTS_SUBSCRIPTION_KEY=$8 \
-export IUVGENERATOR_SUBSCRIPTION_KEY=$6 && \
+export IUVGENERATOR_SUBSCRIPTION_KEY=$9 && \
 yarn test${test_type}"
 
 # clean up container
