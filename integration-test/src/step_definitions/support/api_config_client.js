@@ -27,7 +27,15 @@ function readCreditorInstitutionBroker(brokerId) {
     })
 }
 
-function readStation(stationId, orgId) {    
+function readStation(stationId) {    
+    return get(api_config_host + `/stations/${stationId}`, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY
+        }
+    })
+}
+
+function readECStationAssociation(stationId, orgId) {    
     return get(api_config_host + `/stations/${stationId}/creditorinstitutions/${orgId}`, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY
@@ -61,7 +69,7 @@ function deleteStation(stationId) {
     })
 }
 
-function deleteECStationRelation(orgId, stationId) {    
+function deleteECStationAssociation(orgId, stationId) {    
     return del(api_config_host + `/creditorinstitutions/${orgId}/stations/${stationId}`, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY
@@ -73,9 +81,10 @@ module.exports = {
     apiConfigHealthCheck,
     createECStationAssociation,
     createStation,
-    deleteECStationRelation,
+    deleteECStationAssociation,
     deleteStation,
     readCreditorInstitution,
     readCreditorInstitutionBroker,
-    readStation,
+    readECStationAssociation,
+    readStation
 }

@@ -17,6 +17,7 @@ function healthCheck() {
 
 function demandPaymentNotice(body) {
     return post(payments_host, body, {
+        timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paDemandPaymentNotice',
@@ -27,6 +28,7 @@ function demandPaymentNotice(body) {
 
 function verifyPaymentNotice(body) {
     return post(payments_host, body, {
+        timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paVerifyPaymentNotice',
@@ -37,6 +39,7 @@ function verifyPaymentNotice(body) {
 
 function getPaymentRequest(body) {
     return post(payments_host, body, {
+        timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paGetPayment',
@@ -47,6 +50,7 @@ function getPaymentRequest(body) {
 
 function sendRTRequest(body) {
     return post(payments_host, body, {
+        timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paSendRT',

@@ -1,4 +1,4 @@
-const {Given, When, Then, After, AfterAll, BeforeAll} = require('@cucumber/cucumber')
+const {Given, When, Then, After, AfterAll, Before, AfterStep} = require('@cucumber/cucumber')
 const {
     demandPaymentNotice,
     getPaymentRequest,
@@ -13,10 +13,11 @@ const {
     apiConfigHealthCheck,
     createECStationAssociation,
     createStation,
-    deleteECStationRelation,
+    deleteECStationAssociation,
     deleteStation,
     readCreditorInstitution,
     readCreditorInstitutionBroker,
+    readECStationAssociation,
     readStation
 } = require("./api_config_client");
 const {
@@ -47,6 +48,8 @@ let gpsSessionBundle = {
     organizationCode: undefined
 }
 
+let responseToCheck = undefined;
+
 let gpdSessionBundle = {
     isExecuting: false,
     debtPosition: {
@@ -63,7 +66,6 @@ let gpdSessionBundle = {
     organizationCode: undefined,
     brokerCode: undefined,
     stationCode: undefined,
-    responseToCheck: undefined,
 }
 
 /* 'Given' precondition for health checks */
@@ -92,15 +94,19 @@ Given('ApiConfig running', async function () {
     assert.strictEqual(response.status, 200);
 });
 
+
+
+
+
+
 /* Given precondition for validating the flow - GPD section */
 Given('the creditor institution {string}', async function (orgId) {
-    gpdSessionBundle.isExecuting = true
-    gpdSessionBundle.organizationCode = orgId
+    gpdSessionBundle.organizationCode = orgId;
     let response = await readCreditorInstitution(orgId);
     assert.strictEqual(response.status, 200);
 });
 Given('the creditor institution broker {string}', async function (brokerId) {
-    gpdSessionBundle.brokerCode = brokerId
+    gpdSessionBundle.brokerCode = brokerId;
     let response = await readCreditorInstitutionBroker(brokerId);
     assert.strictEqual(response.status, 200);
 });
@@ -112,77 +118,117 @@ Given('a valid debt position', async function () {
     assert.strictEqual(response.status, 200);
 });
 
+
+
+
+
+
+
 /* 'Given' precondition for retrieving data - GPD section */
 Given('the station {string} related to creditor institution', async function (stationId) {
-    gpdSessionBundle.stationCode = stationId
+    gpdSessionBundle.stationCode = stationId;
     let response = await createStation(buildCreateStationRequest(gpdSessionBundle.brokerCode, stationId));
     assert.ok(response.status === 201 || response.status === 409);
     response = await createECStationAssociation(gpdSessionBundle.organizationCode, buildCreateECStationRelationRequest(stationId));
     assert.ok(response.status === 201 || response.status === 409);
 });
 Given('the station {string} not related to creditor institution', async function (stationId) {
-    gpdSessionBundle.stationCode = stationId
+    gpdSessionBundle.stationCode = stationId;
     let response = await readStation(stationId, gpdSessionBundle.organizationCode);
+    assert.strictEqual(response.status, 404);
+    await deleteECStationAssociation(stationId, gpdSessionBundle.organizationCode);
+    response = await readECStationAssociation(stationId, gpdSessionBundle.organizationCode);
     assert.strictEqual(response.status, 404);
 });
 
+
+
+
+
 /* 'When' clauses for retrieving data to be analyzed - GPD section */
 When('the client sends the VerifyPaymentNoticeRequest', async function () {
-    gpsSessionBundle.responseToCheck = await verifyPaymentNotice(buildVerifyPaymentNoticeRequest(gpdSessionBundle));
+    responseToCheck = await verifyPaymentNotice(buildVerifyPaymentNoticeRequest(gpdSessionBundle));
 });
 When('the client sends the GetPaymentRequest', async function () {
-    gpsSessionBundle.responseToCheck = await getPaymentRequest(buildGetPaymentRequest(gpdSessionBundle.organizationCode, gpdSessionBundle.brokerCode, gpdSessionBundle.stationCode));
+    const response = await readECStationAssociation(gpdSessionBundle.stationCode, gpdSessionBundle.organizationCode);
+    responseToCheck = await getPaymentRequest(buildGetPaymentRequest(gpdSessionBundle));
 });
 When('the client sends the SendRTRequest', async function () {
-    gpsSessionBundle.responseToCheck = await sendRTRequest(buildSendRTRequest(gpdSessionBundle.organizationCode, gpdSessionBundle.brokerCode, gpdSessionBundle.stationCode));
+    responseToCheck = await sendRTRequest(buildSendRTRequest(gpdSessionBundle));
 });
+
+
+
+
 
 /* 'Given' precondition for retrieving data - GPS section */
 Given('the service {string} for donations', async function (serviceId) {
     gpsSessionBundle.isExecuting = true;
-    await deleteService(serviceId)
     let response = await createService(buildGPSServiceCreationRequest(serviceId, process.env.donation_host))
     assert.strictEqual(response.status, 201);
 });
 Given('the creditor institution {string} enrolled to donation service {string}', async function (orgId, serviceId) {
-    gpsSessionBundle.organizationCode = orgId
-    await deleteOrganization(organizationCode)
+    gpsSessionBundle.organizationCode = orgId;
+    await deleteOrganization(organizationCode);
     let response = await createOrganization(orgId, buildGPSOrganizationCreationRequest(serviceId));    
     assert.strictEqual(response.status, 201);
 });
 
+
+
+
+
 /* 'When' clauses for retrieving data to be analyzed - GPS section */
 When('the client sends the DemandPaymentNoticeRequest', async function () {
-    gpsSessionBundle.responseToCheck = await demandPaymentNotice(buildValidDemandPaymentNoticeRequest(organizationCode));
+    responseToCheck = await demandPaymentNotice(buildValidDemandPaymentNoticeRequest(organizationCode));
 });
 When('the client sends a wrong DemandPaymentNoticeRequest', async function () {
-    gpsSessionBundle.responseToCheck = await demandPaymentNotice(buildInvalidDemandPaymentNoticeRequest(organizationCode));
+    responseToCheck = await demandPaymentNotice(buildInvalidDemandPaymentNoticeRequest(organizationCode));
 });
 
+
+
+
 /* 'Then' clauses for assering retrieved data */
-Then('the client receives status code {int}', function (statusCode) {
-    assert.strictEqual(gpsSessionBundle.responseToCheck.status, statusCode);
+Then('the client receives status code {int}', async function (statusCode) {
+    assert.strictEqual(responseToCheck.status, statusCode);
 });
-Then('the client retrieves the amount {string} in the response', function (amount) {
-    const data = gpsSessionBundle.responseToCheck.data;
+Then('the client retrieves the amount {string} in the response', async function (amount) {
+    const data = responseToCheck.data;
     assert.match(data, /<outcome>OK<\/outcome>/);
     assert.match(data, new RegExp(`<amount>${amount}</amount>`, "g"));
 });
-Then('the client receives a KO in the response', function () {
-    assert.match(gpsSessionBundle.responseToCheck.data, /<outcome>KO<\/outcome>/);
+Then('the client receives an OK in the response', async function () {
+    const data = responseToCheck.data;
+    assert.match(data, /<outcome>OK<\/outcome>/);
 });
-Then('the client receives a KO with the {string} fault code error', function (fault) {
-    assert.match(gpsSessionBundle.responseToCheck.data, /<outcome>KO<\/outcome>/);
-    assert.match(gpsSessionBundle.responseToCheck.data, new RegExp(`<faultCode>${fault}</faultCode>`, "g"));
+Then('the client receives a KO in the response', async function () {
+    assert.match(responseToCheck.data, /<outcome>KO<\/outcome>/);
+});
+Then('the client receives a KO with the {string} fault code error', async function (fault) {
+    assert.match(responseToCheck.data, /<outcome>KO<\/outcome>/);
+    assert.match(responseToCheck.data, new RegExp(`<faultCode>${fault}</faultCode>`, "g"));
 });
 
-// Asynchronous Promise
-AfterAll(function () {
+
+
+
+
+Before({tags: '@GPDScenario'}, async function () {
+    console.log("\nGPD - Starting new scenario");
+    responseToCheck = undefined;
+    gpdSessionBundle.isExecuting = true;
+    await deleteECStationAssociation(gpdSessionBundle.organizationCode, gpdSessionBundle.stationCode);
+    await deleteStation(gpdSessionBundle.stationCode);
+});
+
+AfterAll(async function () {
     if (gpsSessionBundle.isExecuting) {
-        deleteService(gpsSessionBundle.serviceCode);
-        deleteOrganization(gpsSessionBundle.organizationCode);        
+        await deleteService(gpsSessionBundle.serviceCode);
+        await deleteOrganization(gpsSessionBundle.organizationCode);        
     } else if (gpdSessionBundle.isExecuting) {
-        deleteStation(gpdSessionBundle.stationCode);
-        deleteECStationRelation(gpdSessionBundle.organizationCode, gpdSessionBundle.stationCode);
+        console.log("\nGPD - Final delete station and EC-Station relation");
+        await deleteECStationAssociation(gpdSessionBundle.organizationCode, gpdSessionBundle.stationCode);
+        await deleteStation(gpdSessionBundle.stationCode);
     }
 });

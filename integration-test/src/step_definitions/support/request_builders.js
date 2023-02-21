@@ -67,159 +67,6 @@ function buildInvalidDemandPaymentNoticeRequest(organizationCode) {
     </soapenv:Envelope>`;
 }
 
-function buildVerifyPaymentNoticeRequest(gpdSessionBundle) {
-   const organizationCode = gpdSessionBundle.organizationCode;
-   const brokerCode = gpdSessionBundle.brokerCode;
-   const stationCode = gpdSessionBundle.stationCode;
-   const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
-   return `<?xml version="1.0" encoding="utf-8"?>
-        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-            <Body>
-                <paVerifyPaymentNoticeReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-                    <idPA xmlns="">${organizationCode}</idPA>
-                    <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
-                    <idStation xmlns="">${stationCode}</idStation>
-                    <qrCode	xmlns="">
-                        <fiscalCode>${organizationCode}</fiscalCode>
-                        <noticeNumber>${noticeNumber}</noticeNumber>
-                    </qrCode>
-                </paVerifyPaymentNoticeReq>
-            </Body>
-        </Envelope>`;
-}
-
-function buildGetPaymentRequest(organizationCode, brokerCode, stationCode, gpdSessionBundle) {
-    return `<?xml version="1.0" encoding="utf-8"?>
-        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-            <Body>
-                <paGetPaymentReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-                    <idPA xmlns="">${organizationCode}</idPA>
-                    <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
-                    <idStation xmlns="">${stationCode}</idStation>
-                    <qrCode xmlns="">
-                        <fiscalCode>${organizationCode}</fiscalCode>
-                        <noticeNumber>3${gpdSessionBundle.debtPosition.iuv1}</noticeNumber>
-                    </qrCode>
-                    <amount xmlns="">100</amount>
-                    <paymentNote xmlns="">paymentNote1</paymentNote>
-                    <transferType xmlns="">POSTAL</transferType>
-                    <dueDate xmlns="">1900-01-01</dueDate>
-                </paGetPaymentReq>
-            </Body>
-        </Envelope>`;
-}
-
-function buildSendRTRequest() {
-    return `<?xml version="1.0" encoding="utf-8"?>
-        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-            <Body>
-                <paSendRTReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-                    <idPA xmlns="">idPA1</idPA>
-                    <idBrokerPA xmlns="">idBrokerPA1</idBrokerPA>
-                    <idStation xmlns="">idStation1</idStation>
-                    <receipt xmlns="">
-                        <receiptId>receiptId1</receiptId>
-                        <noticeNumber>noticeNumber1</noticeNumber>
-                        <fiscalCode>fiscalCode1</fiscalCode>
-                        <outcome>OK</outcome>
-                        <creditorReferenceId>creditorReferenceId1</creditorReferenceId>
-                        <paymentAmount>1</paymentAmount>
-                        <description>description1</description>
-                        <companyName>companyName1</companyName>
-                        <officeName>officeName1</officeName>
-                        <debtor>
-                            <uniqueIdentifier>
-                                <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
-                                <entityUniqueIdentifierValue>entityUniqueIde1</entityUniqueIdentifierValue>
-                            </uniqueIdentifier>
-                            <fullName>fullName1</fullName>
-                            <streetName>streetName1</streetName>
-                            <civicNumber>civicNumber1</civicNumber>
-                            <postalCode>postalCode1</postalCode>
-                            <city>city1</city>
-                            <stateProvinceRegion>stateProvinceRegion1</stateProvinceRegion>
-                            <country>country1</country>
-                            <e-mail>e-mail1</e-mail>
-                        </debtor>
-                        <transferList>
-                            <transfer>
-                                <idTransfer>
-                                    <Error>Failed to generate sample value</Error>
-                                </idTransfer>
-                            </transfer>
-                        </transferList>
-                    </receipt>
-                </paSendRTReq>
-            </Body>
-        </Envelope>`;
-}
-
-function buildCreateStationRequest(brokerId, stationId) {
-    return {
-        broker_code: brokerId, 
-        enabled: "true", 
-        ip: "192.168.1.102", 
-        password: "password", 
-        port: 443, 
-        protocol: "HTTPS", 
-        service: "test", 
-        station_code: stationId, 
-        thread_number: 1, 
-        timeout_a: 15, 
-        timeout_b: 30, 
-        timeout_c: 120, 
-        version: 1, 
-        flag_online: false, 
-        invio_rt_istantaneo: false, 
-        ip_4mod: false, 
-        new_password: "newpassword", 
-        port_4mod: "1000", 
-        protocol_4mod: "HTTPS", 
-        proxy_enabled: false, 
-        proxy_host: "localhost", 
-        proxy_password: "root", 
-        proxy_port: "2501", 
-        proxy_username: "root", 
-        redirect_ip: "192.168.201.166", 
-        redirect_path: "redirected", 
-        redirect_port: "1001", 
-        redirect_protocol: "HTTPS", 
-        redirect_query_string: "", 
-        service_4mod: "testServ", 
-        target_host: "192.168.100.100", 
-        target_port: 443, 
-        target_path: "testServ", 
-        primitive_version: 1, 
-        pof_service: "testPOF"
-    };
-}
-
-function buildCreateECStationRelationRequest(stationId) {
-    return {
-        station_code: stationId,
-        enabled: true,
-        version: 1,
-        aux_digit: 0,
-        application_code: 99,
-        segregation_code: 99,
-        mod4: false,
-        broadcast: false
-    }
-}
-
-function buildDebtPositionDynamicData() {
-    return {
-        iupd: makeidMix(35),
-        iuv1: makeidNumber(17),
-        iuv2: makeidNumber(17),
-        iuv3: makeidNumber(17),
-        dueDate: addDays(30),
-        retentionDate: addDays(90),
-        transferId1: '1',
-        transferId2: '2',
-        receiptId: makeidMix(33),
-    };
-}
 
 function buildCreateDebtPositionRequest(debtPosition) {
     return {
@@ -236,7 +83,7 @@ function buildCreateDebtPositionRequest(debtPosition) {
         country: "IT",
         email: "micheleventimiglia@skilabmail.com",
         phone: "333-123456789",
-        companyName: "SkyLab",
+        companyName: "SkyLab Inc.",
         officeName: "SkyLab - Sede via Washington",
         paymentOption: [
             {
@@ -315,6 +162,214 @@ function buildCreateDebtPositionRequest(debtPosition) {
                 ]
             }
         ]
+    };
+}
+
+
+function buildVerifyPaymentNoticeRequest(gpdSessionBundle) {
+   const organizationCode = gpdSessionBundle.organizationCode;
+   const brokerCode = gpdSessionBundle.brokerCode;
+   const stationCode = gpdSessionBundle.stationCode;
+   const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
+   return `<?xml version="1.0" encoding="utf-8"?>
+        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+            <Body>
+                <paVerifyPaymentNoticeReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+                    <idPA xmlns="">${organizationCode}</idPA>
+                    <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
+                    <idStation xmlns="">${stationCode}</idStation>
+                    <qrCode	xmlns="">
+                        <fiscalCode>${organizationCode}</fiscalCode>
+                        <noticeNumber>${noticeNumber}</noticeNumber>
+                    </qrCode>
+                </paVerifyPaymentNoticeReq>
+            </Body>
+        </Envelope>`;
+}
+
+function buildGetPaymentRequest(gpdSessionBundle) {
+    const organizationCode = gpdSessionBundle.organizationCode;
+    const brokerCode = gpdSessionBundle.brokerCode;
+    const stationCode = gpdSessionBundle.stationCode;
+    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
+    return `<?xml version="1.0" encoding="utf-8"?>
+        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+            <Body>
+                <paGetPaymentReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+                    <idPA xmlns="">${organizationCode}</idPA>
+                    <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
+                    <idStation xmlns="">${stationCode}</idStation>
+                    <qrCode xmlns="">
+                        <fiscalCode>${organizationCode}</fiscalCode>
+                        <noticeNumber>${noticeNumber}</noticeNumber>
+                    </qrCode>
+                    <amount xmlns="">350.00</amount>
+                </paGetPaymentReq>
+            </Body>
+        </Envelope>`;
+}
+
+function buildSendRTRequest(gpdSessionBundle) {
+    const organizationCode = gpdSessionBundle.organizationCode;
+    const brokerCode = gpdSessionBundle.brokerCode;
+    const stationCode = gpdSessionBundle.stationCode;
+    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
+    const receiptId = gpdSessionBundle.debtPosition.receiptId;
+    const dueDateRaw = gpdSessionBundle.debtPosition.dueDate;
+    var mm = dueDateRaw.getMonth() + 1;
+    var dd = dueDateRaw.getDate();
+    const dueDate = [dueDateRaw.getFullYear(), (mm>9 ? '' : '0') + mm, (dd>9 ? '' : '0') + dd].join('-');
+
+    return `<?xml version="1.0" encoding="utf-8"?>
+        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+            <Body>
+                <paSendRTReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+                    <idPA xmlns="">${organizationCode}</idPA>
+                    <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
+                    <idStation xmlns="">${stationCode}</idStation>
+                    <receipt xmlns="">
+                        <receiptId>${receiptId}</receiptId>
+                        <noticeNumber>${noticeNumber}</noticeNumber>
+                        <fiscalCode>${organizationCode}</fiscalCode>
+                        <outcome>OK</outcome>
+                        <creditorReferenceId>creditorReferenceId1</creditorReferenceId>
+                        <paymentAmount>350.00</paymentAmount>
+                        <description>Pagamento compenso spettacolo "Tel chi el telun"</description>
+                        <companyName>SkyLab Inc.</companyName>
+                        <officeName>SkyLab - Sede via Washington</officeName>
+                        <debtor>
+                            <uniqueIdentifier>
+                                <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
+                                <entityUniqueIdentifierValue>375647785689566</entityUniqueIdentifierValue>
+                            </uniqueIdentifier>
+                            <fullName>Michele Ventimiglia</fullName>
+                            <streetName>via Washington</streetName>
+                            <civicNumber>11</civicNumber>
+                            <postalCode>89812</postalCode>
+                            <city>Pizzo Calabro</city>
+                            <stateProvinceRegion>Vibo Valentia, Calabria</stateProvinceRegion>
+                            <country>IT</country>
+                            <e-mail>micheleventimiglia@skilabmail.com</e-mail>
+                        </debtor>
+                        <transferList>
+                            <transfer>
+                                <idTransfer>1</idTransfer>
+                                <transferAmount>100.00</transferAmount>
+                                <fiscalCodePA>${organizationCode}</fiscalCodePA>
+                                <IBAN>IT0000000000000000000000000</IBAN>
+                                <remittanceInformation>Rata 1</remittanceInformation>
+                                <transferCategory>G</transferCategory>
+                            </transfer>
+                            <transfer>
+                                <idTransfer>2</idTransfer>
+                                <transferAmount>250.00</transferAmount>
+                                <fiscalCodePA>${organizationCode}</fiscalCodePA>
+                                <IBAN>IT0000000000000000000000001</IBAN>
+                                <remittanceInformation>Rata 2</remittanceInformation>
+                                <transferCategory>G</transferCategory>
+                            </transfer>
+                        </transferList>
+                        <idPSP>88888888888</idPSP>
+                        <pspFiscalCode>88888888888</pspFiscalCode>
+                        <pspPartitaIVA>88888888888</pspPartitaIVA>
+                        <PSPCompanyName>PSP name</PSPCompanyName>
+                        <idChannel>88888888888_01</idChannel>
+                        <channelDescription>app</channelDescription>
+                        <payer>
+                            <uniqueIdentifier>
+                                <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
+                                <entityUniqueIdentifierValue>JHNDOE00A01F205N</entityUniqueIdentifierValue>
+                            </uniqueIdentifier>
+                            <fullName>Michele Ventimiglia</fullName>
+                            <streetName>via Washington</streetName>
+                            <civicNumber>11</civicNumber>
+                            <postalCode>89812</postalCode>
+                            <city>Pizzo Calabro</city>
+                            <stateProvinceRegion>Vibo Valentia, Calabria</stateProvinceRegion>
+                            <country>IT</country>
+                            <e-mail>micheleventimiglia@skilabmail.com</e-mail>
+                        </payer>
+                        <paymentMethod>creditCard</paymentMethod>
+                        <fee>2.00</fee>
+                        <paymentDateTime>${dueDate}T08:03:17</paymentDateTime>
+                        <applicationDate>${dueDate}</applicationDate>
+                        <transferDate>${dueDate}</transferDate>
+                        <metadata>
+                            <mapEntry>
+                                <key>keytest</key>
+                                <value>1</value>
+                            </mapEntry>
+                        </metadata>
+                    </receipt>
+                </paSendRTReq>
+            </Body>
+        </Envelope>`;
+}
+
+function buildCreateStationRequest(brokerId, stationId) {
+    return {
+        broker_code: brokerId, 
+        enabled: "true", 
+        ip: "192.168.1.102", 
+        password: "password", 
+        port: 443, 
+        protocol: "HTTPS", 
+        service: "test", 
+        station_code: stationId, 
+        thread_number: 1, 
+        timeout_a: 15, 
+        timeout_b: 30, 
+        timeout_c: 120, 
+        version: 1, 
+        flag_online: false, 
+        invio_rt_istantaneo: false, 
+        ip_4mod: false, 
+        new_password: "newpassword", 
+        port_4mod: "1000", 
+        protocol_4mod: "HTTPS", 
+        proxy_enabled: false, 
+        proxy_host: "localhost", 
+        proxy_password: "root", 
+        proxy_port: "2501", 
+        proxy_username: "root", 
+        redirect_ip: "192.168.201.166", 
+        redirect_path: "redirected", 
+        redirect_port: "1001", 
+        redirect_protocol: "HTTPS", 
+        redirect_query_string: "", 
+        service_4mod: "testServ", 
+        target_host: "192.168.100.100", 
+        target_port: 443, 
+        target_path: "testServ", 
+        primitive_version: 1, 
+        pof_service: "testPOF"
+    };
+}
+
+function buildCreateECStationRelationRequest(stationId) {
+    return {
+        station_code: stationId,
+        enabled: true,
+        version: 1,
+        aux_digit: 0,
+        application_code: 99,
+        segregation_code: 99,
+        mod4: false,
+        broadcast: false
+    }
+}
+
+function buildDebtPositionDynamicData() {
+    return {
+        iupd: makeidMix(35),
+        iuv1: makeidNumber(17),
+        iuv2: makeidNumber(17),
+        iuv3: makeidNumber(17),
+        dueDate: addDays(30),
+        retentionDate: addDays(90),
+        transferId1: '1',
+        transferId2: '2',
+        receiptId: makeidMix(33),
     };
 }
 
