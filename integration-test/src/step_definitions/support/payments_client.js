@@ -25,7 +25,40 @@ function demandPaymentNotice(body) {
     })
 }
 
+function verifyPaymentNotice(body) {
+    return post(payments_host, body, {
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'paVerifyPaymentNotice',
+            "Ocp-Apim-Subscription-Key": process.env.SOAP_PAYMENTS_SUBSCRIPTION_KEY
+        }
+    })
+}
+
+function getPaymentRequest(body) {
+    return post(payments_host, body, {
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'paGetPayment',
+            "Ocp-Apim-Subscription-Key": process.env.SOAP_PAYMENTS_SUBSCRIPTION_KEY
+        }
+    })
+}
+
+function sendRTRequest(body) {
+    return post(payments_host, body, {
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'paSendRT',
+            "Ocp-Apim-Subscription-Key": process.env.SOAP_PAYMENTS_SUBSCRIPTION_KEY
+        }
+    })
+}
+
 module.exports = {
+    demandPaymentNotice,
+    getPaymentRequest,
     healthCheck,
-    demandPaymentNotice
+    sendRTRequest,
+    verifyPaymentNotice
 }
