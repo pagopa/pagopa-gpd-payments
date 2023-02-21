@@ -120,7 +120,7 @@ Given('the station {string} related to creditor institution', async function (st
     // let response = await createStation(buildCreateStationRequest(gpdSessionBundle.brokerCode, stationId));
     // assert.ok(response.status === 201 || response.status === 409);
     response = await createECStationAssociation(gpdSessionBundle.organizationCode, buildCreateECStationRelationRequest(stationId));
-    assert.ok(response.status === 201 || response.status === 409);
+    assert.ok(response.status === 201 || response.status === 409, response.data);
 });
 Given('the station {string} not related to creditor institution', async function (stationId) {
     gpdSessionBundle.stationCode = stationId;
