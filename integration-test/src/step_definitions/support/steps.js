@@ -16,6 +16,7 @@ const {
     readCreditorInstitution,
     readCreditorInstitutionBroker,
     readECStationAssociation,
+    refreshConfiguration
 } = require("./api_config_client");
 const {
     createDebtPosition,
@@ -187,6 +188,8 @@ Before({tags: '@GPDScenario'}, async function () {
     responseToCheck = undefined;
     gpdSessionBundle.isExecuting = true;
     await deleteECStationAssociation(gpdSessionBundle.organizationCode, gpdSessionBundle.stationCode);
+    await refreshConfiguration("PA");
+    await refreshConfiguration("PSP");
 });
 
 AfterAll(async function () {
@@ -196,5 +199,7 @@ AfterAll(async function () {
     } else if (gpdSessionBundle.isExecuting) {
         console.log("\nGPD - Final delete EC-Station relation");
         await deleteECStationAssociation(gpdSessionBundle.organizationCode, gpdSessionBundle.stationCode);
+        await refreshConfiguration("PA");
+        await refreshConfiguration("PSP");
     }
 });

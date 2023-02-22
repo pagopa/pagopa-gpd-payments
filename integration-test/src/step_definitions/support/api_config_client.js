@@ -60,6 +60,14 @@ function deleteECStationAssociation(orgId, stationId) {
     })
 }
 
+function refreshConfiguration(domain) {    
+    return get(api_config_host + `/refresh/config/${domain}`, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY
+        }
+    })
+}
+
 module.exports = {
     apiConfigHealthCheck,
     createECStationAssociation,
@@ -67,5 +75,6 @@ module.exports = {
     readCreditorInstitution,
     readCreditorInstitutionBroker,
     readECStationAssociation,
-    readStation
+    readStation,
+    refreshConfiguration
 }
