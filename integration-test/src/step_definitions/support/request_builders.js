@@ -216,6 +216,7 @@ function buildSendRTRequest(gpdSessionBundle) {
     const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
     const receiptId = gpdSessionBundle.debtPosition.receiptId;
     const dueDateRaw = gpdSessionBundle.debtPosition.dueDate;
+    const iuv = gpdSessionBundle.debtPosition.iuv1;
     var mm = dueDateRaw.getMonth() + 1;
     var dd = dueDateRaw.getDate();
     const dueDate = [dueDateRaw.getFullYear(), (mm>9 ? '' : '0') + mm, (dd>9 ? '' : '0') + dd].join('-');
@@ -232,7 +233,7 @@ function buildSendRTRequest(gpdSessionBundle) {
                         <noticeNumber>${noticeNumber}</noticeNumber>
                         <fiscalCode>${organizationCode}</fiscalCode>
                         <outcome>OK</outcome>
-                        <creditorReferenceId>creditorReferenceId1</creditorReferenceId>
+                        <creditorReferenceId>${iuv}</creditorReferenceId>
                         <paymentAmount>350.00</paymentAmount>
                         <description>Pagamento compenso spettacolo "Tel chi el telun"</description>
                         <companyName>SkyLab Inc.</companyName>
