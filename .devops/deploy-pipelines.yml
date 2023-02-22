@@ -240,7 +240,6 @@ stages:
 
           - script: |
               git checkout $(sourceBranch)
-              git pull
               git fetch origin
               git reset --hard origin/PAGOPA-712-payments-integration-test
             displayName: Checkout and update branch
