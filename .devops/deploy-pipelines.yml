@@ -240,8 +240,7 @@ stages:
 
           - script: |
               git checkout $(sourceBranch)
-              git fetch origin
-              git reset --hard origin/PAGOPA-712-payments-integration-test
+              git pull
             displayName: Checkout and update branch
 
           - task: Docker@2

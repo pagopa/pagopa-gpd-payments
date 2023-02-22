@@ -36,7 +36,7 @@ function readStation(stationId) {
 }
 
 function readECStationAssociation(stationId, orgId) {    
-    return get(api_config_host + `/creditorinstitutions/${orgId}/stations/${stationId}`, {
+    return get(api_config_host + `/stations/${stationId}/creditorinstitutions/${orgId}`, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY
         }
