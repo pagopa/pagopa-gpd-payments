@@ -12,13 +12,10 @@ const {donationHealthCheck} = require("./donation_service_client");
 const {
     apiConfigHealthCheck,
     createECStationAssociation,
-    createStation,
     deleteECStationAssociation,
-    deleteStation,
     readCreditorInstitution,
     readCreditorInstitutionBroker,
     readECStationAssociation,
-    readStation
 } = require("./api_config_client");
 const {
     createDebtPosition,
@@ -117,17 +114,12 @@ Given('a valid debt position', async function () {
 /* 'Given' precondition for retrieving data - GPD section */
 Given('the station {string} related to creditor institution', async function (stationId) {
     gpdSessionBundle.stationCode = stationId;
-    // let response = await createStation(buildCreateStationRequest(gpdSessionBundle.brokerCode, stationId));
-    // assert.ok(response.status === 201 || response.status === 409);
     response = await createECStationAssociation(gpdSessionBundle.organizationCode, buildCreateECStationRelationRequest(stationId));
-    assert.ok(response.status === 201 || response.status === 409, response.data);
+    assert.ok(response.status === 201 || response.status === 409);
 });
 Given('the station {string} not related to creditor institution', async function (stationId) {
     gpdSessionBundle.stationCode = stationId;
-    // let response = await readStation(stationId, gpdSessionBundle.organizationCode);
-    // assert.strictEqual(response.status, 404);
-    await deleteECStationAssociation(stationId, gpdSessionBundle.organizationCode);
-    let response = await readECStationAssociation(stationId, gpdSessionBundle.organizationCode);
+    response = await readECStationAssociation(stationId, gpdSessionBundle.organizationCode);
     assert.strictEqual(response.status, 404);
 });
 
@@ -195,7 +187,6 @@ Before({tags: '@GPDScenario'}, async function () {
     responseToCheck = undefined;
     gpdSessionBundle.isExecuting = true;
     await deleteECStationAssociation(gpdSessionBundle.organizationCode, gpdSessionBundle.stationCode);
-    //await deleteStation(gpdSessionBundle.stationCode);
 });
 
 AfterAll(async function () {
@@ -203,8 +194,7 @@ AfterAll(async function () {
         await deleteService(gpsSessionBundle.serviceCode);
         await deleteOrganization(gpsSessionBundle.organizationCode);        
     } else if (gpdSessionBundle.isExecuting) {
-        console.log("\nGPD - Final delete station and EC-Station relation");
+        console.log("\nGPD - Final delete EC-Station relation");
         await deleteECStationAssociation(gpdSessionBundle.organizationCode, gpdSessionBundle.stationCode);
-        //await deleteStation(gpdSessionBundle.stationCode);
     }
 });

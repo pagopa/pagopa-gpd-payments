@@ -36,18 +36,9 @@ function readStation(stationId) {
 }
 
 function readECStationAssociation(stationId, orgId) {    
-    return get(api_config_host + `/stations/${stationId}/creditorinstitutions/${orgId}`, {
+    return get(api_config_host + `/creditorinstitutions/${orgId}/stations/${stationId}`, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY
-        }
-    })
-}
-
-function createStation(body) {    
-    return post(api_config_host + `/stations`, body, {
-        headers: {
-            "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY,
-            "Content-Type": "application/json"
         }
     })
 }
@@ -57,14 +48,6 @@ function createECStationAssociation(orgId, body) {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY,
             "Content-Type": "application/json"
-        }
-    })
-}
-
-function deleteStation(stationId) {    
-    return del(api_config_host + `/stations/${stationId}`, {
-        headers: {
-            "Ocp-Apim-Subscription-Key": process.env.APICONFIG_SUBSCRIPTION_KEY
         }
     })
 }
@@ -80,9 +63,7 @@ function deleteECStationAssociation(orgId, stationId) {
 module.exports = {
     apiConfigHealthCheck,
     createECStationAssociation,
-    createStation,
     deleteECStationAssociation,
-    deleteStation,
     readCreditorInstitution,
     readCreditorInstitutionBroker,
     readECStationAssociation,
