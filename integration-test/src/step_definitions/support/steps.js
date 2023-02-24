@@ -177,7 +177,7 @@ Given('a proper activation of debt position', async function () {
  *  'Given' precondition for validating the creditor institution's fiscal code to be used.
  */
 Given('an invalid fiscal code', async function () {
-    gpdSessionBundle.debtPosition.fiscalCode = process.env.invalid_fiscal_code;
+    gpdSessionBundle.debtPosition.fiscalCode = process.env.invalid_creditor_institution;
     let response = await readCreditorInstitution(gpdSessionBundle.debtPosition.fiscalCode);
     assert.strictEqual(response.status, 404);
 });
