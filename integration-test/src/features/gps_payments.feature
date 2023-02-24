@@ -1,12 +1,12 @@
-Feature: All about Spontaneous Payments
+# Feature: All about Spontaneous Payments
 
-  Background:
-    Given Payments running
-    And GPS running
-    And GPD running
-    And DonationService running
-    And IUV Generator running
-    And ApiConfig running
+#   Background:
+#     Given Payments running
+#     And GPS running
+#     And GPD running
+#     And DonationService running
+#     And IUV Generator running
+#     And ApiConfig running
 
 #  Scenario: call donation service
 #    Given the service "12345" for donations

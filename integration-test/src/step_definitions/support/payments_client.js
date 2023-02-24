@@ -3,6 +3,7 @@ const fs = require("fs");
 const ip = require('ip');
 
 const payments_host = process.env.payments_host;
+const nodo_host = process.env.nodo_host;
 const payments_info = process.env.payments_info;
 const ipAddress = ip.address();
 
@@ -37,7 +38,7 @@ function verifyPaymentNotice(body) {
     })
 }
 
-function getPaymentRequest(body) {
+function getPayment(body) {
     return post(payments_host, body, {
         timeout: 10000,
         headers: {
@@ -48,7 +49,7 @@ function getPaymentRequest(body) {
     })
 }
 
-function sendRTRequest(body) {
+function sendRT(body) {
     return post(payments_host, body, {
         timeout: 10000,
         headers: {
@@ -59,10 +60,32 @@ function sendRTRequest(body) {
     })
 }
 
+function activatePaymentNotice(body) {
+    return post(nodo_host + "/node-for-psp/v1", body, {
+        timeout: 10000,
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'activatePaymentNotice',
+        }
+    })
+}
+
+function sendPaymentOutcome(body) {
+    return post(nodo_host + "/node-for-psp/v1", body, {
+        timeout: 10000,
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'sendPaymentOutcome',
+        }
+    })
+}
+
 module.exports = {
+    activatePaymentNotice,
     demandPaymentNotice,
-    getPaymentRequest,
+    getPayment,
     healthCheck,
-    sendRTRequest,
-    verifyPaymentNotice
+    sendPaymentOutcome,
+    sendRT,
+    verifyPaymentNotice,
 }

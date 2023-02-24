@@ -1,5 +1,6 @@
 const { makeidNumber, makeidMix, addDays } = require("./helpers");
 
+/*
 function buildGPSServiceCreationRequest(serviceId, donation_host) {
     return {
         "id": serviceId,
@@ -66,29 +67,59 @@ function buildInvalidDemandPaymentNoticeRequest(organizationCode) {
         </soapenv:Body>
     </soapenv:Envelope>`;
 }
+*/
 
+function buildStringFromDate(rawDate) {
+    var mm = rawDate.getMonth() + 1;
+    var dd = rawDate.getDate();
+    return [rawDate.getFullYear(), (mm>9 ? '' : '0') + mm, (dd>9 ? '' : '0') + dd].join('-');
+}
 
-function buildCreateDebtPositionRequest(debtPosition) {
+function buildDebtPositionDynamicData(gpdSessionBundle) {    
+    return {
+        iupd: makeidMix(35),
+        iuv1: `${gpdSessionBundle.debtPosition.iuvPrefix}${makeidNumber(15)}`,
+        iuv2: makeidNumber(17),
+        iuv3: makeidNumber(17),
+        iban: gpdSessionBundle.debtPosition.iban,
+        dueDate: addDays(30),
+        retentionDate: addDays(90),
+        transferId1: '1',
+        transferId2: '2',
+        amount: 300.00,
+        receiptId: makeidMix(33),
+        pspId: "60000000001",
+        pspBrokerId: "60000000001",
+        pspChannelId: "60000000001_01",
+        pspName: "PSP Paolo",
+        pspFiscalCode: "CF60000000006",
+        idempotency: `60000000001_${makeidNumber(6)}${makeidMix(4)}`,
+        applicationDate: buildStringFromDate(addDays(0)),
+        transferDate: buildStringFromDate(addDays(1)),
+    };
+}
+
+function buildCreateDebtPositionRequest(debtPosition, payer) {
     return {
         iupd: debtPosition.iupd,
         type: "F",
-        fiscalCode: "VNTMHL76M09H501D",
-        fullName: "Michele Ventimiglia",
-        streetName: "via Washington",
-        civicNumber: "11",
-        postalCode: "89812",
-        city: "Pizzo Calabro",
-        province: "VV",
-        region: "CA",
-        country: "IT",
-        email: "micheleventimiglia@skilabmail.com",
-        phone: "333-123456789",
-        companyName: "SkyLab Inc.",
-        officeName: "SkyLab - Sede via Washington",
+        fiscalCode: payer.fiscalCode,
+        fullName: payer.name,
+        streetName: payer.streetName,
+        civicNumber: payer.civicNumber,
+        postalCode: payer.postalCode,
+        city: payer.city,
+        province: payer.province,
+        region: payer.region,
+        country: payer.country,
+        email: payer.email,
+        phone: payer.phone,
+        companyName: payer.companyName,
+        officeName: payer.officeName,
         paymentOption: [
             {
                 iuv: debtPosition.iuv1,
-                amount: 35000,
+                amount: debtPosition.amount * 100,
                 description: "Canone Unico Patrimoniale - SkyLab Inc.",
                 isPartialPayment: false,
                 dueDate: debtPosition.dueDate,
@@ -97,67 +128,17 @@ function buildCreateDebtPositionRequest(debtPosition) {
                 transfer: [
                     {
                         idTransfer: debtPosition.transferId1,
-                        amount: 10000,
+                        amount: (debtPosition.amount * 100 / 3),
                         remittanceInformation: "Rata 1",
                         category: "9/0101108TS/",
-                        iban: "IT0000000000000000000000000"
+                        iban: debtPosition.iban,
                     },
                     {
                         idTransfer: debtPosition.transferId2,
-                        amount: 25000,
+                        amount: (debtPosition.amount * 100 / 3) * 2,
                         remittanceInformation: "Rata 2",
                         category: "9/0101108TS/",
-                        iban: "IT0000000000000000000000000"
-                    }
-                ]
-            },
-            {
-                iuv: debtPosition.iuv2,
-                amount: 5500,
-                description: "Canone Unico Patrimoniale - SkyLab Inc. - Not Final",
-                isPartialPayment: true,
-                dueDate: debtPosition.dueDate,
-                retentionDate: debtPosition.retentionDate,
-                fee: 0,
-                transfer: [
-                    {
-                        idTransfer: debtPosition.transferId1,
-                        amount: 4000,
-                        remittanceInformation: "Rata 1",
-                        category: "9/0101108TS/",
-                        iban: "IT0000000000000000000000000"
-                    },
-                    {
-                        idTransfer: debtPosition.transferId2,
-                        amount: 1500,
-                        remittanceInformation: "Rata 2",
-                        category: "9/0101108TS/",
-                        iban: "IT0000000000000000000000000"
-                    }
-                ]
-            },
-            {
-                iuv: debtPosition.iuv3,
-                amount: 14000,
-                description: "Canone Unico Patrimoniale - SkyLab Inc. - Not Final 2",
-                isPartialPayment: true,
-                dueDate: debtPosition.dueDate,
-                retentionDate: debtPosition.retentionDate,
-                fee: 0,
-                transfer: [
-                    {
-                        idTransfer: debtPosition.transferId1,
-                        amount: 4000,
-                        remittanceInformation: "Rata 1",
-                        category: "9/0101108TS/",
-                        iban: "IT0000000000000000000000000"
-                    },
-                    {
-                        idTransfer: debtPosition.transferId2,
-                        amount: 10000,
-                        remittanceInformation: "Rata 2",
-                        category: "9/0101108TS/",
-                        iban: "IT0000000000000000000000000"
+                        iban: debtPosition.iban,
                     }
                 ]
             }
@@ -166,8 +147,7 @@ function buildCreateDebtPositionRequest(debtPosition) {
 }
 
 
-function buildVerifyPaymentNoticeRequest(gpdSessionBundle) {
-   const organizationCode = gpdSessionBundle.organizationCode;
+function buildVerifyPaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
    const brokerCode = gpdSessionBundle.brokerCode;
    const stationCode = gpdSessionBundle.stationCode;
    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
@@ -175,11 +155,11 @@ function buildVerifyPaymentNoticeRequest(gpdSessionBundle) {
         <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
             <Body>
                 <paVerifyPaymentNoticeReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-                    <idPA xmlns="">${organizationCode}</idPA>
+                    <idPA xmlns="">${fiscalCode}</idPA>
                     <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
                     <idStation xmlns="">${stationCode}</idStation>
                     <qrCode	xmlns="">
-                        <fiscalCode>${organizationCode}</fiscalCode>
+                        <fiscalCode>${fiscalCode}</fiscalCode>
                         <noticeNumber>${noticeNumber}</noticeNumber>
                     </qrCode>
                 </paVerifyPaymentNoticeReq>
@@ -187,203 +167,202 @@ function buildVerifyPaymentNoticeRequest(gpdSessionBundle) {
         </Envelope>`;
 }
 
-function buildGetPaymentRequest(gpdSessionBundle) {
-    const organizationCode = gpdSessionBundle.organizationCode;
-    const brokerCode = gpdSessionBundle.brokerCode;
-    const stationCode = gpdSessionBundle.stationCode;
+function buildActivatePaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
+    const pspId = gpdSessionBundle.debtPosition.pspId;
+    const pspBrokerId = gpdSessionBundle.debtPosition.pspBrokerId;
+    const pspChannelId = gpdSessionBundle.debtPosition.pspChannelId;
+    //const fiscalCode = gpdSessionBundle.debtPosition.fiscalCode;
     const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
-    return `<?xml version="1.0" encoding="utf-8"?>
-        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-            <Body>
-                <paGetPaymentReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-                    <idPA xmlns="">${organizationCode}</idPA>
-                    <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
-                    <idStation xmlns="">${stationCode}</idStation>
-                    <qrCode xmlns="">
-                        <fiscalCode>${organizationCode}</fiscalCode>
-                        <noticeNumber>${noticeNumber}</noticeNumber>
-                    </qrCode>
-                    <amount xmlns="">350.00</amount>
-                </paGetPaymentReq>
-            </Body>
-        </Envelope>`;
+    const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
+    const idempotency = gpdSessionBundle.debtPosition.idempotency;
+    return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/node/nodeForPsp.xsd">
+        <soapenv:Header/>
+        <soapenv:Body>
+            <nod:activatePaymentNoticeReq>
+                <idPSP>${pspId}</idPSP>
+                <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
+                <idChannel>${pspChannelId}</idChannel>
+                <password>pwdpwdpwd</password>
+                <idempotencyKey>${idempotency}</idempotencyKey>
+                <qrCode>
+                    <fiscalCode>${fiscalCode}</fiscalCode>
+                    <noticeNumber>${noticeNumber}</noticeNumber>
+                </qrCode>
+                <expirationTime>6000</expirationTime>
+                <amount>${amount}</amount>
+            </nod:activatePaymentNoticeReq>
+        </soapenv:Body>
+    </soapenv:Envelope>`;
 }
 
-function buildSendRTRequest(gpdSessionBundle) {
-    const organizationCode = gpdSessionBundle.organizationCode;
+function buildSendPaymentOutcomeRequest(gpdSessionBundle) {
+    const pspId = gpdSessionBundle.debtPosition.pspId;
+    const pspBrokerId = gpdSessionBundle.debtPosition.pspBrokerId;
+    const pspChannelId = gpdSessionBundle.debtPosition.pspChannelId;
+    const idempotency = gpdSessionBundle.debtPosition.idempotency;
+    const paymentToken = gpdSessionBundle.debtPosition.paymentToken;
+    const payerFiscalCode = gpdSessionBundle.payer.fiscalCode;
+    const applicationDate = gpdSessionBundle.debtPosition.applicationDate;
+    const transferDate = gpdSessionBundle.debtPosition.transferDate;
+    const name = gpdSessionBundle.payer.name;
+    const streetName = gpdSessionBundle.payer.streetName;
+    const civicNumber = gpdSessionBundle.payer.civicNumber;
+    const postalCode = gpdSessionBundle.payer.postalCode;
+    const city = gpdSessionBundle.payer.city;
+    const province = gpdSessionBundle.payer.province;
+    const country = gpdSessionBundle.payer.country;
+    const email = gpdSessionBundle.payer.email;
+    return `<soapenv:Envelope>
+        <soapenv:Body>
+            <nod:sendPaymentOutcomeReq>
+            <idPSP>${pspId}</idPSP>
+            <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
+            <idChannel>${pspChannelId}</idChannel>
+            <password>pwdpwdpwd</password>
+            <idempotencyKey>${idempotency}</idempotencyKey>
+            <paymentTokens>
+                <paymentToken>${paymentToken}</paymentToken>
+            </paymentTokens>
+            <outcome>OK</outcome>
+            <details>
+                <paymentMethod>creditCard</paymentMethod>
+                <paymentChannel>app</paymentChannel>
+                <fee>1.50</fee>
+                <primaryCiIncurredFee>0.50</primaryCiIncurredFee>
+                <idBundle>1</idBundle>
+                <idCiBundle>2</idCiBundle>
+                <payer>
+                    <uniqueIdentifier>
+                        <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
+                        <entityUniqueIdentifierValue>${payerFiscalCode}</entityUniqueIdentifierValue>
+                    </uniqueIdentifier>
+                    <fullName>${name}</fullName>
+                    <streetName>${streetName}</streetName>
+                    <civicNumber>${civicNumber}</civicNumber>
+                    <postalCode>${postalCode}</postalCode>
+                    <city>${city}</city>
+                    <stateProvinceRegion>${province}</stateProvinceRegion>
+                    <country>${country}</country>
+                    <e-mail>${email}</e-mail>
+                </payer>
+                <applicationDate>${applicationDate}</applicationDate>
+                <transferDate>${transferDate}</transferDate>
+            </details>
+            </nod:sendPaymentOutcomeReq>
+        </soapenv:Body>
+    </soapenv:Envelope>`;
+}
+
+function buildSendRTRequest(gpdSessionBundle, fiscalCode) {
     const brokerCode = gpdSessionBundle.brokerCode;
     const stationCode = gpdSessionBundle.stationCode;
-    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
-    const receiptId = gpdSessionBundle.debtPosition.receiptId;
-    const dueDateRaw = gpdSessionBundle.debtPosition.dueDate;
+    const pspId = gpdSessionBundle.debtPosition.pspId;
+    const pspFiscalCode = gpdSessionBundle.debtPosition.pspFiscalCode;
+    const pspName = gpdSessionBundle.debtPosition.pspName;
+    const pspChannelId = gpdSessionBundle.debtPosition.pspChannelId;
     const iuv = gpdSessionBundle.debtPosition.iuv1;
-    var mm = dueDateRaw.getMonth() + 1;
-    var dd = dueDateRaw.getDate();
-    const dueDate = [dueDateRaw.getFullYear(), (mm>9 ? '' : '0') + mm, (dd>9 ? '' : '0') + dd].join('-');
-
+    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`;
+    const iban = gpdSessionBundle.debtPosition.iban;
+    const receiptId = gpdSessionBundle.debtPosition.paymentToken; //gpdSessionBundle.debtPosition.receiptId;
+    const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
+    const transferAmountRate = gpdSessionBundle.debtPosition.amount / 3;
+    const payerFiscalCode = gpdSessionBundle.payer.fiscalCode;
+    const applicationDate = gpdSessionBundle.debtPosition.applicationDate;
+    const transferDate = gpdSessionBundle.debtPosition.transferDate;
+    const name = gpdSessionBundle.payer.name;
+    const streetName = gpdSessionBundle.payer.streetName;
+    const civicNumber = gpdSessionBundle.payer.civicNumber;
+    const postalCode = gpdSessionBundle.payer.postalCode;
+    const city = gpdSessionBundle.payer.city;
+    const province = gpdSessionBundle.payer.province;
+    const country = gpdSessionBundle.payer.country;
+    const email = gpdSessionBundle.payer.email;
+    const companyName = gpdSessionBundle.payer.companyName;
+    const officeName = gpdSessionBundle.payer.officeName;
     return `<?xml version="1.0" encoding="utf-8"?>
         <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
             <Body>
                 <paSendRTReq xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
-                    <idPA xmlns="">${organizationCode}</idPA>
+                    <idPA xmlns="">${fiscalCode}</idPA>
                     <idBrokerPA xmlns="">${brokerCode}</idBrokerPA>
                     <idStation xmlns="">${stationCode}</idStation>
                     <receipt xmlns="">
                         <receiptId>${receiptId}</receiptId>
                         <noticeNumber>${noticeNumber}</noticeNumber>
-                        <fiscalCode>${organizationCode}</fiscalCode>
+                        <fiscalCode>${fiscalCode}</fiscalCode>
                         <outcome>OK</outcome>
                         <creditorReferenceId>${iuv}</creditorReferenceId>
-                        <paymentAmount>350.00</paymentAmount>
+                        <paymentAmount>${amount}</paymentAmount>
                         <description>Pagamento compenso spettacolo "Tel chi el telun"</description>
-                        <companyName>SkyLab Inc.</companyName>
-                        <officeName>SkyLab - Sede via Washington</officeName>
+                        <companyName>${companyName}</companyName>
+                        <officeName>${officeName}</officeName>
                         <debtor>
                             <uniqueIdentifier>
                                 <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
-                                <entityUniqueIdentifierValue>375647785689566</entityUniqueIdentifierValue>
+                                <entityUniqueIdentifierValue>${payerFiscalCode}</entityUniqueIdentifierValue>
                             </uniqueIdentifier>
-                            <fullName>Michele Ventimiglia</fullName>
-                            <streetName>via Washington</streetName>
-                            <civicNumber>11</civicNumber>
-                            <postalCode>89812</postalCode>
-                            <city>Pizzo Calabro</city>
-                            <stateProvinceRegion>Vibo Valentia, Calabria</stateProvinceRegion>
-                            <country>IT</country>
-                            <e-mail>micheleventimiglia@skilabmail.com</e-mail>
+                            <fullName>${name}</fullName>
+                            <streetName>${streetName}</streetName>
+                            <civicNumber>${civicNumber}</civicNumber>
+                            <postalCode>${postalCode}</postalCode>
+                            <city>${city}</city>
+                            <stateProvinceRegion>${province}</stateProvinceRegion>
+                            <country>${country}</country>
+                            <e-mail>${email}</e-mail>
                         </debtor>
                         <transferList>
                             <transfer>
                                 <idTransfer>1</idTransfer>
-                                <transferAmount>100.00</transferAmount>
-                                <fiscalCodePA>${organizationCode}</fiscalCodePA>
-                                <IBAN>IT0000000000000000000000000</IBAN>
+                                <transferAmount>${transferAmountRate}.00</transferAmount>
+                                <fiscalCodePA>${fiscalCode}</fiscalCodePA>
+                                <IBAN>${iban}</IBAN>
                                 <remittanceInformation>Rata 1</remittanceInformation>
                                 <transferCategory>G</transferCategory>
                             </transfer>
                             <transfer>
                                 <idTransfer>2</idTransfer>
-                                <transferAmount>250.00</transferAmount>
-                                <fiscalCodePA>${organizationCode}</fiscalCodePA>
-                                <IBAN>IT0000000000000000000000001</IBAN>
+                                <transferAmount>${transferAmountRate * 2}.00</transferAmount>
+                                <fiscalCodePA>${fiscalCode}</fiscalCodePA>
+                                <IBAN>${iban}</IBAN>
                                 <remittanceInformation>Rata 2</remittanceInformation>
                                 <transferCategory>G</transferCategory>
                             </transfer>
                         </transferList>
-                        <idPSP>88888888888</idPSP>
-                        <pspFiscalCode>88888888888</pspFiscalCode>
-                        <pspPartitaIVA>88888888888</pspPartitaIVA>
-                        <PSPCompanyName>PSP name</PSPCompanyName>
-                        <idChannel>88888888888_01</idChannel>
+                        <idPSP>${pspId}</idPSP>
+                        <pspFiscalCode>${pspFiscalCode}</pspFiscalCode>
+                        <PSPCompanyName>${pspName}</PSPCompanyName>
+                        <idChannel>${pspChannelId}</idChannel>
                         <channelDescription>app</channelDescription>
                         <payer>
                             <uniqueIdentifier>
                                 <entityUniqueIdentifierType>F</entityUniqueIdentifierType>
-                                <entityUniqueIdentifierValue>JHNDOE00A01F205N</entityUniqueIdentifierValue>
+                                <entityUniqueIdentifierValue>${payerFiscalCode}</entityUniqueIdentifierValue>
                             </uniqueIdentifier>
-                            <fullName>Michele Ventimiglia</fullName>
-                            <streetName>via Washington</streetName>
-                            <civicNumber>11</civicNumber>
-                            <postalCode>89812</postalCode>
-                            <city>Pizzo Calabro</city>
-                            <stateProvinceRegion>Vibo Valentia, Calabria</stateProvinceRegion>
-                            <country>IT</country>
-                            <e-mail>micheleventimiglia@skilabmail.com</e-mail>
+                            <fullName>${name}</fullName>
+                            <streetName>${streetName}</streetName>
+                            <civicNumber>${civicNumber}</civicNumber>
+                            <postalCode>${postalCode}</postalCode>
+                            <city>${city}</city>
+                            <stateProvinceRegion>${province}</stateProvinceRegion>
+                            <country>${country}</country>
+                            <e-mail>${email}</e-mail>
                         </payer>
                         <paymentMethod>creditCard</paymentMethod>
-                        <fee>2.00</fee>
-                        <paymentDateTime>${dueDate}T08:03:17</paymentDateTime>
-                        <applicationDate>${dueDate}</applicationDate>
-                        <transferDate>${dueDate}</transferDate>
-                        <metadata>
-                            <mapEntry>
-                                <key>keytest</key>
-                                <value>1</value>
-                            </mapEntry>
-                        </metadata>
+                        <fee>1.50</fee>
+                        <paymentDateTime>${applicationDate}T12:00:00</paymentDateTime>
+                        <applicationDate>${applicationDate}</applicationDate>
+                        <transferDate>${transferDate}</transferDate>
                     </receipt>
                 </paSendRTReq>
             </Body>
         </Envelope>`;
 }
 
-function buildCreateStationRequest(brokerId, stationId) {
-    return {
-        broker_code: brokerId, 
-        enabled: "true", 
-        ip: "192.168.1.102", 
-        password: "password", 
-        port: 443, 
-        protocol: "HTTPS", 
-        service: "test", 
-        station_code: stationId, 
-        thread_number: 1, 
-        timeout_a: 15, 
-        timeout_b: 30, 
-        timeout_c: 120, 
-        version: 1, 
-        flag_online: false, 
-        invio_rt_istantaneo: false, 
-        ip_4mod: false, 
-        new_password: "newpassword", 
-        port_4mod: "1000", 
-        protocol_4mod: "HTTPS", 
-        proxy_enabled: false, 
-        proxy_host: "localhost", 
-        proxy_password: "root", 
-        proxy_port: "2501", 
-        proxy_username: "root", 
-        redirect_ip: "192.168.201.166", 
-        redirect_path: "redirected", 
-        redirect_port: "1001", 
-        redirect_protocol: "HTTPS", 
-        redirect_query_string: "", 
-        service_4mod: "testServ", 
-        target_host: "192.168.100.100", 
-        target_port: 443, 
-        target_path: "testServ", 
-        primitive_version: 1, 
-        pof_service: "testPOF"
-    };
-}
-
-function buildCreateECStationRelationRequest(stationId) {
-    return {
-        station_code: stationId,
-        enabled: true,
-        version: 1,
-        aux_digit: 0,
-        application_code: 99,
-        segregation_code: 99,
-        mod4: false,
-        broadcast: false
-    }
-}
-
-function buildDebtPositionDynamicData() {
-    return {
-        iupd: makeidMix(35),
-        iuv1: makeidNumber(17),
-        iuv2: makeidNumber(17),
-        iuv3: makeidNumber(17),
-        dueDate: addDays(30),
-        retentionDate: addDays(90),
-        transferId1: '1',
-        transferId2: '2',
-        receiptId: makeidMix(33),
-    };
-}
-
 module.exports = {
-    buildGPSServiceCreationRequest,
-    buildGPSOrganizationCreationRequest,
-    buildValidDemandPaymentNoticeRequest,
-    buildInvalidDemandPaymentNoticeRequest,
-    buildVerifyPaymentNoticeRequest,
-    buildGetPaymentRequest,
-    buildSendRTRequest,
-    buildCreateECStationRelationRequest,
-    buildCreateStationRequest,
+    buildActivatePaymentNoticeRequest,
     buildCreateDebtPositionRequest,
-    buildDebtPositionDynamicData
+    buildDebtPositionDynamicData,
+    buildSendPaymentOutcomeRequest,    
+    buildSendRTRequest,
+    buildVerifyPaymentNoticeRequest,
 }
