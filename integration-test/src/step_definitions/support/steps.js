@@ -3,7 +3,6 @@ const {
     activatePaymentNotice,
     demandPaymentNotice,
     healthCheck,
-    getPayment,
     sendPaymentOutcome,
     sendRT,
     verifyPaymentNotice,
@@ -25,14 +24,17 @@ const {
     publishDebtPosition
 } = require("./gpd_client");
 const assert = require("assert");
-const fs = require("fs");
 const { 
+    buildActivatePaymentNoticeRequest,
     buildCreateDebtPositionRequest,
     buildDebtPositionDynamicData,
-    buildSendRTRequest,
+    buildGPSOrganizationCreationRequest,
+    buildGPSServiceCreationRequest,
+    buildInvalidDemandPaymentNoticeRequest,
+    buildValidDemandPaymentNoticeRequest,
     buildVerifyPaymentNoticeRequest,
-    buildActivatePaymentNoticeRequest,
-    buildSendPaymentOutcomeRequest
+    buildSendPaymentOutcomeRequest,
+    buildSendRTRequest,
 } = require('./request_builders');
 
 let gpsSessionBundle = {
@@ -206,35 +208,37 @@ When('the client sends the SendRTRequest', async function () {
 });
 
 
-
-/* 'Given' precondition for retrieving data - GPS section */
-/*
+/* 
+ *  GPS section.
+ *  'Given' precondition for retrieving data
+ */
 Given('the service {string} for donations', async function (serviceId) {
     gpsSessionBundle.isExecuting = true;
+    gpsSessionBundle.serviceCode = serviceId;
     let response = await createService(buildGPSServiceCreationRequest(serviceId, process.env.donation_host))
-    assert.strictEqual(response.status, 201);
+    assert.ok(response.status === 201 || response.status === 409);
 });
 Given('the creditor institution {string} enrolled to donation service {string}', async function (orgId, serviceId) {
     gpsSessionBundle.organizationCode = orgId;
-    await deleteOrganization(organizationCode);
     let response = await createOrganization(orgId, buildGPSOrganizationCreationRequest(serviceId));    
-    assert.strictEqual(response.status, 201);
+    assert.ok(response.status === 201 || response.status === 409);
 });
-*/
-
-/* 'When' clauses for retrieving data to be analyzed - GPS section */
-/*
-When('the client sends the DemandPaymentNoticeRequest', async function () {
-    responseToCheck = await demandPaymentNotice(buildValidDemandPaymentNoticeRequest(organizationCode));
-});
-When('the client sends a wrong DemandPaymentNoticeRequest', async function () {
-    responseToCheck = await demandPaymentNotice(buildInvalidDemandPaymentNoticeRequest(organizationCode));
-});
-*/
 
 
 /* 
- *'Then' clauses for assering retrieved data 
+ *  GPS section.
+ *  'When' clauses for retrieving data to be analyzed.
+ */
+When('the client sends the DemandPaymentNoticeRequest', async function () {
+    responseToCheck = await demandPaymentNotice(buildValidDemandPaymentNoticeRequest(gpsSessionBundle.organizationCode));
+});
+When('the client sends a wrong DemandPaymentNoticeRequest', async function () {
+    responseToCheck = await demandPaymentNotice(buildInvalidDemandPaymentNoticeRequest(gpsSessionBundle.organizationCode));
+});
+
+
+/* 
+ *  'Then' clauses for assering retrieved data 
  */
 Then('the client receives status code {int}', async function (statusCode) {
     assert.strictEqual(responseToCheck.status, statusCode);
@@ -265,6 +269,10 @@ Then('the payment token is extracted', async function () {
 
 Before({tags: '@GPDScenario'}, async function () {
     console.log("\nGPD - Starting new scenario");
+});
+
+Before({tags: '@GPSScenario'}, async function () {
+    console.log("\nGPS - Starting new scenario");
 });
 
 AfterAll(async function () {
