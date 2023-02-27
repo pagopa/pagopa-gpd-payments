@@ -25,8 +25,15 @@ function addDays(days) {
   return date;
 }
 
+function buildStringFromDate(rawDate) {
+  var mm = rawDate.getMonth() + 1;
+  var dd = rawDate.getDate();
+  return [rawDate.getFullYear(), (mm>9 ? '' : '0') + mm, (dd>9 ? '' : '0') + dd].join('-');
+}
+
 module.exports = {
+  addDays,
+  buildStringFromDate,
   makeidMix,
   makeidNumber,
-  addDays
 }

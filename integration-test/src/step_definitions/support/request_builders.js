@@ -1,6 +1,6 @@
-const { makeidNumber, makeidMix, addDays } = require("./helpers");
+const { addDays, buildStringFromDate, makeidNumber, makeidMix,  } = require("./helpers");
 
-/*
+
 function buildGPSServiceCreationRequest(serviceId, donation_host) {
     return {
         "id": serviceId,
@@ -67,13 +67,7 @@ function buildInvalidDemandPaymentNoticeRequest(organizationCode) {
         </soapenv:Body>
     </soapenv:Envelope>`;
 }
-*/
 
-function buildStringFromDate(rawDate) {
-    var mm = rawDate.getMonth() + 1;
-    var dd = rawDate.getDate();
-    return [rawDate.getFullYear(), (mm>9 ? '' : '0') + mm, (dd>9 ? '' : '0') + dd].join('-');
-}
 
 function buildDebtPositionDynamicData(gpdSessionBundle) {    
     return {
@@ -362,7 +356,11 @@ module.exports = {
     buildActivatePaymentNoticeRequest,
     buildCreateDebtPositionRequest,
     buildDebtPositionDynamicData,
+    buildGPSOrganizationCreationRequest,
+    buildGPSServiceCreationRequest,
+    buildInvalidDemandPaymentNoticeRequest,
     buildSendPaymentOutcomeRequest,    
     buildSendRTRequest,
+    buildValidDemandPaymentNoticeRequest,
     buildVerifyPaymentNoticeRequest,
 }
