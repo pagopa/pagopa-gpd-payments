@@ -1,4 +1,4 @@
-const {get} = require("./common");
+const {get} = require("../utility/axios_common");
 const fs = require("fs");
 
 const donation_service_host = process.env.donation_host;

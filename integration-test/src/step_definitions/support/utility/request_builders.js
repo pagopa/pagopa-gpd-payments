@@ -39,35 +39,24 @@ function buildGPSOrganizationCreationRequest(serviceId) {
     };
 }
 
-function buildValidDemandPaymentNoticeRequest(organizationCode) {
+function buildDemandPaymentNoticeRequest(gpsSessionBundle) {
+    const organizationCode = gpsSessionBundle.organizationCode;
+    const brokerCode = gpsSessionBundle.brokerCode;
+    const stationCode = gpsSessionBundle.stationCode;
+    const serviceCode = gpsSessionBundle.serviceCode;
+    const base64ServiceData = gpsSessionBundle.serviceData;
     return `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
         <soapenv:Body>
             <pafn:paDemandPaymentNoticeRequest>
                 <idPA>${organizationCode}</idPA>
-                <idBrokerPA>15376371009</idBrokerPA>
-                <idStation>15376371009_01</idStation>
-                <idServizio>12345</idServizio>
-                <datiSpecificiServizioRequest>PHNlcnZpY2UgeG1sbnM9Imh0dHA6Ly9QdW50b0FjY2Vzc29QU1Auc3Bjb29wLmdvdi5pdC9HZW5lcmFsU2VydmljZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vUHVudG9BY2Nlc3NvUFNQLnNwY29vcC5nb3YuaXQvR2VuZXJhbFNlcnZpY2Ugc2NoZW1hLnhzZCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+CiAgPGFtb3VudD4xMDAuMDA8L2Ftb3VudD4KICA8ZGVzY3JpcHRpb24+ZG9uYXRpb248L2Rlc2NyaXB0aW9uPgo8L3NlcnZpY2U+</datiSpecificiServizioRequest>
+                <idBrokerPA>${brokerCode}</idBrokerPA>
+                <idStation>${stationCode}</idStation>
+                <idServizio>${serviceCode}</idServizio>
+                <datiSpecificiServizioRequest>${base64ServiceData}</datiSpecificiServizioRequest>
             </pafn:paDemandPaymentNoticeRequest>
         </soapenv:Body>
     </soapenv:Envelope>`;
 }
-
-
-function buildInvalidDemandPaymentNoticeRequest(organizationCode) {
-    return `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
-        <soapenv:Body>
-            <pafn:paDemandPaymentNoticeRequest>
-                <idPA>${organizationCode}</idPA>
-                <idBrokerPA>15376371009</idBrokerPA>
-                <idStation>15376371009_01</idStation>
-                <idServizio>12345</idServizio>
-                <datiSpecificiServizioRequest>PHNlcnZpY2UgeG1sbnM9Imh0dHA6Ly9QdW50b0FjY2Vzc29QU1Auc3Bjb29wLmdvdi5pdC9HZW5lcmFsU2VydmljZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vUHVudG9BY2Nlc3NvUFNQLnNwY29vcC5nb3YuaXQvR2VuZXJhbFNlcnZpY2Ugc2NoZW1hLnhzZCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+CiAgPGRlc2NyaXB0aW9uPmRvbmF0aW9uPC9kZXNjcmlwdGlvbj4KPC9zZXJ2aWNlPg==</datiSpecificiServizioRequest>
-            </pafn:paDemandPaymentNoticeRequest>
-        </soapenv:Body>
-    </soapenv:Envelope>`;
-}
-
 
 function buildDebtPositionDynamicData(gpdSessionBundle) {    
     return {
@@ -356,11 +345,10 @@ module.exports = {
     buildActivatePaymentNoticeRequest,
     buildCreateDebtPositionRequest,
     buildDebtPositionDynamicData,
+    buildDemandPaymentNoticeRequest,
     buildGPSOrganizationCreationRequest,
     buildGPSServiceCreationRequest,
-    buildInvalidDemandPaymentNoticeRequest,
     buildSendPaymentOutcomeRequest,    
     buildSendRTRequest,
-    buildValidDemandPaymentNoticeRequest,
     buildVerifyPaymentNoticeRequest,
 }

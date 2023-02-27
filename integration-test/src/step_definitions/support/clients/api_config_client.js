@@ -1,4 +1,4 @@
-const {get, post, del} = require("./common");
+const {get, post, del} = require("../utility/axios_common");
 const fs = require("fs");
 
 const api_config_host = process.env.api_config_host;
