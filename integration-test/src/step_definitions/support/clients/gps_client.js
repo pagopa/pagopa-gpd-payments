@@ -1,4 +1,4 @@
-const {post, get, put, del} = require("./common");
+const {post, get, put, del} = require("../utility/axios_common");
 const fs = require("fs");
 
 const gps_host = process.env.gps_host;

@@ -1,4 +1,4 @@
-Feature: All about Payments
+Feature: All about Spontaneous Payments
 
   Background:
     Given Payments running
@@ -8,13 +8,15 @@ Feature: All about Payments
     And IUV Generator running
     And ApiConfig running
 
+  @GPSScenario
   Scenario: call donation service
     Given the service "12345" for donations
     And the creditor institution "77777777777" enrolled to donation service "12345"
     When the client sends the DemandPaymentNoticeRequest
     Then the client receives status code 200
-    And the client retrieves the amount in the response
+    And the client retrieves the amount "1.00" in the response
 
+  @GPSScenario
   Scenario: call donation service without amount
     Given the service "12345" for donations
     And the creditor institution "77777777777" enrolled to donation service "12345"
