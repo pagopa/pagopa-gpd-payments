@@ -1,4 +1,3 @@
-
 package it.gov.pagopa.payments.service;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
