@@ -2,8 +2,8 @@
   "environment": [
     {
       "env": "dev",
-      "soap_payments_host": "https://api.dev.platform.pagopa.it/gps/gpd-payments/api/v1",
-      "rest_payments_host": "https://api.dev.platform.pagopa.it/gps/gpd-payments-receipts/api/v1",
+      "soap_payments_host": "https://api.dev.platform.pagopa.it/gpd-payments/api/v1",
+      "rest_payments_host": "https://api.dev.platform.pagopa.it/payment-receipts/api/v1",
       "gps_host": "https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1",
       "donation_host": "https://api.dev.platform.pagopa.it/gps/donation-service/v1",
       "gpd_host": "https://api.dev.platform.pagopa.it/gpd/api/v1",
