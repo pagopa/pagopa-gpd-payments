@@ -1,4 +1,4 @@
-const {get} = require("./common");
+const {get} = require("../utility/axios_common");
 const fs = require("fs");
 
 const iuv_generator_host = process.env.iuv_generator_host;
