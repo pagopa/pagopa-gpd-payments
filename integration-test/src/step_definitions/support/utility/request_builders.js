@@ -71,12 +71,12 @@ function buildDebtPositionDynamicData(gpdSessionBundle) {
         transferId2: '2',
         amount: 300.00,
         receiptId: makeidMix(33),
-        pspId: "60000000001",
-        pspBrokerId: "60000000001",
-        pspChannelId: "60000000001_01",
-        pspName: "PSP Paolo",
-        pspFiscalCode: "CF60000000006",
-        idempotency: `60000000001_${makeidNumber(6)}${makeidMix(4)}`,
+        pspId: "AGID_02",
+        pspBrokerId: "97735020584",
+        pspChannelId: "97735020584_05",
+        pspName: "PSP_Agid",
+        pspFiscalCode: "CFAGID_01",
+        idempotency: `${pspBrokerId}_${makeidNumber(6)}${makeidMix(4)}`,
         applicationDate: buildStringFromDate(addDays(0)),
         transferDate: buildStringFromDate(addDays(1)),
     };
@@ -158,6 +158,15 @@ function buildActivatePaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
     const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
     const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
     const idempotency = gpdSessionBundle.debtPosition.idempotency;
+
+    console.log(pspId);
+    console.log(pspBrokerId);
+    console.log(pspChannelId);
+    console.log(idempotency);
+    console.log(fiscalCode);
+    console.log(noticeNumber);
+    console.log(amount);
+
     return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/node/nodeForPsp.xsd">
         <soapenv:Header/>
         <soapenv:Body>
