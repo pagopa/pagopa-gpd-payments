@@ -1,4 +1,4 @@
-Feature: All about Activate Phase on Debt Position Payments workflow
+Feature: All about Send Receipt Phase on Debt Position Payments workflow
 
   Background:
     Given Payments running
@@ -9,18 +9,20 @@ Feature: All about Activate Phase on Debt Position Payments workflow
     And the station "15376371009_01"
     And a valid debt position
     And a proper verification of debt position
+    And a proper activation of debt position
 
   @GPDScenario
   Scenario: Activate phase - Fail (no valid station)
     Given an invalid fiscal code
-    When the client sends the ActivatePaymentNoticeRequest to Nodo
+    When the client sends the SendPaymentOutcomeRequest to Nodo
+    And the client sends the SendRTRequest
     Then the client receives status code 200
-    And the client receives a KO with the "PPT_DOMINIO_SCONOSCIUTO" fault code error
+    And the client receives a KO with the "PAA_ID_DOMINIO_ERRATO" fault code error
 
   @GPDScenario
   Scenario: Activate phase - Success
     Given a valid fiscal code
-    When the client sends the ActivatePaymentNoticeRequest to Nodo
+    When the client sends the SendPaymentOutcomeRequest to Nodo
+    And the client sends the SendRTRequest
     Then the client receives status code 200
     And the client receives an OK in the response
-    And the payment token is extracted

@@ -1,4 +1,4 @@
-Feature: All about Activate Phase on Debt Position Payments workflow
+Feature: All about Verify Phase on Debt Position Payments workflow
 
   Background:
     Given Payments running
@@ -8,19 +8,17 @@ Feature: All about Activate Phase on Debt Position Payments workflow
     And the creditor institution broker "15376371009"
     And the station "15376371009_01"
     And a valid debt position
-    And a proper verification of debt position
 
   @GPDScenario
-  Scenario: Activate phase - Fail (no valid station)
+  Scenario: Verify phase - Fail (no valid station)
     Given an invalid fiscal code
-    When the client sends the ActivatePaymentNoticeRequest to Nodo
+    When the client sends the VerifyPaymentNoticeRequest
     Then the client receives status code 200
-    And the client receives a KO with the "PPT_DOMINIO_SCONOSCIUTO" fault code error
+    And the client receives a KO with the "PAA_ID_DOMINIO_ERRATO" fault code error
 
   @GPDScenario
   Scenario: Activate phase - Success
     Given a valid fiscal code
-    When the client sends the ActivatePaymentNoticeRequest to Nodo
+    When the client sends the VerifyPaymentNoticeRequest
     Then the client receives status code 200
-    And the client receives an OK in the response
-    And the payment token is extracted
+    And the client retrieves the amount "300.00" in the response
