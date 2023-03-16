@@ -23,9 +23,6 @@ variables:
   iuvGeneratorSubscriptionKey: '$(DEV_IUV_GENERATOR_SUBSCRIPTION_KEY)'
   restPaymentsSubscriptionKey: '$(DEV_PAYMENTS_REST_SUBSCRIPTION_KEY)'
   soapPaymentsSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
-  gpdHost: 'https://api.dev.platform.pagopa.it/gpd/api/v1'
-  gpsHost: 'https://api.dev.platform.pagopa.it/gps/spontaneous-payments-service/v1'
-  apiConfigHost: 'https://api.dev.platform.pagopa.it/apiconfig/auth/api/v1'
 
 
 stages:
@@ -61,7 +58,7 @@ stages:
             displayName: 'Run Junit Test'
             inputs:
               mavenPomFile: 'pom.xml'
-              goals: 'clean verify -DGPD_SUBSCRIPTION_KEY=$(gpdSubscriptionKey) -DGPS_SUBSCRIPTION_KEY=$(gpsSubscriptionKey) -DAPICONFIG_SUBSCRIPTION_KEY=$(apiConfigSubscriptionKey) -DGPD_HOST=$(gpdHost) -DGPS_HOST=$(gpsHost) -DAPI_CONFIG_HOST=$(apiConfigHost)'
+              goals: 'clean verify'
               publishJUnitResults: true
               testResultsFiles: '**/surefire-reports/TEST-*.xml'
               codeCoverageToolOption: 'JaCoCo'
