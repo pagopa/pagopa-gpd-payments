@@ -76,7 +76,7 @@ function buildDebtPositionDynamicData(gpdSessionBundle) {
         pspChannelId: "97735020584_03",
         pspName: "AgID",
         pspFiscalCode: "CFAGID_01",
-        idempotency: `${pspBrokerId}_${makeidNumber(6)}${makeidMix(4)}`,
+        idempotency: `97735020584_${makeidNumber(6)}${makeidMix(4)}`,
         applicationDate: buildStringFromDate(addDays(0)),
         transferDate: buildStringFromDate(addDays(1)),
     };
