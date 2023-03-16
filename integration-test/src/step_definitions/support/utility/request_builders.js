@@ -159,14 +159,6 @@ function buildActivatePaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
     const amount = 100.00;//`${gpdSessionBundle.debtPosition.amount}.00`;
     const idempotency = gpdSessionBundle.debtPosition.idempotency;
 
-    console.log(pspId);
-    console.log(pspBrokerId);
-    console.log(pspChannelId);
-    console.log(idempotency);
-    console.log(fiscalCode);
-    console.log(noticeNumber);
-    console.log(amount);
-
     return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/node/nodeForPsp.xsd">
         <soapenv:Header/>
         <soapenv:Body>

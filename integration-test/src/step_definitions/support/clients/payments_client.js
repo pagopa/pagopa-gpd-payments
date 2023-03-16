@@ -61,7 +61,7 @@ function activatePaymentNotice(body) {
         timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'activatePaymentNotice',
+            'SOAPAction': 'activatePaymentNotice'
         }
     })
 }
@@ -71,7 +71,7 @@ function sendPaymentOutcome(body) {
         timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'sendPaymentOutcome',
+            'SOAPAction': 'sendPaymentOutcome'
         }
     })
 }
