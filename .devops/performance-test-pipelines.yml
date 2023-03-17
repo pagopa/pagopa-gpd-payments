@@ -32,6 +32,7 @@ parameters:
       - "load"
       - "spike"
       - "stress"
+      - "smoke"
   - name: "SCRIPT"
     displayName: "Script name"
     type: string

@@ -6,7 +6,7 @@ services:
     volumes:
       - '${PWD}/src:/scripts'
     environment:
-      - VARS=${env}.environment.json
+      - VARS=environments/${env}.environment.json
       - TEST_TYPE=/scripts/test-types/${type}.json
       - K6_OUT=influxdb=http://nginx:8086/${db_name}
       - API_SUBSCRIPTION_KEY=${sub_key}

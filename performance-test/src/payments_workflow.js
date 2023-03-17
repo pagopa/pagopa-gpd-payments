@@ -1,194 +1,214 @@
-import http from 'k6/http';
-import { check } from 'k6';
+import http from "k6/http";
+import { check } from "k6";
 import { parseHTML } from "k6/html";
-import { sleep } from 'k6';
-import { SharedArray } from 'k6/data';
-import { makeidNumber, makeidMix, randomString } from './modules/helpers.js';
+import { sleep } from "k6";
+import { SharedArray } from "k6/data";
+import { makeidNumber, makeidMix, randomString } from "./modules/helpers.js";
 
 export let options = JSON.parse(open(__ENV.TEST_TYPE));
 
 // read configuration
-const varsArray = new SharedArray('vars', function() {
-	return JSON.parse(open(`./${__ENV.VARS}`)).environment;
+const varsArray = new SharedArray("vars", function () {
+  return JSON.parse(open(`./${__ENV.VARS}`)).environment;
 });
 const vars = varsArray[0];
 
 // initialize parameters taken from env
-const urlGPDBasePath = `${vars.gpd_host}`
-const urlPaymentsBasePath = `${vars.soap_payments_host}`
-const creditorInstitutionCode = `${vars.id_pa}`
-const idBrokerPA = `${vars.id_broker_pa}`
-const idStation = `${vars.id_station}`
-const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
+const urlGPDBasePath = `${vars.gpd_host}`;
+const urlPaymentsBasePath = `${vars.soap_payments_host}`;
+const creditorInstitutionCode = `${vars.id_pa}`;
+const idBrokerPA = `${vars.id_broker_pa}`;
+const idStation = `${vars.id_station}`;
+const service = `${vars.env}`.toLowerCase() === "local" ? "/partner" : "";
 
-const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`
+const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`;
 
-export default function() {
+export default function () {
+  // initialize constant values for this execution
+  const iupd = makeidMix(35);
+  const iuv_1 = makeidNumber(17);
+  const iuv_2 = makeidNumber(17);
+  const iuv_3 = makeidNumber(17);
+  const due_date = new Date().addDays(30);
+  const retention_date = new Date().addDays(90);
+  const transfer_id_1 = "1";
+  const transfer_id_2 = "2";
+  const receiptId = makeidMix(33);
 
-    // initialize constant values for this execution
-	const iupd = makeidMix(35);
-	const iuv_1 = makeidNumber(17);
-	const iuv_2 = makeidNumber(17);
-	const iuv_3 = makeidNumber(17);
-	const due_date = new Date().addDays(30);
-	const retention_date = new Date().addDays(90);
-	const transfer_id_1 = '1';
-	const transfer_id_2 = '2';
-	const receiptId = makeidMix(33);
+  // Create new debt position (no validity date).
+  var tag = {
+    gpdMethod: "CreateDebtPosition",
+  };
 
+  // defining URL, body and headers related to the CreateDebtPosition call
+  var url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions`;
+  var gpdParams = {
+    headers: {
+      "Content-Type": "application/json",
+      "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
+    },
+  };
+  var payload = JSON.stringify({
+    iupd: iupd,
+    type: "F",
+    fiscalCode: "JHNDOE00A01F205N",
+    fullName: "John Doe",
+    streetName: "streetName",
+    civicNumber: "11",
+    postalCode: "00100",
+    city: "city",
+    province: "RM",
+    region: "RM",
+    country: "IT",
+    email: "lorem@lorem.com",
+    phone: "333-123456789",
+    companyName: "companyName",
+    officeName: "officeName",
+    paymentOption: [
+      {
+        iuv: iuv_1,
+        amount: 10000,
+        description: "Canone Unico Patrimoniale - CORPORATE opt 1 FINAL",
+        isPartialPayment: false,
+        dueDate: due_date,
+        retentionDate: retention_date,
+        fee: 0,
+        transfer: [
+          {
+            idTransfer: transfer_id_1,
+            amount: 9000,
+            remittanceInformation: "remittanceInformation 1",
+            category: "9/0101108TS/",
+            iban: "IT0000000000000000000000000",
+          },
+          {
+            idTransfer: transfer_id_2,
+            amount: 1000,
+            remittanceInformation: "remittanceInformation 2",
+            category: "9/0101108TS/",
+            iban: "IT0000000000000000000000000",
+          },
+        ],
+      },
+      {
+        iuv: iuv_2,
+        amount: 5000,
+        description: "Canone Unico Patrimoniale - CORPORATE opt 2 NOT FINAL",
+        isPartialPayment: true,
+        dueDate: due_date,
+        retentionDate: retention_date,
+        fee: 0,
+        transfer: [
+          {
+            idTransfer: transfer_id_1,
+            amount: 4000,
+            remittanceInformation: "remittanceInformation 1",
+            category: "9/0101108TS/",
+            iban: "IT0000000000000000000000000",
+          },
+          {
+            idTransfer: transfer_id_2,
+            amount: 1000,
+            remittanceInformation: "remittanceInformation 2",
+            category: "9/0101108TS/",
+            iban: "IT0000000000000000000000000",
+          },
+        ],
+      },
+      {
+        iuv: iuv_3,
+        amount: 5000,
+        description: "Canone Unico Patrimoniale - CORPORATE opt 3 NOT FINAL",
+        isPartialPayment: true,
+        dueDate: due_date,
+        retentionDate: retention_date,
+        fee: 0,
+        transfer: [
+          {
+            idTransfer: transfer_id_1,
+            amount: 4000,
+            remittanceInformation: "remittanceInformation 1",
+            category: "9/0101108TS/",
+            iban: "IT0000000000000000000000000",
+          },
+          {
+            idTransfer: transfer_id_2,
+            amount: 1000,
+            remittanceInformation: "remittanceInformation 2",
+            category: "9/0101108TS/",
+            iban: "IT0000000000000000000000000",
+          },
+        ],
+      },
+    ],
+  });
 
-	// Create new debt position (no validity date).
-	var tag = {
-		gpdMethod: "CreateDebtPosition",
-	};
+  // execute the call and check the response
+  var response = http.post(url, payload, gpdParams);
+  console.log(
+    "CreateDebtPosition call - creditor_institution_code = " +
+      creditorInstitutionCode +
+      ", Status = " +
+      response.status +
+      " \n\t[URL: " +
+      url +
+      "]"
+  );
+  check(
+    response,
+    {
+      "CreateDebtPosition status is 201": (response) => response.status === 201,
+    },
+    tag
+  );
 
-    // defining URL, body and headers related to the CreateDebtPosition call
-	var url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions`;
-	var gpdParams = {
-    	headers: {
-    		'Content-Type': 'application/json',
-    		'Ocp-Apim-Subscription-Key': gpdSubscriptionKey
-    	},
+  // if the debt position has been correctly created => publish
+  if (response.status === 201) {
+    // Publish the debt position.
+    tag = {
+      gpdMethod: "PublishDebtPosition",
     };
-	var payload = JSON.stringify(
-		{
-			"iupd": iupd,
-			"type": "F",
-			"fiscalCode": "JHNDOE00A01F205N",
-			"fullName": "John Doe",
-			"streetName": "streetName",
-			"civicNumber": "11",
-			"postalCode": "00100",
-			"city": "city",
-			"province": "RM",
-			"region": "RM",
-			"country": "IT",
-			"email": "lorem@lorem.com",
-			"phone": "333-123456789",
-			"companyName": "companyName",
-			"officeName": "officeName",
-			"paymentOption": [
-				{
-					"iuv": iuv_1,
-					"amount": 10000,
-					"description": "Canone Unico Patrimoniale - CORPORATE opt 1 FINAL",
-					"isPartialPayment": false,
-					"dueDate": due_date,
-					"retentionDate": retention_date,
-					"fee": 0,
-					"transfer": [
-						{
-							"idTransfer": transfer_id_1,
-							"amount": 9000,
-							"remittanceInformation": "remittanceInformation 1",
-							"category": "9/0101108TS/",
-							"iban": "IT0000000000000000000000000"
-						},
-						{
-							"idTransfer": transfer_id_2,
-							"amount": 1000,
-							"remittanceInformation": "remittanceInformation 2",
-							"category": "9/0101108TS/",
-							"iban": "IT0000000000000000000000000"
-						}
-					]
-				},
-				{
-					"iuv": iuv_2,
-					"amount": 5000,
-					"description": "Canone Unico Patrimoniale - CORPORATE opt 2 NOT FINAL",
-					"isPartialPayment": true,
-					"dueDate": due_date,
-					"retentionDate": retention_date,
-					"fee": 0,
-					"transfer": [
-						{
-							"idTransfer": transfer_id_1,
-							"amount": 4000,
-							"remittanceInformation": "remittanceInformation 1",
-							"category": "9/0101108TS/",
-							"iban": "IT0000000000000000000000000"
-						},
-						{
-							"idTransfer": transfer_id_2,
-							"amount": 1000,
-							"remittanceInformation": "remittanceInformation 2",
-							"category": "9/0101108TS/",
-							"iban": "IT0000000000000000000000000"
-						}
-					]
-				},
-				{
-					"iuv": iuv_3,
-					"amount": 5000,
-					"description": "Canone Unico Patrimoniale - CORPORATE opt 3 NOT FINAL",
-					"isPartialPayment": true,
-					"dueDate": due_date,
-					"retentionDate": retention_date,
-					"fee": 0,
-					"transfer": [
-						{
-							"idTransfer": transfer_id_1,
-							"amount": 4000,
-							"remittanceInformation": "remittanceInformation 1",
-							"category": "9/0101108TS/",
-							"iban": "IT0000000000000000000000000"
-						},
-						{
-							"idTransfer": transfer_id_2,
-							"amount": 1000,
-							"remittanceInformation": "remittanceInformation 2",
-							"category": "9/0101108TS/",
-							"iban": "IT0000000000000000000000000"
-						}
-					]
-				}
-			]
-		});
+
+    // defining URL related to the PublishDebtPosition call
+    url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions/${iupd}/publish`;
 
     // execute the call and check the response
-	var response = http.post(url, payload, gpdParams);
-	console.log("CreateDebtPosition call - creditor_institution_code = " + creditorInstitutionCode + ", Status = " + response.status + " \n\t[URL: " + url + "]");
-	check(response, {
-		'CreateDebtPosition status is 201': (response) => response.status === 201,
-	}, tag);
+    response = http.post(url, JSON.stringify(""), gpdParams);
+    console.log(
+      "PublishDebtPosition call - creditor_institution_code = " +
+        creditorInstitutionCode +
+        ", iupd = " +
+        iupd +
+        ", Status = " +
+        response.status +
+        " \n\t[URL: " +
+        url +
+        "]"
+    );
+    check(
+      response,
+      {
+        "PublishDebtPosition status is 200": (response) =>
+          response.status === 200,
+      },
+      tag
+    );
 
-	// if the debt position has been correctly created => publish 
-	if (response.status === 201) {
+    // if the debt position has been correctly published => verify payment
+    if (response.status === 200) {
+      // Verify Payment.
+      sleep(2);
+      tag = { paymentRequest: "VerifyPayment" };
 
-		// Publish the debt position.
-		tag = {
-			gpdMethod: "PublishDebtPosition",
-		};
-
-		// defining URL related to the PublishDebtPosition call
-        url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions/${iupd}/publish`;
-
-		// execute the call and check the response
-        response = http.post(url, JSON.stringify(""), gpdParams);
-		console.log("PublishDebtPosition call - creditor_institution_code = " + creditorInstitutionCode + ", iupd = " + iupd + ", Status = " + response.status + " \n\t[URL: " + url + "]");
-		check(response, {
-			'PublishDebtPosition status is 200': (response) => response.status === 200,
-		}, tag);
-
-		// if the debt position has been correctly published => verify payment 
-		if (response.status === 200) {
-
-			// Verify Payment.
-			sleep(2);
-			tag = {
-				paymentRequest: "VerifyPayment",
-			};
-
-			// defining URL, body and headers related to the VerifyPayment call
-            url = `${urlPaymentsBasePath}/${service}`;
-            var soapParams = {
-				headers: {
-					'Content-Type': 'text/xml',
-					'SOAPAction': 'paVerifyPaymentNotice'
-				},
-			};
-			payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+      // defining URL, body and headers related to the VerifyPayment call
+      url = `${urlPaymentsBasePath}${service}`;
+      var soapParams = {
+        headers: {
+          "Content-Type": "text/xml",
+          SOAPAction: "paVerifyPaymentNotice",
+        },
+      };
+      payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
                             <soapenv:Header />
                             <soapenv:Body>
                                 <nod:paVerifyPaymentNoticeReq>
@@ -203,34 +223,62 @@ export default function() {
                             </soapenv:Body>
                         </soapenv:Envelope>`;
 
-            // execute the call and check the response
-            response = http.post(url, payload, soapParams);
-            console.log("VerifyPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + " \n\t[URL: " + url + "]");
-            if (response.status != 200 && response.status != 504) {
-                console.error("-> VerifyPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + ", Body=" + response.body);
-            }
-			check(response, {
-				'VerifyPayment status is 200 and outcome is OK': (response) => response.status === 200 && (parseHTML(response.body)).find('outcome').get(0).textContent() === 'OK',
-			}, tag);
+      // execute the call and check the response
+      response = http.post(url, payload, soapParams);
+      console.log(
+        "VerifyPayment req - creditor_institution_code = " +
+          creditorInstitutionCode +
+          ", iuv = " +
+          iuv_1 +
+          ", Status = " +
+          response.status +
+          " \n\t[URL: " +
+          url +
+          "]"
+      );
+      if (response.status != 200 && response.status != 504) {
+        console.error(
+          "-> VerifyPayment req - creditor_institution_code = " +
+            creditorInstitutionCode +
+            ", iuv = " +
+            iuv_1 +
+            ", Status = " +
+            response.status +
+            ", Body=" +
+            response.body
+        );
+      }
+      check(
+        response,
+        {
+          "VerifyPayment status is 200 and outcome is OK": (response) =>
+            response.status === 200 &&
+            parseHTML(response.body).find("outcome").get(0).textContent() ===
+              "OK",
+        },
+        tag
+      );
 
-			// if the verify payment has OK => activate payment
-			if (response.status === 200 && parseHTML(response.body).find('outcome').get(0).textContent() === 'OK') {
+      // if the verify payment has OK => activate payment
+      if (
+        response.status === 200 &&
+        parseHTML(response.body).find("outcome").get(0).textContent() === "OK"
+      ) {
+        // Activate Payment.
+        sleep(4);
+        tag = {
+          paymentRequest: "GetPayment",
+        };
 
-				// Activate Payment.
-				sleep(4);
-				tag = {
-					paymentRequest: "GetPayment",
-				};
-
-				// defining URL, body and headers related to the GetPayment call
-                url = `${urlPaymentsBasePath}/${service}`;
-				soapParams = {
-					headers: {
-						'Content-Type': 'text/xml',
-						'SOAPAction': 'paGetPayment'
-					},
-				};
-				payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+        // defining URL, body and headers related to the GetPayment call
+        url = `${urlPaymentsBasePath}${service}`;
+        soapParams = {
+          headers: {
+            "Content-Type": "text/xml",
+            SOAPAction: "paGetPayment",
+          },
+        };
+        payload = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
                                 <soapenv:Header />
                                 <soapenv:Body>
                                     <pafn:paGetPaymentReq>
@@ -246,34 +294,62 @@ export default function() {
                                 </soapenv:Body>
                             </soapenv:Envelope>`;
 
-				// execute the call and check the response
-                response = http.post(url, payload, soapParams);
-                console.log("GetPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + + " \n\t[URL: " + url + "]");
-				if (response.status != 200 && response.status != 504) {
-                    console.error("-> GetPayment req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + ", Body=" + response.body);
-                }
-				check(response, {
-					'ActivatePayment status is 200 and outcome is OK': (response) => response.status === 200 && (parseHTML(response.body)).find('outcome').get(0).textContent() === 'OK',
-				}, tag);
+        // execute the call and check the response
+        response = http.post(url, payload, soapParams);
+        console.log(
+          "GetPayment req - creditor_institution_code = " +
+            creditorInstitutionCode +
+            ", iuv = " +
+            iuv_1 +
+            ", Status = " +
+            response.status +
+            +" \n\t[URL: " +
+            url +
+            "]"
+        );
+        if (response.status != 200 && response.status != 504) {
+          console.error(
+            "-> GetPayment req - creditor_institution_code = " +
+              creditorInstitutionCode +
+              ", iuv = " +
+              iuv_1 +
+              ", Status = " +
+              response.status +
+              ", Body=" +
+              response.body
+          );
+        }
+        check(
+          response,
+          {
+            "ActivatePayment status is 200 and outcome is OK": (response) =>
+              response.status === 200 &&
+              parseHTML(response.body).find("outcome").get(0).textContent() ===
+                "OK",
+          },
+          tag
+        );
 
-				// if the activate payment has been OK => send receipt
-				if (response.status === 200 && parseHTML(response.body).find('outcome').get(0).textContent() === 'OK') {
+        // if the activate payment has been OK => send receipt
+        if (
+          response.status === 200 &&
+          parseHTML(response.body).find("outcome").get(0).textContent() === "OK"
+        ) {
+          // Get details of a specific payment option.
+          sleep(8);
+          tag = {
+            paymentRequest: "SendRT",
+          };
 
-					// Get details of a specific payment option.
-                    sleep(8);
-					tag = {
-						paymentRequest: "SendRT",
-					};
-
-                    // defining URL, body and headers related to the SendRT call
-                    url = `${urlPaymentsBasePath}/${service}`;
-                    soapParams = {
-                        headers: {
-                            'Content-Type': 'text/xml',
-                            'SOAPAction': 'paSendRT'
-                        },
-                    };
-                    payload = `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+          // defining URL, body and headers related to the SendRT call
+          url = `${urlPaymentsBasePath}${service}`;
+          soapParams = {
+            headers: {
+              "Content-Type": "text/xml",
+              SOAPAction: "paSendRT",
+            },
+          };
+          payload = `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
                                     <soapenv:Body>
                                         <pafn:paSendRTReq>
                                             <idPA>${creditorInstitutionCode}</idPA>
@@ -357,17 +433,45 @@ export default function() {
                                     </soapenv:Body>
                                 </soapenv:Envelope>`;
 
-                    // execute the call and check the response
-                    response = http.post(url, payload, soapParams);
-                    console.log("SendRT req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + " \n\t[URL: " + url + "]");
-                    if (response.status != 200 && response.status != 504) {
-                        console.error("-> SendRT req - creditor_institution_code = " + creditorInstitutionCode + ", iuv = " + iuv_1 + ", Status = " + response.status + ", Body=" + response.body);
-                    }
-                    check(response, {
-                        'SendRT status is 200 and outcome is OK': (response) => response.status === 200 && (parseHTML(response.body)).find('outcome').get(0).textContent() === 'OK',
-                    }, tag);
-				}
-			}
-		}
-	}
+          // execute the call and check the response
+          response = http.post(url, payload, soapParams);
+          console.log(
+            "SendRT req - creditor_institution_code = " +
+              creditorInstitutionCode +
+              ", iuv = " +
+              iuv_1 +
+              ", Status = " +
+              response.status +
+              " \n\t[URL: " +
+              url +
+              "]"
+          );
+          if (response.status != 200 && response.status != 504) {
+            console.error(
+              "-> SendRT req - creditor_institution_code = " +
+                creditorInstitutionCode +
+                ", iuv = " +
+                iuv_1 +
+                ", Status = " +
+                response.status +
+                ", Body=" +
+                response.body
+            );
+          }
+          check(
+            response,
+            {
+              "SendRT status is 200 and outcome is OK": (response) =>
+                response.status === 200 &&
+                parseHTML(response.body)
+                  .find("outcome")
+                  .get(0)
+                  .textContent() === "OK",
+            },
+            tag
+          );
+        }
+      }
+    }
+  }
 }
