@@ -77,7 +77,7 @@ async function readStationInfo(bundle, stationId) {
     bundle.stationCode = stationId;
     response = await readECStationAssociation(stationId, bundle.organizationCode);
     assert.strictEqual(response.status, 200);
-    bundle.debtPosition.iuvPrefix = "11";
+    bundle.debtPosition.iuvPrefix = response.data.segregation_code < 10 ? `0${response.data.segregation_code}` : `${response.data.segregation_code}`;
 }
 
 async function readInvalidCreditorInstitutionInfo(bundle) {
@@ -109,8 +109,6 @@ async function sendSendRTRequest(bundle) {
 async function sendVerifyPaymentNoticeRequest(bundle) {
     bundle.responseToCheck = await verifyPaymentNotice(buildVerifyPaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode));
 }
-
-
 
 
 module.exports = {
