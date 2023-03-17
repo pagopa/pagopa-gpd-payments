@@ -17,7 +17,6 @@ function post(url, body, config) {
             return res;
         })
         .catch(error => {
-            console.log(error);
             return error.response;
         });
 }
