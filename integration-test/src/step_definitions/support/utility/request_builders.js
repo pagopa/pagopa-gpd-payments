@@ -197,13 +197,14 @@ function buildSendPaymentOutcomeRequest(gpdSessionBundle) {
     const province = gpdSessionBundle.payer.province;
     const country = gpdSessionBundle.payer.country;
     const email = gpdSessionBundle.payer.email;
+    const pspPassword = process.env.pspPassword;
     return `<soapenv:Envelope>
         <soapenv:Body>
             <nod:sendPaymentOutcomeReq>
             <idPSP>${pspId}</idPSP>
             <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
             <idChannel>${pspChannelId}</idChannel>
-            <password>pwdpwdpwd</password>
+            <password>${pspPassword}</password>
             <idempotencyKey>${idempotency}</idempotencyKey>
             <paymentTokens>
                 <paymentToken>${paymentToken}</paymentToken>
