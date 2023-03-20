@@ -203,6 +203,7 @@ export default function () {
       // defining URL, body and headers related to the VerifyPayment call
       url = `${urlPaymentsBasePath}${service}`;
       var soapParams = {
+        responseType: "text",
         headers: {
           "Content-Type": "text/xml",
           SOAPAction: "paVerifyPaymentNotice",
@@ -273,6 +274,7 @@ export default function () {
         // defining URL, body and headers related to the GetPayment call
         url = `${urlPaymentsBasePath}${service}`;
         soapParams = {
+          responseType: "text",
           headers: {
             "Content-Type": "text/xml",
             SOAPAction: "paGetPayment",
@@ -344,6 +346,7 @@ export default function () {
           // defining URL, body and headers related to the SendRT call
           url = `${urlPaymentsBasePath}${service}`;
           soapParams = {
+            responseType: "text",
             headers: {
               "Content-Type": "text/xml",
               SOAPAction: "paSendRT",
