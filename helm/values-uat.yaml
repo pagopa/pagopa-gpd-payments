@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: pagopaucommonacr.azurecr.io/pagopagpdpayments
-    tag: "0.0.16-4"
+    tag: "0.0.17"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -55,7 +55,7 @@ microservice-chart:
       cpu: "0.5"
   autoscaling:
     enable: true
-    minReplica: 3
+    minReplica: 1
     maxReplica: 10
     pollingInterval: 10 # seconds
     cooldownPeriod: 50 # seconds
@@ -70,7 +70,7 @@ microservice-chart:
     PAA_ID_INTERMEDIARIO: "15376371009"
     PAA_STAZIONE_INT: "15376371009_01"
     RETRY_MAX_DELAY: "2000"
-    RETRY_MAX_ATTEMPTS: "1"
+    RETRY_MAX_ATTEMPTS: "3"
     CONNECTION_TIMEOUT: "3000"
     LOGGING_LEVEL: "INFO"
     CACHE_SIZE: "1000"
@@ -91,4 +91,12 @@ microservice-chart:
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
   nodeSelector: {}
   tolerations: []
-  affinity: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node_type
+                operator: In
+                values:
+                  - user

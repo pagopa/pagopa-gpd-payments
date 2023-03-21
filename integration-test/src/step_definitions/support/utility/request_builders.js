@@ -71,12 +71,12 @@ function buildDebtPositionDynamicData(gpdSessionBundle) {
         transferId2: '2',
         amount: 300.00,
         receiptId: makeidMix(33),
-        pspId: "60000000001",
-        pspBrokerId: "60000000001",
-        pspChannelId: "60000000001_01",
-        pspName: "PSP Paolo",
-        pspFiscalCode: "CF60000000006",
-        idempotency: `60000000001_${makeidNumber(6)}${makeidMix(4)}`,
+        pspId: process.env.pspId,
+        pspBrokerId: process.env.pspBrokerId,
+        pspChannelId: process.env.pspChannelId,
+        pspName: process.env.pspName,
+        pspFiscalCode: process.env.pspFiscalCode,
+        idempotency: `${process.env.pspBrokerId}_${makeidNumber(6)}${makeidMix(4)}`,
         applicationDate: buildStringFromDate(addDays(0)),
         transferDate: buildStringFromDate(addDays(1)),
     };
@@ -158,6 +158,8 @@ function buildActivatePaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
     const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
     const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
     const idempotency = gpdSessionBundle.debtPosition.idempotency;
+    const pspPassword = process.env.pspPassword;
+
     return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/node/nodeForPsp.xsd">
         <soapenv:Header/>
         <soapenv:Body>
@@ -165,7 +167,7 @@ function buildActivatePaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
                 <idPSP>${pspId}</idPSP>
                 <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
                 <idChannel>${pspChannelId}</idChannel>
-                <password>pwdpwdpwd</password>
+                <password>${pspPassword}</password>
                 <idempotencyKey>${idempotency}</idempotencyKey>
                 <qrCode>
                     <fiscalCode>${fiscalCode}</fiscalCode>
@@ -195,13 +197,14 @@ function buildSendPaymentOutcomeRequest(gpdSessionBundle) {
     const province = gpdSessionBundle.payer.province;
     const country = gpdSessionBundle.payer.country;
     const email = gpdSessionBundle.payer.email;
+    const pspPassword = process.env.pspPassword;
     return `<soapenv:Envelope>
         <soapenv:Body>
             <nod:sendPaymentOutcomeReq>
             <idPSP>${pspId}</idPSP>
             <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
             <idChannel>${pspChannelId}</idChannel>
-            <password>pwdpwdpwd</password>
+            <password>${pspPassword}</password>
             <idempotencyKey>${idempotency}</idempotencyKey>
             <paymentTokens>
                 <paymentToken>${paymentToken}</paymentToken>

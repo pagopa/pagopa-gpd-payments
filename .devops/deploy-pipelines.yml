@@ -57,7 +57,6 @@ variables:
     donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(DEV_IUV_GENERATOR_SUBSCRIPTION_KEY)'
     restPaymentsSubscriptionKey: '$(DEV_PAYMENTS_REST_SUBSCRIPTION_KEY)'
-    soapPaymentsSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'uat') }}:
     dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(UAT_CONTAINER_NAMESPACE)
@@ -71,7 +70,6 @@ variables:
     donationsSubscriptionKey: '$(UAT_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(UAT_IUV_GENERATOR_SUBSCRIPTION_KEY)'
     restPaymentsSubscriptionKey: '$(UAT_PAYMENTS_REST_SUBSCRIPTION_KEY)'
-    soapPaymentsSubscriptionKey: '$(UAT_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENV'], 'prod') }}:
     dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(PROD_CONTAINER_NAMESPACE)
@@ -85,7 +83,6 @@ variables:
     donationsSubscriptionKey: '$(PROD_DONATIONS_SUBSCRIPTION_KEY)'
     iuvGeneratorSubscriptionKey: '$(PROD_IUV_GENERATOR_SUBSCRIPTION_KEY)'
     restPaymentsSubscriptionKey: '$(PROD_PAYMENTS_REST_SUBSCRIPTION_KEY)'
-    soapPaymentsSubscriptionKey: '$(PROD_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
 
   ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
     sourceBranch: "main" # force to main branch
@@ -177,7 +174,7 @@ stages:
               script: |
                 cd ./integration-test
                 sh run_integration_test.sh smoke ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
-                $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
+                $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
 
@@ -256,6 +253,6 @@ stages:
               script: |
                 cd ./integration-test
                 sh run_integration_test.sh integration ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) \
-                $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey) $(soapPaymentsSubscriptionKey)
+                $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)

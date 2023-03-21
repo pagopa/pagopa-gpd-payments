@@ -111,8 +111,6 @@ async function sendVerifyPaymentNoticeRequest(bundle) {
 }
 
 
-
-
 module.exports = {
     assertPaymentTokenExistence,
     executeDebtPositionCreationAndPublishing,
