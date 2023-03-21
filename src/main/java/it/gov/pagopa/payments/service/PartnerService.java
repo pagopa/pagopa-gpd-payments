@@ -415,7 +415,9 @@ public class PartnerService {
         paymentOption.setAmount(BigDecimal.valueOf(source.getAmount()));
         paymentOption.setOptions(StAmountOption.EQ); // de-scoping
         paymentOption.setDueDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
-        paymentOption.setDetailDescription(source.getDescription());
+        if(source.getDescription().length() > 0) {
+            paymentOption.setDetailDescription(source.getDescription());
+        }
         var cpp = source.getTransfer().stream()
                 .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
         paymentOption.setAllCCP(cpp); // allCPP fa parte del modello del option
@@ -423,10 +425,16 @@ public class PartnerService {
 
         result.setPaymentList(paymentList);
         // general info
-        result.setPaymentDescription(source.getDescription());
+        if(source.getDescription().length() > 0){
+            result.setPaymentDescription(source.getDescription());
+        }
         result.setFiscalCodePA(source.getOrganizationFiscalCode());
-        result.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
-        result.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
+        if(source.getCompanyName().length() > 0){
+            result.setCompanyName(source.getCompanyName());
+        }
+        if(source.getOfficeName().length() > 0){
+            result.setOfficeName(source.getOfficeName());
+        }
         return result;
     }
 
