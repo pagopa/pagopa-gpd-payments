@@ -6,6 +6,8 @@ import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeRequest;
 import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Response;
 import it.gov.pagopa.payments.model.partner.PaSendRTReq;
 import it.gov.pagopa.payments.model.partner.PaSendRTRes;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
@@ -55,6 +57,16 @@ public class PartnerEndpoint {
 
         log.info(" paGetPayment START ");
         return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue()));
+    }
+    
+    @SoapAction("paGetPaymentV2")
+    @PayloadRoot(localPart = "paGetPaymentV2Request")
+    @ResponsePayload
+    public JAXBElement<PaGetPaymentV2Response> paGetPaymentV2(@RequestPayload JAXBElement<PaGetPaymentV2Request> request)
+            throws PartnerValidationException, DatatypeConfigurationException {
+
+        log.info(" paGetPaymentV2 START ");
+        return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue()));
     }
 
     @SoapAction("paSendRT")

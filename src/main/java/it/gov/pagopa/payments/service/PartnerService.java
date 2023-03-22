@@ -1,41 +1,5 @@
 package it.gov.pagopa.payments.service;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableBatchOperation;
-import com.microsoft.azure.storage.table.TableOperation;
-import com.microsoft.azure.storage.table.TableQuery;
-import feign.FeignException;
-import feign.RetryableException;
-import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
-import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
-import it.gov.pagopa.payments.entity.ReceiptEntity;
-import it.gov.pagopa.payments.entity.Status;
-import it.gov.pagopa.payments.model.*;
-import it.gov.pagopa.payments.model.partner.*;
-import it.gov.pagopa.payments.model.spontaneous.*;
-import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
-import it.gov.pagopa.payments.utils.CommonUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.xml.sax.SAXException;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.namespace.QName;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -48,8 +12,89 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.xml.sax.SAXException;
+
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.table.CloudTable;
+import com.microsoft.azure.storage.table.TableBatchOperation;
+import com.microsoft.azure.storage.table.TableOperation;
+import com.microsoft.azure.storage.table.TableQuery;
+
+import feign.FeignException;
+import feign.RetryableException;
+import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
+import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
+import it.gov.pagopa.payments.entity.ReceiptEntity;
+import it.gov.pagopa.payments.entity.Status;
+import it.gov.pagopa.payments.model.DebtPositionStatus;
+import it.gov.pagopa.payments.model.PaaErrorEnum;
+import it.gov.pagopa.payments.model.PaymentOptionModel;
+import it.gov.pagopa.payments.model.PaymentOptionModelResponse;
+import it.gov.pagopa.payments.model.PaymentOptionStatus;
+import it.gov.pagopa.payments.model.PaymentsModelResponse;
+import it.gov.pagopa.payments.model.PaymentsTransferModelResponse;
+import it.gov.pagopa.payments.model.Type;
+import it.gov.pagopa.payments.model.partner.CtEntityUniqueIdentifier;
+import it.gov.pagopa.payments.model.partner.CtPaymentOptionDescriptionPA;
+import it.gov.pagopa.payments.model.partner.CtPaymentOptionsDescriptionListPA;
+import it.gov.pagopa.payments.model.partner.CtPaymentPA;
+import it.gov.pagopa.payments.model.partner.CtPaymentPAV2;
+import it.gov.pagopa.payments.model.partner.CtQrCode;
+import it.gov.pagopa.payments.model.partner.CtRichiestaMarcaDaBollo;
+import it.gov.pagopa.payments.model.partner.CtSubject;
+import it.gov.pagopa.payments.model.partner.CtTransferListPA;
+import it.gov.pagopa.payments.model.partner.CtTransferListPAV2;
+import it.gov.pagopa.payments.model.partner.CtTransferPA;
+import it.gov.pagopa.payments.model.partner.CtTransferPAV2;
+import it.gov.pagopa.payments.model.partner.ObjectFactory;
+import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeRequest;
+import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Response;
+import it.gov.pagopa.payments.model.partner.PaSendRTReq;
+import it.gov.pagopa.payments.model.partner.PaSendRTRes;
+import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
+import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
+import it.gov.pagopa.payments.model.partner.StAmountOption;
+import it.gov.pagopa.payments.model.partner.StEntityUniqueIdentifierType;
+import it.gov.pagopa.payments.model.partner.StOutcome;
+import it.gov.pagopa.payments.model.partner.StTransferType;
+import it.gov.pagopa.payments.model.spontaneous.DebtorModel;
+import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
+import it.gov.pagopa.payments.model.spontaneous.ServiceModel;
+import it.gov.pagopa.payments.model.spontaneous.ServicePropertyModel;
+import it.gov.pagopa.payments.model.spontaneous.SpontaneousPaymentModel;
+import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
+import it.gov.pagopa.payments.utils.CommonUtil;
+import it.gov.pagopa.payments.utils.CustomizedMapper;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
 @Slf4j
+@NoArgsConstructor
+@AllArgsConstructor
 public class PartnerService {
 
     private static final String DEBT_POSITION_STATUS_ERROR = "[Check DP] Debt position status error: ";
@@ -74,11 +119,16 @@ public class PartnerService {
 
     @Autowired
     private PaymentValidator paymentValidator;
+    
+    @Autowired
+    private CustomizedMapper customizedModelMapper;
 
+    /*
     public PartnerService() {
     }
 
-    public PartnerService(ObjectFactory factory, String storageConnectionString, String receiptsTable, Resource xsdGenericService, GpdClient gpdClient, GpsClient gpsClient, PaymentValidator paymentValidator) {
+    public PartnerService( 
+        String storageConnectionString, String receiptsTable, Resource xsdGenericService, ObjectFactory factory, GpdClient gpdClient, GpsClient gpsClient, PaymentValidator paymentValidator) {
         this.factory = factory;
         this.storageConnectionString = storageConnectionString;
         this.receiptsTable = receiptsTable;
@@ -86,7 +136,7 @@ public class PartnerService {
         this.gpdClient = gpdClient;
         this.gpsClient = gpsClient;
         this.paymentValidator = paymentValidator;
-    }
+    }*/
 
     @Transactional(readOnly = true)
     public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
@@ -121,6 +171,36 @@ public class PartnerService {
 
     @Transactional(readOnly = true)
     public PaGetPaymentRes paGetPayment(PaGetPaymentReq request)
+            throws DatatypeConfigurationException, PartnerValidationException {
+
+        log.debug("[paGetPayment] isAuthorize check [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+        paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
+
+        log.debug("[paGetPayment] get payment option [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+        PaymentsModelResponse paymentOption = null;
+
+        try {
+            // with Aux-Digit = 3
+            // notice number format is define as follows:
+            // 3<segregation code(2n)><IUV base(13n)><IUV check digit(2n)>
+            // GPD service works on IUVs directly, so we remove the Aux-Digit
+            paymentOption = gpdClient.getPaymentOption(request.getIdPA(), request.getQrCode().getNoticeNumber().substring(1));
+        } catch (FeignException.NotFound e) {
+            log.error("[paGetPayment] GPD Error not found [noticeNumber={}]", request.getQrCode().getNoticeNumber(), e);
+            throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+        } catch (Exception e) {
+            log.error("[paGetPayment] GPD Generic Error [noticeNumber={}]", request.getQrCode().getNoticeNumber(), e);
+            throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+        }
+
+        checkDebtPositionStatus(paymentOption);
+
+        log.info("[paGetPayment] Response OK generation [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+        return this.generatePaGetPaymentResponse(paymentOption, request);
+    }
+    
+    @Transactional(readOnly = true)
+    public PaGetPaymentV2Response paGetPaymentV2 (PaGetPaymentV2Request request)
             throws DatatypeConfigurationException, PartnerValidationException {
 
         log.debug("[paGetPayment] isAuthorize check [noticeNumber={}]", request.getQrCode().getNoticeNumber());
@@ -393,6 +473,66 @@ public class PartnerService {
 
         return response;
     }
+    
+    /**
+     * map the response of GPD in the XML V2 model
+     *
+     * @param source  {@link PaymentsModelResponse} response from GPD
+     * @param request SOAP input model
+     * @return XML model
+     * @throws DatatypeConfigurationException If the DatatypeFactory is not available or cannot be instantiated.
+     */
+    private PaGetPaymentV2Response generatePaGetPaymentResponse(PaymentsModelResponse source, PaGetPaymentV2Request request)
+            throws DatatypeConfigurationException {
+
+        PaGetPaymentV2Response response = factory.createPaGetPaymentV2Response();
+        CtPaymentPAV2 responseData = factory.createCtPaymentPAV2();
+        CtSubject debtor = factory.createCtSubject();
+        CtEntityUniqueIdentifier uniqueIdentifier = factory.createCtEntityUniqueIdentifier();
+        CtTransferListPAV2 transferList = factory.createCtTransferListPAV2();
+
+        response.setOutcome(StOutcome.OK);
+
+        // general payment data
+        responseData.setCreditorReferenceId(request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
+        responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
+        responseData.setDueDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
+        responseData.setRetentionDate(source.getRetentionDate() != null
+                ? DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getRetentionDate().toString())
+                : null);
+        responseData.setLastPayment(false); // de-scoping
+        responseData.setDescription(source.getDescription());
+        responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
+        responseData.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
+
+        // debtor data
+        uniqueIdentifier.setEntityUniqueIdentifierType(StEntityUniqueIdentifierType.fromValue(source.getType().name()));
+
+        uniqueIdentifier.setEntityUniqueIdentifierValue(source.getFiscalCode());
+
+        debtor.setUniqueIdentifier(uniqueIdentifier);
+        debtor.setFullName(source.getFullName());
+        debtor.setStreetName(source.getStreetName());
+        debtor.setCivicNumber(source.getCivicNumber());
+        debtor.setPostalCode(source.getPostalCode());
+        debtor.setCity(source.getCity());
+        debtor.setStateProvinceRegion(source.getProvince());
+        debtor.setCountry(source.getCountry());
+        debtor.setEMail(source.getEmail());
+
+        // Transfer list
+        transferList.getTransfer()
+                .addAll(source.getTransfer()
+                        .stream()
+                        .map(paymentsTransferModelResponse -> getTransferResponseV2(paymentsTransferModelResponse, request.getTransferType()))
+                        .collect(Collectors.toList()));
+
+        responseData.setTransferList(transferList);
+        responseData.setDebtor(debtor);
+        response.setData(responseData);
+
+        return response;
+    }
 
 
     /**
@@ -435,9 +575,27 @@ public class PartnerService {
      * @return maps input into {@link CtTransferPA} model
      */
     private CtTransferPA getTransferResponse(PaymentsTransferModelResponse transfer, StTransferType transferType) {
-        CtTransferPA transferPa = factory.createCtTransferPA();
+        CtTransferPA transferPa = new CtTransferPA();
         transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
         transferPa.setIBAN(getIbanByTransferType(transferType, transfer));
+        transferPa.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
+        transferPa.setRemittanceInformation(transfer.getRemittanceInformation());
+        transferPa.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
+        transferPa.setTransferCategory(transfer.getCategory().replace("/", ""));
+        return transferPa;
+    }
+    
+    /**
+     * @param transfer     GPD response
+     * @param transferType V2 XML request
+     * @return maps input into {@link CtTransferPA} model
+     */
+    private CtTransferPAV2 getTransferResponseV2(PaymentsTransferModelResponse transfer, StTransferType transferType) {
+        CtRichiestaMarcaDaBollo richiestaMarcaDaBollo = customizedModelMapper.map(transfer.getMarcaDaBollo(), CtRichiestaMarcaDaBollo.class);
+        CtTransferPAV2 transferPa = new CtTransferPAV2();
+        transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
+        transferPa.setIBAN(getIbanByTransferType(transferType, transfer));
+        transferPa.setRichiestaMarcaDaBollo(richiestaMarcaDaBollo);
         transferPa.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
         transferPa.setRemittanceInformation(transfer.getRemittanceInformation());
         transferPa.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
@@ -454,7 +612,7 @@ public class PartnerService {
 
         String defaultIban = Optional.ofNullable(transfer.getIban())
                 .orElseGet(() -> Optional.ofNullable(transfer.getPostalIban())
-                        .orElseThrow(() -> new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA)));
+                        .orElseGet(() -> null));
 
         return transferType != null && transferType.value().equals(StTransferType.POSTAL.value())
                 && transfer.getPostalIban() != null ? transfer.getPostalIban() : defaultIban;
