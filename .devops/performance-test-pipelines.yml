@@ -40,6 +40,9 @@ parameters:
       - payments_demand_notice
       - payments_workflow
       - payments_workflow.oneshot
+      - verify_payment_workflow
+      - get_payment_workflow
+      - send_rt_workflow
 
 steps:
   - script: |
