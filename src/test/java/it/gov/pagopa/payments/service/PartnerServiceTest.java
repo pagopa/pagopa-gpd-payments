@@ -1,11 +1,53 @@
 package it.gov.pagopa.payments.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
+
+import org.junit.ClassRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+import org.xml.sax.SAXException;
+
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.RetryNoRetry;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.CloudTableClient;
 import com.microsoft.azure.storage.table.TableRequestOptions;
+
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
@@ -21,584 +63,849 @@ import it.gov.pagopa.payments.model.PaymentOptionModel;
 import it.gov.pagopa.payments.model.PaymentOptionModelResponse;
 import it.gov.pagopa.payments.model.PaymentOptionStatus;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
+import it.gov.pagopa.payments.model.partner.CtTransferPAV2;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Response;
 import it.gov.pagopa.payments.model.partner.PaSendRTReq;
 import it.gov.pagopa.payments.model.partner.PaSendRTRes;
+import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
+import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
 import it.gov.pagopa.payments.model.partner.StAmountOption;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
+import it.gov.pagopa.payments.utils.CustomizedMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.ClassRule;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-import org.xml.sax.SAXException;
 
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
 @Slf4j
+@SpringBootTest
 class PartnerServiceTest {
 
-    @InjectMocks
-    private PartnerService partnerService;
+  @InjectMocks
+  private PartnerService partnerService;
 
-    @Mock
-    PaymentValidator paymentValidator;
+  @Mock
+  PaymentValidator paymentValidator;
 
-    @Mock
-    private ObjectFactory factory;
+  @Mock
+  private ObjectFactory factory;
 
-    @Mock
-    private GpdClient gpdClient;
+  @Mock
+  private GpdClient gpdClient;
 
-    @Mock
-    private GpsClient gpsClient;
+  @Mock
+  private GpsClient gpsClient;
 
-    private String genericService = "/xsd/general-service.xsd";
-    ResourceLoader resourceLoader = new DefaultResourceLoader();
-    Resource resource = resourceLoader.getResource(genericService);
+  private String genericService = "/xsd/general-service.xsd";
+  ResourceLoader resourceLoader = new DefaultResourceLoader();
+  Resource resource = resourceLoader.getResource(genericService);
 
-    private final ObjectFactory factoryUtil = new ObjectFactory();
+  private final ObjectFactory factoryUtil = new ObjectFactory();
 
-
-    @ClassRule
-    @Container
-    public static GenericContainer<?> azurite =
-            new GenericContainer<>(
-                    DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
-                    .withExposedPorts(10001, 10002, 10000);
+  @Autowired
+  //private CustomizedMapper customizedModelMapper = new CustomizedMapper();
+  private CustomizedMapper customizedModelMapper;
 
 
-    String storageConnectionString =
-            String.format(
-                    "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://%s:%s/devstoreaccount1;QueueEndpoint=http://%s:%s/devstoreaccount1;BlobEndpoint=http://%s:%s/devstoreaccount1",
-                    azurite.getContainerIpAddress(),
-                    azurite.getMappedPort(10002),
-                    azurite.getContainerIpAddress(),
-                    azurite.getMappedPort(10001),
-                    azurite.getContainerIpAddress(),
-                    azurite.getMappedPort(10000));
+  @ClassRule
+  @Container
+  public static GenericContainer<?> azurite =
+  new GenericContainer<>(
+      DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
+  .withExposedPorts(10001, 10002, 10000);
 
-    @Test
-    void paVerifyPaymentNoticeTest() throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+  String storageConnectionString =
+      String.format(
+          "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://%s:%s/devstoreaccount1;QueueEndpoint=http://%s:%s/devstoreaccount1;BlobEndpoint=http://%s:%s/devstoreaccount1",
+          azurite.getContainerIpAddress(),
+          azurite.getMappedPort(10002),
+          azurite.getContainerIpAddress(),
+          azurite.getMappedPort(10001),
+          azurite.getContainerIpAddress(),
+          azurite.getMappedPort(10000));
 
-        when(factory.createPaVerifyPaymentNoticeRes()).thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes());
-        when(factory.createCtPaymentOptionDescriptionPA()).thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
-        when(factory.createCtPaymentOptionsDescriptionListPA())
-                .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
+  @Test
+  void paVerifyPaymentNoticeTest() throws DatatypeConfigurationException, IOException {
 
-        PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
-        when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-        // Test execution
-        PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody);
+    when(factory.createPaVerifyPaymentNoticeRes()).thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes());
+    when(factory.createCtPaymentOptionDescriptionPA()).thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
+    when(factory.createCtPaymentOptionsDescriptionListPA())
+    .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
 
-        // Test post condition
-        assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
-        assertThat(responseBody.getPaymentList().getPaymentOptionDescription().isAllCCP()).isFalse();
-        assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getAmount())
-                .isEqualTo(new BigDecimal(1055));
-        assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getOptions())
-                .isEqualTo(StAmountOption.EQ); // de-scoping
-        assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
-        assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
+    PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+
+    // Test execution
+    PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().isAllCCP()).isFalse();
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getAmount())
+    .isEqualTo(new BigDecimal(1055));
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getOptions())
+    .isEqualTo(StAmountOption.EQ); // de-scoping
+    assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
+    assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
+  }
+
+  @Test
+  void paVerifyPaymentNoticeTestKOConfig() throws DatatypeConfigurationException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+    doThrow(new PartnerValidationException(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO))
+    .when(paymentValidator).isAuthorize(anyString(), anyString(), anyString());
+
+    // Test execution
+    try {
+
+      partnerService.paVerifyPaymentNotice(requestBody);
+
+    } catch (PartnerValidationException e) {
+      // Test post condition
+      assertThat(e.getError().getFaultCode()).isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultCode());
+      assertThat(e.getError().getDescription()).isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getDescription());
+      assertThat(e.getError().getFaultString()).isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultString());
     }
+  }
 
-    @Test
-    void paVerifyPaymentNoticeTestKOConfig() throws DatatypeConfigurationException {
+  @Test
+  void paVerifyPaymentTestKONotFound() throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-        doThrow(new PartnerValidationException(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO))
-                .when(paymentValidator).isAuthorize(anyString(), anyString(), anyString());
+    var e = Mockito.mock(FeignException.NotFound.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenThrow(e);
 
-        // Test execution
-        try {
-
-            partnerService.paVerifyPaymentNotice(requestBody);
-
-        } catch (PartnerValidationException e) {
-            // Test post condition
-            assertThat(e.getError().getFaultCode()).isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultCode());
-            assertThat(e.getError().getDescription()).isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getDescription());
-            assertThat(e.getError().getFaultString()).isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultString());
-        }
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
     }
+  }
 
-    @Test
-    void paVerifyPaymentTestKONotFound() throws DatatypeConfigurationException, IOException {
+  @Test
+  void paVerifyPaymentTestKOGeneric() throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-        var e = Mockito.mock(FeignException.NotFound.class);
-        when(gpdClient.getPaymentOption(anyString(), anyString()))
-                .thenThrow(e);
+    var e = Mockito.mock(FeignException.FeignClientException.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenThrow(e);
 
-        try {
-            // Test execution
-            partnerService.paVerifyPaymentNotice(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
-        }
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
     }
+  }
 
-    @Test
-    void paVerifyPaymentTestKOGeneric() throws DatatypeConfigurationException, IOException {
+  @ParameterizedTest
+  @ValueSource(strings = {"INVALID", "EXPIRED"})
+  void paVerifyPaymentNoticeStatusKOTest(String status) throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-        var e = Mockito.mock(FeignException.FeignClientException.class);
-        when(gpdClient.getPaymentOption(anyString(), anyString()))
-                .thenThrow(e);
+    PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
+    paymentModel.setDebtPositionStatus(DebtPositionStatus.valueOf(status));
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
-        try {
-            // Test execution
-            partnerService.paVerifyPaymentNotice(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
-        }
+    // Test post condition
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.EXPIRED)) {
+        assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCADUTO, ex.getError());
+      } else if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.INVALID)) {
+        assertEquals(PaaErrorEnum.PAA_PAGAMENTO_ANNULLATO, ex.getError());
+      } else {
+        fail();
+      }
     }
+  }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"INVALID", "EXPIRED"})
-    void paVerifyPaymentNoticeStatusKOTest(String status) throws DatatypeConfigurationException, IOException {
+  @ParameterizedTest
+  @ValueSource(strings = {"DRAFT", "PUBLISHED"})
+  void paVerifyPaymentNoticeStatusKOTest2(String status) throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-        PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
-        paymentModel.setDebtPositionStatus(DebtPositionStatus.valueOf(status));
-        when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+    PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
+    paymentModel.setDebtPositionStatus(DebtPositionStatus.valueOf(status));
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
-        // Test post condition
-        try {
-            // Test execution
-            partnerService.paVerifyPaymentNotice(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.EXPIRED)) {
-                assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCADUTO, ex.getError());
-            } else if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.INVALID)) {
-                assertEquals(PaaErrorEnum.PAA_PAGAMENTO_ANNULLATO, ex.getError());
-            } else {
-                fail();
-            }
-        }
+    // Test post condition
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.DRAFT) || DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.PUBLISHED)) {
+        assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      } else {
+        fail();
+      }
     }
+  }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"DRAFT", "PUBLISHED"})
-    void paVerifyPaymentNoticeStatusKOTest2(String status) throws DatatypeConfigurationException, IOException {
+  @ParameterizedTest
+  @ValueSource(strings = {"PARTIALLY_PAID", "PAID", "REPORTED"})
+  void paVerifyPaymentNoticeStatusKOTest3(String status) throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-        PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
-        paymentModel.setDebtPositionStatus(DebtPositionStatus.valueOf(status));
-        when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+    PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
+    paymentModel.setDebtPositionStatus(DebtPositionStatus.valueOf(status));
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
-        // Test post condition
-        try {
-            // Test execution
-            partnerService.paVerifyPaymentNotice(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.DRAFT) || DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.PUBLISHED)) {
-                assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
-            } else {
-                fail();
-            }
-        }
+    // Test post condition
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.PARTIALLY_PAID) || DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.PAID) || DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.REPORTED)) {
+        assertEquals(PaaErrorEnum.PAA_PAGAMENTO_DUPLICATO, ex.getError());
+      } else {
+        fail();
+      }
     }
+  }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"PARTIALLY_PAID", "PAID", "REPORTED"})
-    void paVerifyPaymentNoticeStatusKOTest3(String status) throws DatatypeConfigurationException, IOException {
+  @Test
+  void paGetPaymentTest() throws PartnerValidationException, DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+    // Test preconditions
+    PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
-        PaymentsModelResponse paymentModel = MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
-        paymentModel.setDebtPositionStatus(DebtPositionStatus.valueOf(status));
-        when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+    when(factory.createPaGetPaymentRes()).thenReturn(factoryUtil.createPaGetPaymentRes());
+    when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
+    when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtEntityUniqueIdentifier()).thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+    when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
 
-        // Test post condition
-        try {
-            // Test execution
-            partnerService.paVerifyPaymentNotice(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            if (DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.PARTIALLY_PAID) || DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.PAID) || DebtPositionStatus.valueOf(status).equals(DebtPositionStatus.REPORTED)) {
-                assertEquals(PaaErrorEnum.PAA_PAGAMENTO_DUPLICATO, ex.getError());
-            } else {
-                fail();
-            }
-        }
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenReturn(MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
+
+    // Test execution
+    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
+    assertThat(responseBody.getData().getDescription()).isEqualTo("string");
+    assertThat(responseBody.getData().getDueDate())
+    .isEqualTo(DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
+    assertThat(responseBody.getData().getRetentionDate())
+    .isEqualTo(DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
+    assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
+  }
+
+  @Test
+  void paGetPaymentTestKONotFound() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
+
+    var e = Mockito.mock(FeignException.NotFound.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenThrow(e);
+
+    try {
+      // Test execution
+      partnerService.paGetPayment(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
     }
+  }
 
-    @Test
-    void paGetPaymentTest() throws PartnerValidationException, DatatypeConfigurationException, IOException {
+  @Test
+  void paGetPaymentTestKOGeneric() throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
+    // Test preconditions
+    PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
-        when(factory.createPaGetPaymentRes()).thenReturn(factoryUtil.createPaGetPaymentRes());
-        when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
-        when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
-        when(factory.createCtEntityUniqueIdentifier()).thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
-        when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
-        when(factory.createCtTransferPA()).thenReturn(factoryUtil.createCtTransferPA());
+    var e = Mockito.mock(FeignException.FeignClientException.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenThrow(e);
 
-        when(gpdClient.getPaymentOption(anyString(), anyString()))
-                .thenReturn(MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
-
-        // Test execution
-        PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
-
-        // Test post condition
-        assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
-        assertThat(responseBody.getData().getDescription()).isEqualTo("string");
-        assertThat(responseBody.getData().getDueDate())
-                .isEqualTo(DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
-        assertThat(responseBody.getData().getRetentionDate())
-                .isEqualTo(DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
-        assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
+    try {
+      // Test execution
+      partnerService.paGetPayment(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
     }
+  }
 
-    @Test
-    void paGetPaymentTestKONotFound() throws DatatypeConfigurationException, IOException {
+  @Test
+  void paSendRTTest() throws DatatypeConfigurationException, IOException {
 
-        // Test preconditions
-        PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
 
-        var e = Mockito.mock(FeignException.NotFound.class);
-        when(gpdClient.getPaymentOption(anyString(), anyString()))
-                .thenThrow(e);
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
 
-        try {
-            // Test execution
-            PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
-        }
-    }
+    doNothing().doThrow(PartnerValidationException.class).when(paymentValidator).isAuthorize(anyString(), anyString(), anyString());
 
-    @Test
-    void paGetPaymentTestKOGeneric() throws DatatypeConfigurationException, IOException {
+    when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
 
-        // Test preconditions
-        PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
 
-        var e = Mockito.mock(FeignException.FeignClientException.class);
-        when(gpdClient.getPaymentOption(anyString(), anyString()))
-                .thenThrow(e);
-
-        try {
-            // Test execution
-            PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
-        }
-    }
-
-    @Test
-    void paSendRTTest() throws DatatypeConfigurationException, IOException {
-
-
-        var pService = spy(new PartnerService(factory, storageConnectionString, "receiptsTable",  resource, gpdClient, gpsClient, paymentValidator));
-
-        // Test preconditions
-        PaSendRTReq requestBody = PaSendRTReqMock.getMock();
-
-        doNothing().doThrow(PartnerValidationException.class).when(paymentValidator).isAuthorize(anyString(), anyString(), anyString());
-
-        when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
-
-        when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-                .thenReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
-
-        try {
-            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-            CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-            TableRequestOptions tableRequestOptions = new TableRequestOptions();
-            tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-            cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-            CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-            table.createIfNotExists();
-        } catch (Exception e) {
-            log.info("Error during table creation", e);
-        }
-
-
-        // Test execution
-        PaSendRTRes responseBody = pService.paSendRT(requestBody);
-
-        // Test post condition
-        assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
-        assertThat(responseBody.getFault()).isNull();
-    }
-
-    @Test
-    void paSendRTTestKOConflict() throws DatatypeConfigurationException, IOException {
-
-        var pService = spy(new PartnerService(factory, storageConnectionString, "receiptsTable", resource, gpdClient, gpsClient, paymentValidator));
-
-        // Test preconditions
-        PaSendRTReq requestBody = PaSendRTReqMock.getMock();
-
-        var e = Mockito.mock(FeignException.Conflict.class);
-        when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-                .thenThrow(e);
-
-        try {
-            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-            CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-            TableRequestOptions tableRequestOptions = new TableRequestOptions();
-            tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-            cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-            CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-            table.createIfNotExists();
-        } catch (Exception ex) {
-            log.info("Error during table creation", e);
-        }
-
-        try {
-            // Test execution
-            PaSendRTRes responseBody = pService.paSendRT(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_RECEIPT_DUPLICATA, ex.getError());
-        }
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"PO_UNPAID", "PO_PARTIALLY_REPORTED", "PO_REPORTED"})
-    void paSendRTTestKOStatus(String status) throws DatatypeConfigurationException, IOException {
-
-        var pService = spy(new PartnerService(factory, storageConnectionString, "receiptsTable", resource, gpdClient, gpsClient, paymentValidator));
-
-        // Test preconditions
-        PaSendRTReq requestBody = PaSendRTReqMock.getMock();
-
-        PaymentOptionModelResponse paymentOption = MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
-        paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
-        when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-                .thenReturn(paymentOption);
-
-        try {
-            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-            CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-            TableRequestOptions tableRequestOptions = new TableRequestOptions();
-            tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-            cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-            CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-            table.createIfNotExists();
-        } catch (Exception ex) {
-            log.info("Error during table creation", ex);
-        }
-
-        try {
-            // Test execution
-            PaSendRTRes responseBody = pService.paSendRT(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
-        }
-    }
-
-    @Test
-    void paSendRTTestKORetryableException() throws DatatypeConfigurationException, IOException {
-
-        var pService = spy(new PartnerService(factory, storageConnectionString, "receiptsTable", resource, gpdClient, gpsClient, paymentValidator));
-
-        // Test preconditions
-        PaSendRTReq requestBody = PaSendRTReqMock.getMock();
-
-        var e = Mockito.mock(RetryableException.class);
-        when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-                .thenThrow(e);
-
-        try {
-            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-            CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-            TableRequestOptions tableRequestOptions = new TableRequestOptions();
-            tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-            cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-            CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-            table.createIfNotExists();
-        } catch (Exception ex) {
-            log.info("Error during table creation", e);
-        }
-
-        try {
-            // Test execution
-            PaSendRTRes responseBody = pService.paSendRT(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
-        }
-    }
-
-    @Test
-    void paSendRTTestKOFeignException() throws DatatypeConfigurationException, IOException {
-
-        var pService = spy(new PartnerService(factory, storageConnectionString, "receiptsTable", resource, gpdClient, gpsClient, paymentValidator));
-        // Test preconditions
-        PaSendRTReq requestBody = PaSendRTReqMock.getMock();
-
-        var e = Mockito.mock(FeignException.class);
-        when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-                .thenThrow(e);
-
-        try {
-            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-            CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-            TableRequestOptions tableRequestOptions = new TableRequestOptions();
-            tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-            cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-            CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-            table.createIfNotExists();
-        } catch (Exception ex) {
-            log.info("Error during table creation", e);
-        }
-
-        try {
-            // Test execution
-            PaSendRTRes responseBody = pService.paSendRT(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
-        }
-    }
-
-    @Test
-    void paSendRTTestKO() throws DatatypeConfigurationException, IOException {
-
-        var pService = spy(new PartnerService(factory, storageConnectionString, "receiptsTable", resource, gpdClient, gpsClient, paymentValidator));
-
-        // Test preconditions
-        PaSendRTReq requestBody = PaSendRTReqMock.getMock();
-
-        var e = Mockito.mock(NullPointerException.class);
-        when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-                .thenThrow(e);
-
-        try {
-            CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-            CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-            TableRequestOptions tableRequestOptions = new TableRequestOptions();
-            tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-            cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-            CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-            table.createIfNotExists();
-        } catch (Exception ex) {
-            log.info("Error during table creation", e);
-        }
-
-        try {
-            // Test execution
-            PaSendRTRes responseBody = pService.paSendRT(requestBody);
-            fail();
-        } catch (PartnerValidationException ex) {
-            // Test post condition
-            assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
-        }
-    }
-
-    @Test
-    void azureStorageTest() throws InvalidKeyException, URISyntaxException, StorageException {
-        AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString, true);
-        azuriteStorageUtil.createTable("testTable");
-        // se arrivo a questa riga la tabella è stata creata
-        assertTrue(true);
-
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception e) {
+      log.info("Error during table creation", e);
     }
 
 
-    @Test
-    void paDemandPaymentNoticeTest() throws DatatypeConfigurationException, IOException, XMLStreamException, ParserConfigurationException, SAXException {
-        var pService = spy(new PartnerService(factory, storageConnectionString, "receiptsTable", resource, gpdClient, gpsClient, paymentValidator));
+    // Test execution
+    PaSendRTRes responseBody = pService.paSendRT(requestBody);
 
-        // Test preconditions
-        var requestBody = PaDemandNoticePaymentReqMock.getMock();
+    // Test post condition
+    assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
+    assertThat(responseBody.getFault()).isNull();
+  }
 
-        when(factory.createPaDemandPaymentNoticeResponse()).thenReturn(factoryUtil.createPaDemandPaymentNoticeResponse());
-        when(factory.createCtQrCode()).thenReturn(factoryUtil.createCtQrCode());
-        when(factory.createCtPaymentOptionsDescriptionListPA()).thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
-        when(factory.createCtPaymentOptionDescriptionPA()).thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
+  @Test
+  void paSendRTTestKOConflict() throws DatatypeConfigurationException, IOException {
 
-        var paymentModel = MockUtil.readModelFromFile("gps/createSpontaneousPayments.json", PaymentPositionModel.class);
-        when(gpsClient.createSpontaneousPayments(anyString(), any())).thenReturn(paymentModel);
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
 
-        // Test execution
-        var responseBody = pService.paDemandPaymentNotice(requestBody);
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
 
-        // Test post condition
-        assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
-        assertThat(responseBody.getPaymentList().getPaymentOptionDescription().isAllCCP()).isFalse();
-        assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getAmount())
-                .isEqualTo(new BigDecimal(1055));
-        assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getOptions())
-                .isEqualTo(StAmountOption.EQ); // de-scoping
-        assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
-        assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
+    var e = Mockito.mock(FeignException.Conflict.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
     }
+
+    try {
+      // Test execution
+      pService.paSendRT(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_RECEIPT_DUPLICATA, ex.getError());
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"PO_UNPAID", "PO_PARTIALLY_REPORTED", "PO_REPORTED"})
+  void paSendRTTestKOStatus(String status) throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+
+    PaymentOptionModelResponse paymentOption = MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
+    paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenReturn(paymentOption);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", ex);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRT(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
+    }
+  }
+
+  @Test
+  void paSendRTTestKORetryableException() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+
+    var e = Mockito.mock(RetryableException.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRT(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
+    }
+  }
+
+  @Test
+  void paSendRTTestKOFeignException() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+
+    var e = Mockito.mock(FeignException.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRT(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
+    }
+  }
+
+  @Test
+  void paSendRTTestKO() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+
+    var e = Mockito.mock(NullPointerException.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRT(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
+    }
+  }
+
+  @Test
+  void azureStorageTest() throws InvalidKeyException, URISyntaxException, StorageException {
+    AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString, true);
+    azuriteStorageUtil.createTable("testTable");
+    // se arrivo a questa riga la tabella è stata creata
+    assertTrue(true);
+
+  }
+
+
+  @Test
+  void paDemandPaymentNoticeTest() throws DatatypeConfigurationException, IOException, XMLStreamException, ParserConfigurationException, SAXException {
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    var requestBody = PaDemandNoticePaymentReqMock.getMock();
+
+    when(factory.createPaDemandPaymentNoticeResponse()).thenReturn(factoryUtil.createPaDemandPaymentNoticeResponse());
+    when(factory.createCtQrCode()).thenReturn(factoryUtil.createCtQrCode());
+    when(factory.createCtPaymentOptionsDescriptionListPA()).thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
+    when(factory.createCtPaymentOptionDescriptionPA()).thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
+
+    var paymentModel = MockUtil.readModelFromFile("gps/createSpontaneousPayments.json", PaymentPositionModel.class);
+    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenReturn(paymentModel);
+
+    // Test execution
+    var responseBody = pService.paDemandPaymentNotice(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().isAllCCP()).isFalse();
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getAmount())
+    .isEqualTo(new BigDecimal(1055));
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getOptions())
+    .isEqualTo(StAmountOption.EQ); // de-scoping
+    assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
+    assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
+  }
+
+  @Test
+  void paGetPaymentV2Test() throws PartnerValidationException, DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
+
+    when(factory.createPaGetPaymentV2Response()).thenReturn(factoryUtil.createPaGetPaymentV2Response());
+    when(factory.createCtPaymentPAV2()).thenReturn(factoryUtil.createCtPaymentPAV2());
+    when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtEntityUniqueIdentifier()).thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+    when(factory.createCtTransferListPAV2()).thenReturn(factoryUtil.createCtTransferListPAV2());
+
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenReturn(MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
+
+    // Test execution
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
+    assertThat(responseBody.getData().getDescription()).isEqualTo("string");
+    assertThat(responseBody.getData().getDueDate())
+    .isEqualTo(DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
+    assertThat(responseBody.getData().getRetentionDate())
+    .isEqualTo(DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
+    assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
+    assertEquals(3,responseBody.getData().getTransferList().getTransfer().size());
+
+    org.hamcrest.MatcherAssert.assertThat(responseBody.getData().getTransferList().getTransfer(),
+        org.hamcrest.Matchers.contains(
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()), 
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("IBAN", org.hamcrest.Matchers.is("string"))),
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()), 
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("IBAN", org.hamcrest.Matchers.is("ABC"))),
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()), 
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("IBAN", org.hamcrest.Matchers.nullValue()))
+            )
+        );
+  }
+
+  @Test
+  void paGetPaymentV2TestKONotFound() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
+
+    var e = Mockito.mock(FeignException.NotFound.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenThrow(e);
+
+    try {
+      // Test execution
+      partnerService.paGetPaymentV2(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+    }
+  }
+
+  @Test
+  void paGetPaymentV2TestKOGeneric() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
+
+    var e = Mockito.mock(FeignException.FeignClientException.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+    .thenThrow(e);
+
+    try {
+      // Test execution
+      partnerService.paGetPaymentV2(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
+    }
+  }
+  
+  @Test
+  void paSendRTV2Test() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+
+    doNothing().doThrow(PartnerValidationException.class).when(paymentValidator).isAuthorize(anyString(), anyString(), anyString());
+
+    when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
+
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception e) {
+      log.info("Error during table creation", e);
+    }
+
+
+    // Test execution
+    PaSendRTV2Response responseBody = pService.paSendRTV2(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
+    assertThat(responseBody.getFault()).isNull();
+  }
+
+  @Test
+  void paSendRTV2TestKOConflict() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+
+    var e = Mockito.mock(FeignException.Conflict.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRTV2(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_RECEIPT_DUPLICATA, ex.getError());
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"PO_UNPAID", "PO_PARTIALLY_REPORTED", "PO_REPORTED"})
+  void paSendRTV2TestKOStatus(String status) throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+
+    PaymentOptionModelResponse paymentOption = MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
+    paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenReturn(paymentOption);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", ex);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRTV2(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
+    }
+  }
+
+  @Test
+  void paSendRTV2TestKORetryableException() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+
+    var e = Mockito.mock(RetryableException.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRTV2(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
+    }
+  }
+
+  @Test
+  void paSendRTV2TestKOFeignException() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+    // Test preconditions
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+
+    var e = Mockito.mock(FeignException.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRTV2(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
+    }
+  }
+
+  @Test
+  void paSendRTV2TestKO() throws DatatypeConfigurationException, IOException {
+
+    var pService = spy(new PartnerService(storageConnectionString, "receiptsTable",  resource, factory, gpdClient, gpsClient, paymentValidator, customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+
+    var e = Mockito.mock(NullPointerException.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRTV2(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
+    }
+  }
 }
