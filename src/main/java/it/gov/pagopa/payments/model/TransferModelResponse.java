@@ -13,14 +13,17 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransferModelResponse implements Serializable {
-    private String organizationFiscalCode;
-    private String idTransfer;
-    private long amount;
-    private String remittanceInformation; // causale
-    private String category; // taxonomy
-    private String iban;
-    private String postalIban;
-    private LocalDateTime insertedDate;
-    private TransferStatus status;
-    private LocalDateTime lastUpdatedDate;
+  private static final long serialVersionUID = 2528813110300207419L;
+  
+  private String organizationFiscalCode;
+  private String idTransfer;
+  private long amount;
+  private String remittanceInformation; // causale
+  private String category; // taxonomy
+  private String iban;
+  private String postalIban;
+  private MarcaDaBollo marcaDaBollo;
+  private LocalDateTime insertedDate;
+  private TransferStatus status;
+  private LocalDateTime lastUpdatedDate;
 }
