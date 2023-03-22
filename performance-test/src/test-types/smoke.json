@@ -15,7 +15,7 @@
         "executor": "constant-arrival-rate",
         "duration": "1m",
         "rate": 1,
-        "timeUnit": "1m",
+        "timeUnit": "1s",
         "preAllocatedVUs": 10,
         "maxVUs": 20
       }
@@ -34,5 +34,5 @@
         "rate>=0"
       ]
     },
-    "setupTimeout": "2700s"
+    "setupTimeout": "3600s"
 }

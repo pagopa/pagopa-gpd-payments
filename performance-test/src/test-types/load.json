@@ -46,6 +46,6 @@
       "p(95)<1000"
     ]
   },
-  "setupTimeout": "360s",
-  "teardownTimeout": "360s"
+  "setupTimeout": "360m",
+  "teardownTimeout": "360m"
 }
