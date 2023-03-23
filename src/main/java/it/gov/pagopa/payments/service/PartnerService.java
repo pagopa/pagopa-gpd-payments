@@ -174,33 +174,22 @@ public class PartnerService<U> {
     return this.generatePaGetPaymentResponse(paymentOption, request);
   }
 
-  private PaymentsModelResponse manageGetPaymentRequest(String idPa, String idBrokerPa, String idStation, CtQrCode qrCode) {
-    log.debug("[manageGetPaymentRequest] isAuthorize check [noticeNumber={}]", qrCode.getNoticeNumber());
-    paymentValidator.isAuthorize(idPa, idBrokerPa, idStation);
-
-    log.debug("[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
-    PaymentsModelResponse paymentOption = null;
-
-    try {
-      // with Aux-Digit = 3
-      // notice number format is define as follows:
-      // 3<segregation code(2n)><IUV base(13n)><IUV check digit(2n)>
-      // GPD service works on IUVs directly, so we remove the Aux-Digit
-      paymentOption = gpdClient.getPaymentOption(idPa, qrCode.getNoticeNumber().substring(1));
-    } catch (FeignException.NotFound e) {
-      log.error("[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]", qrCode.getNoticeNumber(), e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
-    } catch (Exception e) {
-      log.error("[manageGetPaymentRequest] GPD Generic Error [noticeNumber={}]", qrCode.getNoticeNumber(), e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    }
-    checkDebtPositionStatus(paymentOption);
-    return paymentOption;
-  }
-
   @Transactional
   public PaSendRTRes paSendRT(PaSendRTReq request) {
 
+    PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
+
+    if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
+      log.error("[paSendRT] Payment Option [statusError: {}] [noticeNumber={}]", paymentOption.getStatus(), request.getReceipt().getNoticeNumber());
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+    }
+
+    log.info("[paSendRT] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
+    // status is always equals to PO_PAID
+    return generatePaSendRTResponse();
+  }
+
+  private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTReq request) {
     log.debug("[paSendRT] isAuthorize check [noticeNumber={}]", request.getReceipt().getNoticeNumber());
     paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
 
@@ -217,15 +206,8 @@ public class PartnerService<U> {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       // save the receipt info with status CREATED
-      ReceiptEntity receiptEntity = new ReceiptEntity(request.getIdPA(), request.getReceipt().getCreditorReferenceId());
-      String debtor = Optional.ofNullable(request.getReceipt().getDebtor())
-          .map(
-              CtSubject::getUniqueIdentifier
-              ).map(
-                  CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue
-                  ).orElse("");
+      ReceiptEntity receiptEntity = this.getReceiptEntity(request.getIdPA(), request.getReceipt().getCreditorReferenceId(), request.getReceipt().getDebtor());
       receiptEntity.setDocument(this.marshal(request));
-      receiptEntity.setDebtor(debtor);
       this.saveReceipt(receiptEntity);
       // GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
       paymentOption = gpdClient.receiptPaymentOption(request.getIdPA(), request.getReceipt().getCreditorReferenceId(), body);
@@ -254,15 +236,7 @@ public class PartnerService<U> {
       log.error("[paSendRT] GPD Generic Error [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
-
-    if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-      log.error("[paSendRT] Payment Option [statusError: {}] [noticeNumber={}]", paymentOption.getStatus(), request.getReceipt().getNoticeNumber());
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
-    }
-
-    log.info("[paSendRT] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
-    // status is always equals to PO_PAID
-    return generatePaSendRTResponse();
+    return paymentOption;
   }
 
   @Transactional
@@ -284,15 +258,8 @@ public class PartnerService<U> {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       // save the receipt info with status CREATED
-      ReceiptEntity receiptEntity = new ReceiptEntity(request.getIdPA(), request.getReceipt().getCreditorReferenceId());
-      String debtor = Optional.ofNullable(request.getReceipt().getDebtor())
-          .map(
-              CtSubject::getUniqueIdentifier
-              ).map(
-                  CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue
-                  ).orElse("");
+      ReceiptEntity receiptEntity = this.getReceiptEntity(request.getIdPA(), request.getReceipt().getCreditorReferenceId(), request.getReceipt().getDebtor());
       receiptEntity.setDocument(this.marshalV2(request));
-      receiptEntity.setDebtor(debtor);
       this.saveReceipt(receiptEntity);
       // GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
       paymentOption = gpdClient.receiptPaymentOption(request.getIdPA(), request.getReceipt().getCreditorReferenceId(), body);
@@ -728,6 +695,42 @@ public class PartnerService<U> {
     debtor.setEMail(source.getEmail());
 
     return debtor;
+  }
+  
+  private PaymentsModelResponse manageGetPaymentRequest(String idPa, String idBrokerPa, String idStation, CtQrCode qrCode) {
+    log.debug("[manageGetPaymentRequest] isAuthorize check [noticeNumber={}]", qrCode.getNoticeNumber());
+    paymentValidator.isAuthorize(idPa, idBrokerPa, idStation);
+
+    log.debug("[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
+    PaymentsModelResponse paymentOption = null;
+
+    try {
+      // with Aux-Digit = 3
+      // notice number format is define as follows:
+      // 3<segregation code(2n)><IUV base(13n)><IUV check digit(2n)>
+      // GPD service works on IUVs directly, so we remove the Aux-Digit
+      paymentOption = gpdClient.getPaymentOption(idPa, qrCode.getNoticeNumber().substring(1));
+    } catch (FeignException.NotFound e) {
+      log.error("[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]", qrCode.getNoticeNumber(), e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+    } catch (Exception e) {
+      log.error("[manageGetPaymentRequest] GPD Generic Error [noticeNumber={}]", qrCode.getNoticeNumber(), e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
+    checkDebtPositionStatus(paymentOption);
+    return paymentOption;
+  }
+  
+  private ReceiptEntity getReceiptEntity(String idPa, String creditorReferenceId, CtSubject debtor) {
+    ReceiptEntity receiptEntity = new ReceiptEntity(idPa, creditorReferenceId);
+    String debtorIdentifier = Optional.ofNullable(debtor)
+        .map(
+            CtSubject::getUniqueIdentifier
+            ).map(
+                CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue
+                ).orElse("");
+    receiptEntity.setDebtor(debtorIdentifier);
+    return receiptEntity;
   }
   
 
