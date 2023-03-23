@@ -70,5 +70,6 @@
       "p(95)<1000"
     ]
   },
-  "setupTimeout": "3600s"
+  "setupTimeout": "360m",
+  "teardownTimeout": "360m"
 }

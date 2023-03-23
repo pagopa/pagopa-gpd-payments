@@ -50,5 +50,6 @@
       "p(95)<1000"
     ]
   },
-  "setupTimeout": "3600s"
+  "setupTimeout": "3600s",
+  "teardownTimeout": "3600s"
 }
