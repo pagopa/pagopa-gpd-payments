@@ -94,7 +94,7 @@ public class PartnerService {
             throws DatatypeConfigurationException, PartnerValidationException {
 
         log.debug("[paVerifyPaymentNotice] isAuthorize check [noticeNumber={}]", request.getQrCode().getNoticeNumber());
-        paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
+        //paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
 
         log.debug("[paVerifyPaymentNotice] get payment option [noticeNumber={}]", request.getQrCode().getNoticeNumber());
         PaymentsModelResponse paymentOption = null;
@@ -415,7 +415,7 @@ public class PartnerService {
         paymentOption.setAmount(BigDecimal.valueOf(source.getAmount()));
         paymentOption.setOptions(StAmountOption.EQ); // de-scoping
         paymentOption.setDueDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
-        if(source.getDescription().length() > 0) {
+        if(source.getDescription() != null && source.getDescription().length() > 0) {
             paymentOption.setDetailDescription(source.getDescription());
         }
         var cpp = source.getTransfer().stream()
@@ -425,14 +425,14 @@ public class PartnerService {
 
         result.setPaymentList(paymentList);
         // general info
-        if(source.getDescription().length() > 0){
+        if(source.getDescription() != null && source.getDescription().length() > 0){
             result.setPaymentDescription(source.getDescription());
         }
         result.setFiscalCodePA(source.getOrganizationFiscalCode());
-        if(source.getCompanyName().length() > 0){
+        if(source.getCompanyName() != null && source.getCompanyName().length() > 0){
             result.setCompanyName(source.getCompanyName());
         }
-        if(source.getOfficeName().length() > 0){
+        if(source.getOfficeName() != null && source.getOfficeName().length() > 0){
             result.setOfficeName(source.getOfficeName());
         }
         return result;
