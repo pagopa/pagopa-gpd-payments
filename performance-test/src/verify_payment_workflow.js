@@ -21,9 +21,9 @@ const creditorInstitutionCode = `${vars.id_pa}`;
 const idBrokerPA = `${vars.id_broker_pa}`;
 const idStation = `${vars.id_station}`;
 const service = `${vars.env}`.toLowerCase() === "local" ? "/partner" : "";
-const numberOfPositionsToPreload = `${vars.loaded_positions_number}`;
 
 const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`;
+const numberOfPositionsToPreload = __ENV.DEBT_POSITION_NUMBER;
 
 var pdArray = new Array();
 

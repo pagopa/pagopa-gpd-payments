@@ -14,6 +14,7 @@ services:
       - GPD_SUBSCRIPTION_KEY=${gpd_sub_key}
       - GPS_SUBSCRIPTION_KEY=${gps_sub_key}
       - DONATIONS_SUBSCRIPTION_KEY=${donations_sub_key}
+      - DEBT_POSITION_NUMBER=${debt_position_number}
     command: run /scripts/${script}.js
     depends_on:
       - nginx

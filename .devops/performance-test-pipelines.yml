@@ -33,6 +33,10 @@ parameters:
       - "spike"
       - "stress"
       - "smoke"
+  - name: "DEBT_POSITION_NUMBER"
+    displayName: "Debt Positions to preload"
+    type: number
+    default: 10
   - name: "SCRIPT"
     displayName: "Script name"
     type: string
@@ -51,5 +55,5 @@ steps:
     displayName: Pull k6 image
   - script: |
       cd ./performance-test
-      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} gpdpaymentsk6 $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey)
+      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} gpdpaymentsk6 $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) ${{ parameters.DEBT_POSITION_NUMBER }}
     displayName: Run k6 ${{ parameters.SCRIPT }} on ${{ parameters.ENVIRONMENT }}

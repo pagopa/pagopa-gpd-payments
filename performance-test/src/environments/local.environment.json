@@ -11,8 +11,7 @@
       "id_station": "15376371009_01",
       "id_pa": "77777777777",
       "service_id": "12345",
-      "oneshot_filename": "example.csv",
-      "loaded_positions_number": 10
+      "oneshot_filename": "example.csv"
     }
   ]
 }
