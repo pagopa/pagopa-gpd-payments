@@ -111,7 +111,6 @@ class PartnerServiceTest {
   private final ObjectFactory factoryUtil = new ObjectFactory();
 
   @Autowired
-  //private CustomizedMapper customizedModelMapper = new CustomizedMapper();
   private CustomizedMapper customizedModelMapper;
 
 
