@@ -8,24 +8,18 @@ microservice-chart:
     pullPolicy: Always
   livenessProbe:
     httpGet:
-      path: /info
+      path: /actuator/health/liveness
       port: 8080
     initialDelaySeconds: 90
     failureThreshold: 6
     periodSeconds: 10
   readinessProbe:
     httpGet:
-      path: /info
+      path: /actuator/health/readiness
       port: 8080
     initialDelaySeconds: 90
     failureThreshold: 6
     periodSeconds: 10
-  startupProbe:
-    httpGet:
-      path: /info
-      port: 8080
-    failureThreshold: 60
-    periodSeconds: 30
   deployment:
     create: true
   service:
@@ -49,13 +43,13 @@ microservice-chart:
   resources:
     requests:
       memory: "512Mi"
-      cpu: "0.25"
-    limits:
-      memory: "512Mi"
       cpu: "0.5"
+    limits:
+      memory: "1536Mi"
+      cpu: "1.5"
   autoscaling:
     enable: true
-    minReplica: 1
+    minReplica: 3
     maxReplica: 10
     pollingInterval: 10 # seconds
     cooldownPeriod: 50 # seconds
