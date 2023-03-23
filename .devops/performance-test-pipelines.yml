@@ -49,12 +49,16 @@ parameters:
       - get_payment_workflow
       - send_rt_workflow
 
-steps:
-  - script: |
-      cd ./performance-test/src
-      docker pull grafana/k6
-    displayName: Pull k6 image
-  - script: |
-      cd ./performance-test
-      sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} gpdpaymentsk6 $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) ${{ parameters.DEBT_POSITION_NUMBER }}
-    displayName: Run k6 ${{ parameters.SCRIPT }} on ${{ parameters.ENVIRONMENT }}
+jobs:
+  - job: run_performance_test
+    displayName: "Prepare and run K6 tests env (${{ parameters.env }})"
+    timeoutInMinutes: 0 # how long to run the job before automatically cancelling. When 0 is specified, the maximum limit is used
+    steps:
+      - script: |
+          cd ./performance-test/src
+          docker pull grafana/k6
+        displayName: Pull k6 image
+      - script: |
+          cd ./performance-test
+          sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} gpdpaymentsk6 $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) ${{ parameters.DEBT_POSITION_NUMBER }}
+        displayName: Run k6 ${{ parameters.SCRIPT }} on ${{ parameters.ENVIRONMENT }}
