@@ -24,42 +24,50 @@ const service = `${vars.env}`.toLowerCase() === "local" ? "/partner" : "";
 
 const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`;
 const numberOfPositionsToPreload = __ENV.DEBT_POSITION_NUMBER;
+const batchSize = 100;
 
 var pdArray = new Array();
 
 export function setup() {
-  let tag;
+  const tag = { paymentRequest: "CreateDebtPosition" };
+  const numberOfBatch = Math.ceil(numberOfPositionsToPreload / batchSize);
 
-  for (let i = 0; i < numberOfPositionsToPreload; i++) {
-    const iupd = makeidMix(35);
-    const iuv_1 = makeidNumber(17);
-    const iuv_2 = makeidNumber(17);
-    const iuv_3 = makeidNumber(17);
-    const due_date = new Date().addDays(30);
-    const retention_date = new Date().addDays(90);
-    const transfer_id_1 = "1";
-    const transfer_id_2 = "2";
+  for (let i = 0; i < numberOfBatch; i++) {
+    let batchArray = new Array();
 
-    tag = { paymentRequest: "CreateDebtPosition" };
-    var url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions?toPublish=true`;
-    var payload = getDebtPosition(iupd, iuv_1, iuv_2, iuv_3, due_date, retention_date, transfer_id_1, transfer_id_2);
-    var gpdParams = {
-      headers: {
-        "Content-Type": "application/json",
-        "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
-      },
-    };
+    for (let j = 0; j < batchSize; j++) {
+      const iupd = makeidMix(35);
+      const iuv_1 = makeidNumber(17);
+      const iuv_2 = makeidNumber(17);
+      const iuv_3 = makeidNumber(17);
+      const due_date = new Date().addDays(30);
+      const retention_date = new Date().addDays(90);
+      const transfer_id_1 = "1";
+      const transfer_id_2 = "2";
 
-    let response = http.post(url, payload, gpdParams);
-    check(
-      response,
-      {
-        "Create and Publish DebtPosition status is 201": (response) => response.status === 201,
-      },
-      tag
-    );
+      var url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions?toPublish=true`;
+      var payload = getDebtPosition(iupd, iuv_1, iuv_2, iuv_3, due_date, retention_date, transfer_id_1, transfer_id_2);
+      var gpdParams = {
+        headers: {
+          "Content-Type": "application/json",
+          "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
+        },
+      };
 
-    pdArray.push([creditorInstitutionCode, iuv_1]);
+      batchArray.push(["POST", url, payload, gpdParams]);
+      pdArray.push([creditorInstitutionCode, iuv_1]);
+    }
+
+    const responses = http.batch(batchArray);
+    for (let j = 0; j < batchSize; j++) {
+      check(
+        responses[j],
+        {
+          "Create and Publish DebtPosition status is 201": (response) => response.status === 201,
+        },
+        tag
+      );
+    }
   }
 
   return { pds: pdArray };
