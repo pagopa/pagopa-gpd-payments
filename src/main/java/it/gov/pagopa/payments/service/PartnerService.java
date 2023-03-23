@@ -125,21 +125,6 @@ public class PartnerService {
     @Autowired
     private CustomizedMapper customizedModelMapper;
 
-    /*
-    public PartnerService() {
-    }
-
-    public PartnerService( 
-        String storageConnectionString, String receiptsTable, Resource xsdGenericService, ObjectFactory factory, GpdClient gpdClient, GpsClient gpsClient, PaymentValidator paymentValidator) {
-        this.factory = factory;
-        this.storageConnectionString = storageConnectionString;
-        this.receiptsTable = receiptsTable;
-        this.xsdGenericService = xsdGenericService;
-        this.gpdClient = gpdClient;
-        this.gpsClient = gpsClient;
-        this.paymentValidator = paymentValidator;
-    }*/
-
     @Transactional(readOnly = true)
     public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
             throws DatatypeConfigurationException, PartnerValidationException {
