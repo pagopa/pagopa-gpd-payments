@@ -32,6 +32,7 @@ parameters:
       - "load"
       - "spike"
       - "stress"
+      - "constant"
       - "smoke"
   - name: "DEBT_POSITION_NUMBER"
     displayName: "Debt Positions to preload"
