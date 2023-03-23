@@ -64,6 +64,7 @@ export function setup() {
       responseType: "text",
       headers: {
         "Content-Type": "text/xml",
+        SOAPAction: "paVerifyPaymentNotice",
       },
     };
     payload = getpaVerifyPaymentNoticeReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
