@@ -64,7 +64,6 @@ export function setup() {
         headers: {
           "Content-Type": "text/xml",
           SOAPAction: "paVerifyPaymentNotice",
-          "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
         },
       };
       payload = getpaVerifyPaymentNoticeReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
@@ -104,7 +103,6 @@ export default function (data) {
     headers: {
       "Content-Type": "text/xml",
       SOAPAction: "paGetPayment",
-      "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
     },
   };
 
