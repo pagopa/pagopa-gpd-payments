@@ -24,60 +24,62 @@ const service = `${vars.env}`.toLowerCase() === "local" ? "/partner" : "";
 
 const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`;
 const numberOfPositionsToPreload = __ENV.DEBT_POSITION_NUMBER;
+const batchSize = 100;
 
 var pdArray = new Array();
 
 export function setup() {
   let tag;
+  const numberOfBatch = Math.ceil(numberOfPositionsToPreload / batchSize);
 
-  for (let i = 0; i < numberOfPositionsToPreload; i++) {
-    const iupd = makeidMix(35);
-    const iuv_1 = makeidNumber(17);
-    const iuv_2 = makeidNumber(17);
-    const iuv_3 = makeidNumber(17);
-    const due_date = new Date().addDays(30);
-    const retention_date = new Date().addDays(90);
-    const transfer_id_1 = "1";
-    const transfer_id_2 = "2";
+  for (let i = 0; i < numberOfBatch; i++) {
+    let batchArrayDebtPosition = new Array();
+    let batchArrayVerifyPayment = new Array();
 
-    tag = { paymentRequest: "CreateDebtPosition" };
-    let url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions?toPublish=true`;
-    let payload = getDebtPosition(iupd, iuv_1, iuv_2, iuv_3, due_date, retention_date, transfer_id_1, transfer_id_2);
-    const gpdParams = {
-      headers: {
-        "Content-Type": "application/json",
-        "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
-      },
-    };
+    for (let j = 0; j < batchSize; j++) {
+      const iupd = makeidMix(35);
+      const iuv_1 = makeidNumber(17);
+      const iuv_2 = makeidNumber(17);
+      const iuv_3 = makeidNumber(17);
+      const due_date = new Date().addDays(30);
+      const retention_date = new Date().addDays(90);
+      const transfer_id_1 = "1";
+      const transfer_id_2 = "2";
 
-    let response = http.post(url, payload, gpdParams);
-    check(
-      response,
-      {
-        "Create and Publish DebtPosition status is 201": (response) => response.status === 201,
-      },
-      tag
-    );
+      pdArray.push([creditorInstitutionCode, iuv_1]);
 
-    url = `${urlPaymentsBasePath}${service}`;
-    let soapParams = {
-      responseType: "text",
-      headers: {
-        "Content-Type": "text/xml",
-        SOAPAction: "paVerifyPaymentNotice",
-      },
-    };
-    payload = getpaVerifyPaymentNoticeReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
-    response = http.post(url, payload, soapParams);
-    check(
-      response,
-      {
-        "VerifyPayment status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK",
-      },
-      tag
-    );
+      let url = `${urlGPDBasePath}/organizations/${creditorInstitutionCode}/debtpositions?toPublish=true`;
+      const gpdParams = {
+        headers: {
+          "Content-Type": "application/json",
+          "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
+        },
+      };
+      let payload = getDebtPosition(iupd, iuv_1, iuv_2, iuv_3, due_date, retention_date, transfer_id_1, transfer_id_2);
+      batchArrayDebtPosition.push(["POST", url, payload, gpdParams]);
 
-    pdArray.push([creditorInstitutionCode, iuv_1]);
+      url = `${urlPaymentsBasePath}${service}`;
+      let soapParams = {
+        responseType: "text",
+        headers: {
+          "Content-Type": "text/xml",
+          SOAPAction: "paVerifyPaymentNotice",
+          "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
+        },
+      };
+      payload = getpaVerifyPaymentNoticeReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
+      batchArrayVerifyPayment.push(["POST", url, payload, soapParams]);
+    }
+
+    let responses = http.batch(batchArrayDebtPosition);
+    for (let j = 0; j < batchSize; j++) {
+      check(responses[j], { "Create and Publish DebtPosition status is 201": (response) => response.status === 201 }, { paymentRequest: "CreateDebtPosition" });
+    }
+
+    responses = http.batch(batchArrayVerifyPayment);
+    for (let j = 0; j < batchSize; j++) {
+      check(responses[j], { "VerifyPayment status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, { paymentRequest: "VerifyPayment" });
+    }
   }
 
   return { pds: pdArray };
@@ -102,6 +104,7 @@ export default function (data) {
     headers: {
       "Content-Type": "text/xml",
       SOAPAction: "paGetPayment",
+      "Ocp-Apim-Subscription-Key": gpdSubscriptionKey,
     },
   };
 
