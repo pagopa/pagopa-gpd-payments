@@ -63,6 +63,7 @@ import it.gov.pagopa.payments.model.PaymentOptionModel;
 import it.gov.pagopa.payments.model.PaymentOptionModelResponse;
 import it.gov.pagopa.payments.model.PaymentOptionStatus;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
+import it.gov.pagopa.payments.model.partner.CtTransferPA;
 import it.gov.pagopa.payments.model.partner.CtTransferPAV2;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
@@ -328,6 +329,19 @@ class PartnerServiceTest {
     assertThat(responseBody.getData().getRetentionDate())
     .isEqualTo(DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
+    assertEquals(3,responseBody.getData().getTransferList().getTransfer().size());
+    
+    // in paGetPayment v1 the 'richiestaMarcaDaBollo' does not exist 
+    org.hamcrest.MatcherAssert.assertThat(responseBody.getData().getTransferList().getTransfer(),
+        org.hamcrest.Matchers.contains(
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.<CtTransferPA>hasProperty("IBAN", org.hamcrest.Matchers.is("string"))),
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.<CtTransferPA>hasProperty("IBAN", org.hamcrest.Matchers.is("ABC"))),
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.<CtTransferPA>hasProperty("IBAN", org.hamcrest.Matchers.nullValue()))
+            )
+        );
   }
 
   @Test
@@ -646,16 +660,17 @@ class PartnerServiceTest {
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
     assertEquals(3,responseBody.getData().getTransferList().getTransfer().size());
 
+    // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued  
     org.hamcrest.MatcherAssert.assertThat(responseBody.getData().getTransferList().getTransfer(),
         org.hamcrest.Matchers.contains(
             org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()), 
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()), 
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("IBAN", org.hamcrest.Matchers.is("string"))),
             org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()), 
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()), 
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("IBAN", org.hamcrest.Matchers.is("ABC"))),
             org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()), 
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()), 
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty("IBAN", org.hamcrest.Matchers.nullValue()))
             )
         );
