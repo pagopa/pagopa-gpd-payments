@@ -1,14 +1,5 @@
 package it.gov.pagopa.payments.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.Hidden;
-import it.gov.pagopa.payments.model.AppInfo;
-import it.gov.pagopa.payments.model.ProblemJson;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +7,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.result.view.RedirectView;
+
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import it.gov.pagopa.payments.model.AppInfo;
+import it.gov.pagopa.payments.model.ProblemJson;
 
 @RestController()
 public class BaseController {
@@ -27,14 +29,23 @@ public class BaseController {
 
     @Value("${properties.environment}")
     private String environment;
+    
+    @Value("${server.servlet.context-path:/}")
+    private String basePath;
 
     /**
+     * @return 
      * @return 200 OK
      */
     @Hidden
     @GetMapping("")
     @ResponseStatus(HttpStatus.OK)
-    public void home() {}
+    public RedirectView home() {
+      if (!basePath.endsWith("/")) {
+        basePath += "/";
+      }
+      return new RedirectView(basePath + "swagger-ui/index.html");
+    }
 
 
     @Operation(summary = "health check", description = "Return OK if application is started", security = {@SecurityRequirement(name = "ApiKey"), @SecurityRequirement(name = "Authorization")}, tags = {"Home"})
