@@ -1,0 +1,58 @@
+name: Integration Tests
+
+on:
+  schedule:
+    - cron: '00 08 * * *'
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: choice
+        description: Select the Environment
+        options:
+          - dev
+          - uat
+          - prod
+      canary:
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  integration_test:
+    name: Test
+    runs-on: ubuntu-latest
+    environment: ${{( github.event.inputs == null && 'dev') || inputs.environment }}
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
+
+      - name: Run Integration Tests
+        run: |
+          cd ./integration-test/src
+          export subkey=${{ secrets.SUBKEY }}
+          export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
+          export canary=${{ inputs.canary }}          
+          yarn install
+          yarn test:${{( github.event.inputs == null && 'dev') || inputs.environment }}
+
+  notify:
+    needs: [ integration_test ]
+    runs-on: ubuntu-latest
+    name: Notify
+    if: always()
+    steps:
+      - name: Report Status
+        if: always()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ needs.integration_test.result }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notify_when: 'failure,skipped'
+          notification_title: '{workflow} has {status_message}'
+          message_format: '{emoji} <{workflow_url}|{workflow}> {status_message} in <{repo_url}|{repo}>'
+          footer: 'Linked to Repo <{repo_url}|{repo}>'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
