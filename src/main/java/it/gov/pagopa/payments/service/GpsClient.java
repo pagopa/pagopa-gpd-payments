@@ -11,15 +11,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-
 @FeignClient(value = "gps", url = "${service.gps.host}", configuration = GPSFeignConfig.class)
 public interface GpsClient {
 
-    @Retryable(exclude = FeignException.FeignClientException.class, maxAttemptsExpression = "${retry.maxAttempts}",
-            backoff = @Backoff(delayExpression = "${retry.maxDelay}"))
-    @PostMapping(value = "/organizations/{organizationfiscalcode}/spontaneouspayments")
-    PaymentPositionModel createSpontaneousPayments(@PathVariable("organizationfiscalcode") String organizationFiscalCode,
-                                                   @RequestBody SpontaneousPaymentModel spontaneousPayment);
-
-
+  @Retryable(
+      exclude = FeignException.FeignClientException.class,
+      maxAttemptsExpression = "${retry.maxAttempts}",
+      backoff = @Backoff(delayExpression = "${retry.maxDelay}"))
+  @PostMapping(value = "/organizations/{organizationfiscalcode}/spontaneouspayments")
+  PaymentPositionModel createSpontaneousPayments(
+      @PathVariable("organizationfiscalcode") String organizationFiscalCode,
+      @RequestBody SpontaneousPaymentModel spontaneousPayment);
 }

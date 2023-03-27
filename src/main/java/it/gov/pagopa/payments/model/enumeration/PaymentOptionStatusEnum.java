@@ -6,6 +6,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum PaymentOptionStatusEnum {
-    PO_UNPAID, PO_PAID, PO_PARTIALLY_REPORTED, PO_REPORTED
-
+  PO_UNPAID,
+  PO_PAID,
+  PO_PARTIALLY_REPORTED,
+  PO_REPORTED
 }

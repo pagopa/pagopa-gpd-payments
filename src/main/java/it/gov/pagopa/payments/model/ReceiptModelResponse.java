@@ -11,7 +11,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public class ReceiptModelResponse {
 
-    private String organizationFiscalCode;
-    private String iuv;
-    private String debtorFiscalCode;
+  private String organizationFiscalCode;
+  private String iuv;
+  private String debtorFiscalCode;
 }

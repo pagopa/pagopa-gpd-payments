@@ -5,14 +5,14 @@ import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
 
 public class PaGetPaymentResMock {
 
-    public static PaGetPaymentRes getMock() {
+  public static PaGetPaymentRes getMock() {
 
-        PaGetPaymentRes mock = new PaGetPaymentRes();
-        CtPaymentPA data = new CtPaymentPA();
-        data.setCompanyName("company name");
-        data.setCreditorReferenceId("id");
-        mock.setData(data);
+    PaGetPaymentRes mock = new PaGetPaymentRes();
+    CtPaymentPA data = new CtPaymentPA();
+    data.setCompanyName("company name");
+    data.setCreditorReferenceId("id");
+    mock.setData(data);
 
-        return mock;
-    }
+    return mock;
+  }
 }

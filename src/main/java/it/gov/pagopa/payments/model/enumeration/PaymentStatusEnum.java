@@ -6,6 +6,12 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum PaymentStatusEnum {
-    DRAFT, PUBLISHED, VALID, INVALID, EXPIRED, PARTIALLY_PAID, PAID, REPORTED
-
+  DRAFT,
+  PUBLISHED,
+  VALID,
+  INVALID,
+  EXPIRED,
+  PARTIALLY_PAID,
+  PAID,
+  REPORTED
 }

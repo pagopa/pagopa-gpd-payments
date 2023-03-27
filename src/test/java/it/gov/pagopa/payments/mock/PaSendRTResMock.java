@@ -5,11 +5,11 @@ import it.gov.pagopa.payments.model.partner.StOutcome;
 
 public class PaSendRTResMock {
 
-    public static PaSendRTRes getMock() {
+  public static PaSendRTRes getMock() {
 
-        PaSendRTRes mock = new PaSendRTRes();
-        mock.setOutcome(StOutcome.OK);
+    PaSendRTRes mock = new PaSendRTRes();
+    mock.setOutcome(StOutcome.OK);
 
-        return mock;
-    }
+    return mock;
+  }
 }
