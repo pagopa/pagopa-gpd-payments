@@ -1,4 +1,6 @@
 # Payments
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pagopa_pagopa-gpd-payments&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pagopa_pagopa-gpd-payments)
+[![Integration Tests](https://github.com/pagopa/pagopa-gpd-payments/actions/workflows/integration_test.yml/badge.svg)](https://github.com/pagopa/pagopa-gpd-payments/actions/workflows/integration_test.yml)
 
 - [Payments](#payments)
   * [Api Documentation 📖](#api-documentation---)
