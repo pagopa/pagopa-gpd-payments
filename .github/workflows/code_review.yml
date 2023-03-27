@@ -42,11 +42,14 @@ jobs:
     name: Smoke Test
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
+
       - name: Run tests
         shell: bash
         run: |
           cd ./integration-test
-          export subkey=${{ secrets.SUBKEY }}
           export canary=false
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           sh ./run_integration_tests.sh local
