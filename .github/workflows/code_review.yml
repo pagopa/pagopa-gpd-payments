@@ -65,7 +65,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          az acr login
+          az acr login -n pagopadcommonacr 
           cd ./integration-test/
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           sh ./run_integration_test.sh smoke local ${{secrets.APICONFIG_SUBKEY}}  ${{secrets.GPD_SUBKEY}} ${{secrets.GPS_SUBKEY}} \
