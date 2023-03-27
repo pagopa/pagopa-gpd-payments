@@ -41,6 +41,8 @@ jobs:
   smoke-test:
     name: Smoke Test
     runs-on: ubuntu-18.04
+    environment:
+      name: dev
     steps:
       - name: Checkout
         id: checkout
@@ -51,5 +53,6 @@ jobs:
         run: |
           cd ./integration-test/
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
-          sh ./run_integration_test.sh local
+          sh ./run_integration_test.sh smoke local ${{secrets.APICONFIG_SUBKEY}}  ${{secrets.GPD_SUBKEY}} ${{secrets.GPS_SUBKEY}} \
+                ${{secrets.DONATION_SUBKEY}} ${{secrets.IUVGENERATOR_SUBKEY}} ${{secrets.PAYMENTS_REST_SUBKEY}}
     

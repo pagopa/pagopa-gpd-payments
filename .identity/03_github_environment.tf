@@ -101,3 +101,51 @@ resource "github_actions_secret" "secret_cucumber_token" {
   secret_name      = "CUCUMBER_PUBLISH_TOKEN"
   plaintext_value  = data.azurerm_key_vault_secret.key_vault_cucumber_token[0].value
 }
+
+#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
+resource "github_actions_environment_secret" "secret_apiconfig_subkey" {
+  repository      = local.github.repository
+  environment     = var.env
+  secret_name      = "APICONFIG_SUBKEY"
+  plaintext_value  = data.azurerm_key_vault_secret.key_vault_apiconfig_subkey.value
+}
+
+#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
+resource "github_actions_environment_secret" "secret_gpd_subkey" {
+  repository       = local.github.repository
+  environment     = var.env
+  secret_name      = "GPD_SUBKEY"
+  plaintext_value  = data.azurerm_key_vault_secret.key_vault_gpd_subkey.value
+}
+
+#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
+resource "github_actions_environment_secret" "secret_gps_subkey" {
+  repository       = local.github.repository
+  environment     = var.env
+  secret_name      = "GPS_SUBKEY"
+  plaintext_value  = data.azurerm_key_vault_secret.key_vault_gps_subkey.value
+}
+
+#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
+resource "github_actions_environment_secret" "secret_donation_subkey" {
+  repository       = local.github.repository
+  environment     = var.env
+  secret_name      = "DONATION_SUBKEY"
+  plaintext_value  = data.azurerm_key_vault_secret.key_vault_donations_subkey.value
+}
+
+#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
+resource "github_actions_environment_secret" "secret_iuv_generator_subkey" {
+  repository       = local.github.repository
+  environment     = var.env
+  secret_name      = "IUVGENERATOR_SUBKEY"
+  plaintext_value  = data.azurerm_key_vault_secret.key_vault_iuv_generator_subkey.value
+}
+
+#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
+resource "github_actions_environment_secret" "secret_payments_subkey" {
+  repository       = local.github.repository
+  environment     = var.env
+  secret_name      = "PAYMENTS_REST_SUBKEY"
+  plaintext_value  = data.azurerm_key_vault_secret.key_vault_payments_subkey.value
+}
