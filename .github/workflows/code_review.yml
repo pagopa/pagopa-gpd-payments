@@ -20,6 +20,11 @@ on:
 env:
   PROJECT_KEY: pagopa_pagopa-gpd-payments
 
+
+permissions:
+  id-token: write
+  contents: read
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   code-review:
