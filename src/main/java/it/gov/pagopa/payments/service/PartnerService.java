@@ -1,43 +1,11 @@
 package it.gov.pagopa.payments.service;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.namespace.QName;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.xml.sax.SAXException;
-
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableBatchOperation;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableQuery;
-
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
@@ -89,9 +57,37 @@ import it.gov.pagopa.payments.model.spontaneous.SpontaneousPaymentModel;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.xml.sax.SAXException;
 
 @Service
 @Slf4j
@@ -99,40 +95,42 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class PartnerService {
 
-  private static final String DEBT_POSITION_STATUS_ERROR = "[Check DP] Debt position status error: ";
+  private static final String DEBT_POSITION_STATUS_ERROR =
+      "[Check DP] Debt position status error: ";
   public static final String TEXT_XML_NODE = "#text";
 
   @Value("${payments.sa.connection}")
   private String storageConnectionString;
+
   @Value("${receipts.table}")
   private String receiptsTable;
 
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
 
-  @Autowired
-  private ObjectFactory factory;
+  @Autowired private ObjectFactory factory;
 
-  @Autowired
-  private GpdClient gpdClient;
+  @Autowired private GpdClient gpdClient;
 
-  @Autowired
-  private GpsClient gpsClient;
+  @Autowired private GpsClient gpsClient;
 
-  @Autowired
-  private PaymentValidator paymentValidator;
+  @Autowired private PaymentValidator paymentValidator;
 
-  @Autowired
-  private CustomizedMapper customizedModelMapper;
+  @Autowired private CustomizedMapper customizedModelMapper;
 
   @Transactional(readOnly = true)
   public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
       throws DatatypeConfigurationException, PartnerValidationException {
 
-    log.debug("[paVerifyPaymentNotice] isAuthorize check [noticeNumber={}]", request.getQrCode().getNoticeNumber());
-    paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
+    log.debug(
+        "[paVerifyPaymentNotice] isAuthorize check [noticeNumber={}]",
+        request.getQrCode().getNoticeNumber());
+    paymentValidator.isAuthorize(
+        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
 
-    log.debug("[paVerifyPaymentNotice] get payment option [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+    log.debug(
+        "[paVerifyPaymentNotice] get payment option [noticeNumber={}]",
+        request.getQrCode().getNoticeNumber());
     PaymentsModelResponse paymentOption = null;
 
     try {
@@ -140,18 +138,28 @@ public class PartnerService {
       // notice number format is define as follows:
       // 3<segregation code(2n)><IUV base(13n)><IUV check digit(2n)>
       // GPD service works on IUVs directly, so we remove the Aux-Digit
-      paymentOption = gpdClient.getPaymentOption(request.getIdPA(), request.getQrCode().getNoticeNumber().substring(1));
+      paymentOption =
+          gpdClient.getPaymentOption(
+              request.getIdPA(), request.getQrCode().getNoticeNumber().substring(1));
     } catch (FeignException.NotFound e) {
-      log.error("[paVerifyPaymentNotice] GPD Error not found [noticeNumber={}]", request.getQrCode().getNoticeNumber(), e);
+      log.error(
+          "[paVerifyPaymentNotice] GPD Error not found [noticeNumber={}]",
+          request.getQrCode().getNoticeNumber(),
+          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (Exception e) {
-      log.error("[paVerifyPaymentNotice] GPD Generic Error [noticeNumber={}]", request.getQrCode().getNoticeNumber(), e);
+      log.error(
+          "[paVerifyPaymentNotice] GPD Generic Error [noticeNumber={}]",
+          request.getQrCode().getNoticeNumber(),
+          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
 
     checkDebtPositionStatus(paymentOption);
 
-    log.info("[paVerifyPaymentNotice] Response OK generation [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+    log.info(
+        "[paVerifyPaymentNotice] Response OK generation [noticeNumber={}]",
+        request.getQrCode().getNoticeNumber());
 
     return this.generatePaVerifyPaymentNoticeResponse(paymentOption);
   }
@@ -159,18 +167,34 @@ public class PartnerService {
   @Transactional(readOnly = true)
   public PaGetPaymentRes paGetPayment(PaGetPaymentReq request)
       throws DatatypeConfigurationException, PartnerValidationException {
-    log.debug("[paGetPayment] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
-    PaymentsModelResponse paymentOption = this.manageGetPaymentRequest(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation(), request.getQrCode());
-    log.info("[paGetPayment] Response OK generation [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+    log.debug(
+        "[paGetPayment] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+    PaymentsModelResponse paymentOption =
+        this.manageGetPaymentRequest(
+            request.getIdPA(),
+            request.getIdBrokerPA(),
+            request.getIdStation(),
+            request.getQrCode());
+    log.info(
+        "[paGetPayment] Response OK generation [noticeNumber={}]",
+        request.getQrCode().getNoticeNumber());
     return this.generatePaGetPaymentResponse(paymentOption, request);
   }
 
   @Transactional(readOnly = true)
-  public PaGetPaymentV2Response paGetPaymentV2 (PaGetPaymentV2Request request)
+  public PaGetPaymentV2Response paGetPaymentV2(PaGetPaymentV2Request request)
       throws DatatypeConfigurationException, PartnerValidationException {
-    log.debug("[paGetPaymentV2] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
-    PaymentsModelResponse paymentOption = this.manageGetPaymentRequest(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation(), request.getQrCode());
-    log.info("[paGetPaymentV2] Response OK generation [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+    log.debug(
+        "[paGetPaymentV2] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
+    PaymentsModelResponse paymentOption =
+        this.manageGetPaymentRequest(
+            request.getIdPA(),
+            request.getIdBrokerPA(),
+            request.getIdStation(),
+            request.getQrCode());
+    log.info(
+        "[paGetPaymentV2] Response OK generation [noticeNumber={}]",
+        request.getQrCode().getNoticeNumber());
     return this.generatePaGetPaymentResponse(paymentOption, request);
   }
 
@@ -180,48 +204,62 @@ public class PartnerService {
     PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
 
     if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-      log.error("[paSendRT] Payment Option [statusError: {}] [noticeNumber={}]", paymentOption.getStatus(), request.getReceipt().getNoticeNumber());
+      log.error(
+          "[paSendRT] Payment Option [statusError: {}] [noticeNumber={}]",
+          paymentOption.getStatus(),
+          request.getReceipt().getNoticeNumber());
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     }
 
-    log.info("[paSendRT] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
+    log.info(
+        "[paSendRT] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
     // status is always equals to PO_PAID
     return generatePaSendRTResponse();
   }
 
   @Transactional
   public PaSendRTV2Response paSendRTV2(PaSendRTV2Request request) {
-    
+
     PaymentOptionModelResponse paymentOption = managePaSendRTV2Request(request);
 
     if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-      log.error("[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]", paymentOption.getStatus(), request.getReceipt().getNoticeNumber());
+      log.error(
+          "[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]",
+          paymentOption.getStatus(),
+          request.getReceipt().getNoticeNumber());
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     }
 
-    log.info("[paSendRTV2] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
+    log.info(
+        "[paSendRTV2] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
     // status is always equals to PO_PAID
     return generatePaSendRTV2Response();
   }
 
   @Transactional
-  public PaDemandPaymentNoticeResponse paDemandPaymentNotice(PaDemandPaymentNoticeRequest request) throws DatatypeConfigurationException, ParserConfigurationException, IOException, SAXException, XMLStreamException {
+  public PaDemandPaymentNoticeResponse paDemandPaymentNotice(PaDemandPaymentNoticeRequest request)
+      throws DatatypeConfigurationException,
+          ParserConfigurationException,
+          IOException,
+          SAXException,
+          XMLStreamException {
     log.debug("[paDemandPaymentNotice] isAuthorize check");
-    paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
+    paymentValidator.isAuthorize(
+        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
 
     List<ServicePropertyModel> attributes = mapDatiSpecificiServizio(request);
 
-    SpontaneousPaymentModel spontaneousPayment = SpontaneousPaymentModel.builder()
-        .service(ServiceModel.builder()
-            .id(request.getIdServizio())
-            .properties(attributes)
-            .build())
-        .debtor(DebtorModel.builder() // TODO: take the info from the request
-            .type(Type.F)
-            .fiscalCode("ANONIMO")
-            .fullName("ANONIMO")
-            .build())
-        .build();
+    SpontaneousPaymentModel spontaneousPayment =
+        SpontaneousPaymentModel.builder()
+            .service(
+                ServiceModel.builder().id(request.getIdServizio()).properties(attributes).build())
+            .debtor(
+                DebtorModel.builder() // TODO: take the info from the request
+                    .type(Type.F)
+                    .fiscalCode("ANONIMO")
+                    .fullName("ANONIMO")
+                    .build())
+            .build();
 
     PaymentPositionModel gpsResponse;
     try {
@@ -237,14 +275,17 @@ public class PartnerService {
     return createPaDemandPaymentNoticeResponse(gpsResponse);
   }
 
-  private List<ServicePropertyModel> mapDatiSpecificiServizio(PaDemandPaymentNoticeRequest request) throws ParserConfigurationException, SAXException, IOException, XMLStreamException {
-    CommonUtil.syntacticValidationXml(request.getDatiSpecificiServizioRequest(), xsdGenericService.getFile());
+  private List<ServicePropertyModel> mapDatiSpecificiServizio(PaDemandPaymentNoticeRequest request)
+      throws ParserConfigurationException, SAXException, IOException, XMLStreamException {
+    CommonUtil.syntacticValidationXml(
+        request.getDatiSpecificiServizioRequest(), xsdGenericService.getFile());
 
     // parse XML into Document
     DocumentBuilderFactory xmlFactory = DocumentBuilderFactory.newInstance();
     xmlFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
     DocumentBuilder builder = xmlFactory.newDocumentBuilder();
-    var document = builder.parse(new ByteArrayInputStream(request.getDatiSpecificiServizioRequest()));
+    var document =
+        builder.parse(new ByteArrayInputStream(request.getDatiSpecificiServizioRequest()));
 
     // map XML tags into list of ServicePropertyModel
     var nodes = document.getElementsByTagName("service").item(0).getChildNodes();
@@ -254,16 +295,14 @@ public class PartnerService {
       if (!TEXT_XML_NODE.equals(node.getNodeName())) {
         var name = node.getNodeName();
         var value = node.getTextContent();
-        attributes.add(ServicePropertyModel.builder()
-            .name(name)
-            .value(value)
-            .build());
+        attributes.add(ServicePropertyModel.builder().name(name).value(value).build());
       }
     }
     return attributes;
   }
 
-  private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
+  private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(
+      PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
     var result = factory.createPaDemandPaymentNoticeResponse();
     result.setCompanyName(gpsResponse.getCompanyName());
     result.setOutcome(StOutcome.OK);
@@ -276,26 +315,31 @@ public class PartnerService {
 
     result.setOfficeName(gpsResponse.getOfficeName());
     result.setPaymentDescription(gpsResponse.getPaymentOption().get(0).getDescription());
-    CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA = factory.createCtPaymentOptionsDescriptionListPA();
+    CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA =
+        factory.createCtPaymentOptionsDescriptionListPA();
 
-    CtPaymentOptionDescriptionPA ctPaymentOptionDescriptionPA = factory.createCtPaymentOptionDescriptionPA();
+    CtPaymentOptionDescriptionPA ctPaymentOptionDescriptionPA =
+        factory.createCtPaymentOptionDescriptionPA();
 
-    var ccp = gpsResponse.getPaymentOption().get(0).getTransfer().stream()
-        .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
+    var ccp =
+        gpsResponse.getPaymentOption().get(0).getTransfer().stream()
+            .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
     ctPaymentOptionDescriptionPA.setAllCCP(ccp);
 
-    ctPaymentOptionDescriptionPA.setAmount(BigDecimal.valueOf(gpsResponse.getPaymentOption().get(0).getAmount()));
+    ctPaymentOptionDescriptionPA.setAmount(
+        BigDecimal.valueOf(gpsResponse.getPaymentOption().get(0).getAmount()));
 
     var date = gpsResponse.getPaymentOption().get(0).getDueDate();
-    ctPaymentOptionDescriptionPA.setDueDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(String.valueOf(date)));
+    ctPaymentOptionDescriptionPA.setDueDate(
+        DatatypeFactory.newInstance().newXMLGregorianCalendar(String.valueOf(date)));
 
     ctPaymentOptionDescriptionPA.setOptions(StAmountOption.EQ);
-    ctPaymentOptionDescriptionPA.setDetailDescription(gpsResponse.getPaymentOption().get(0).getDescription());
+    ctPaymentOptionDescriptionPA.setDetailDescription(
+        gpsResponse.getPaymentOption().get(0).getDescription());
     ctPaymentOptionsDescriptionListPA.setPaymentOptionDescription(ctPaymentOptionDescriptionPA);
     result.setPaymentList(ctPaymentOptionsDescriptionListPA);
     return result;
   }
-
 
   /**
    * Verify debt position status
@@ -310,13 +354,13 @@ public class PartnerService {
     } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.INVALID)) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_ANNULLATO);
-    } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.DRAFT) ||
-        paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PUBLISHED)) {
+    } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.DRAFT)
+        || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PUBLISHED)) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
-    } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PARTIALLY_PAID) ||
-        paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PAID) ||
-        paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.REPORTED)) {
+    } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PARTIALLY_PAID)
+        || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PAID)
+        || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.REPORTED)) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_DUPLICATO);
     }
@@ -325,13 +369,14 @@ public class PartnerService {
   /**
    * map the response of GPD in the XML model
    *
-   * @param source  {@link PaymentsModelResponse} response from GPD
+   * @param source {@link PaymentsModelResponse} response from GPD
    * @param request SOAP input model
    * @return XML model
-   * @throws DatatypeConfigurationException If the DatatypeFactory is not available or cannot be instantiated.
+   * @throws DatatypeConfigurationException If the DatatypeFactory is not available or cannot be
+   *     instantiated.
    */
-  private PaGetPaymentRes generatePaGetPaymentResponse(PaymentsModelResponse source, PaGetPaymentReq request)
-      throws DatatypeConfigurationException {
+  private PaGetPaymentRes generatePaGetPaymentResponse(
+      PaymentsModelResponse source, PaGetPaymentReq request) throws DatatypeConfigurationException {
 
     PaGetPaymentRes response = factory.createPaGetPaymentRes();
     CtPaymentPA responseData = factory.createCtPaymentPA();
@@ -340,11 +385,15 @@ public class PartnerService {
     response.setOutcome(StOutcome.OK);
 
     // general payment data
-    responseData.setCreditorReferenceId(request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
+    responseData.setCreditorReferenceId(
+        request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
-    responseData.setDueDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
-    responseData.setRetentionDate(source.getRetentionDate() != null
-        ? DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getRetentionDate().toString())
+    responseData.setDueDate(
+        DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
+    responseData.setRetentionDate(
+        source.getRetentionDate() != null
+            ? DatatypeFactory.newInstance()
+                .newXMLGregorianCalendar(source.getRetentionDate().toString())
             : null);
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(source.getDescription());
@@ -354,11 +403,15 @@ public class PartnerService {
     CtSubject debtor = this.getDebtor(source);
 
     // Transfer list
-    transferList.getTransfer()
-    .addAll(source.getTransfer()
-        .stream()
-        .map(paymentsTransferModelResponse -> getTransferResponse(paymentsTransferModelResponse, request.getTransferType()))
-        .collect(Collectors.toList()));
+    transferList
+        .getTransfer()
+        .addAll(
+            source.getTransfer().stream()
+                .map(
+                    paymentsTransferModelResponse ->
+                        getTransferResponse(
+                            paymentsTransferModelResponse, request.getTransferType()))
+                .collect(Collectors.toList()));
 
     responseData.setTransferList(transferList);
     responseData.setDebtor(debtor);
@@ -370,12 +423,14 @@ public class PartnerService {
   /**
    * map the response of GPD in the XML V2 model
    *
-   * @param source  {@link PaymentsModelResponse} response from GPD
+   * @param source {@link PaymentsModelResponse} response from GPD
    * @param request SOAP input model
    * @return XML model
-   * @throws DatatypeConfigurationException If the DatatypeFactory is not available or cannot be instantiated.
+   * @throws DatatypeConfigurationException If the DatatypeFactory is not available or cannot be
+   *     instantiated.
    */
-  private PaGetPaymentV2Response generatePaGetPaymentResponse(PaymentsModelResponse source, PaGetPaymentV2Request request)
+  private PaGetPaymentV2Response generatePaGetPaymentResponse(
+      PaymentsModelResponse source, PaGetPaymentV2Request request)
       throws DatatypeConfigurationException {
 
     PaGetPaymentV2Response response = factory.createPaGetPaymentV2Response();
@@ -385,11 +440,15 @@ public class PartnerService {
     response.setOutcome(StOutcome.OK);
 
     // general payment data
-    responseData.setCreditorReferenceId(request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
+    responseData.setCreditorReferenceId(
+        request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
-    responseData.setDueDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
-    responseData.setRetentionDate(source.getRetentionDate() != null
-        ? DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getRetentionDate().toString())
+    responseData.setDueDate(
+        DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
+    responseData.setRetentionDate(
+        source.getRetentionDate() != null
+            ? DatatypeFactory.newInstance()
+                .newXMLGregorianCalendar(source.getRetentionDate().toString())
             : null);
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(source.getDescription());
@@ -400,11 +459,15 @@ public class PartnerService {
     CtSubject debtor = this.getDebtor(source);
 
     // Transfer list
-    transferList.getTransfer()
-    .addAll(source.getTransfer()
-        .stream()
-        .map(paymentsTransferModelResponse -> getTransferResponseV2(paymentsTransferModelResponse, request.getTransferType()))
-        .collect(Collectors.toList()));
+    transferList
+        .getTransfer()
+        .addAll(
+            source.getTransfer().stream()
+                .map(
+                    paymentsTransferModelResponse ->
+                        getTransferResponseV2(
+                            paymentsTransferModelResponse, request.getTransferType()))
+                .collect(Collectors.toList()));
 
     responseData.setTransferList(transferList);
     responseData.setDebtor(debtor);
@@ -418,23 +481,27 @@ public class PartnerService {
    *
    * @param source {@link PaymentsModelResponse} response from GPD
    * @return XML model
-   * @throws DatatypeConfigurationException If the DatatypeFactory is not available or cannot be instantiated.
+   * @throws DatatypeConfigurationException If the DatatypeFactory is not available or cannot be
+   *     instantiated.
    */
-  private PaVerifyPaymentNoticeRes generatePaVerifyPaymentNoticeResponse(PaymentsModelResponse source)
-      throws DatatypeConfigurationException {
+  private PaVerifyPaymentNoticeRes generatePaVerifyPaymentNoticeResponse(
+      PaymentsModelResponse source) throws DatatypeConfigurationException {
 
     PaVerifyPaymentNoticeRes result = factory.createPaVerifyPaymentNoticeRes();
-    CtPaymentOptionsDescriptionListPA paymentList = factory.createCtPaymentOptionsDescriptionListPA();
+    CtPaymentOptionsDescriptionListPA paymentList =
+        factory.createCtPaymentOptionsDescriptionListPA();
     CtPaymentOptionDescriptionPA paymentOption = factory.createCtPaymentOptionDescriptionPA();
     // generare una paVerifyPaymentNoticeRes positiva
     result.setOutcome(StOutcome.OK);
     // paymentList
     paymentOption.setAmount(BigDecimal.valueOf(source.getAmount()));
     paymentOption.setOptions(StAmountOption.EQ); // de-scoping
-    paymentOption.setDueDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
+    paymentOption.setDueDate(
+        DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
     paymentOption.setDetailDescription(source.getDescription());
-    var cpp = source.getTransfer().stream()
-        .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
+    var cpp =
+        source.getTransfer().stream()
+            .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
     paymentOption.setAllCCP(cpp); // allCPP fa parte del modello del option
     paymentList.setPaymentOptionDescription(paymentOption);
 
@@ -448,11 +515,12 @@ public class PartnerService {
   }
 
   /**
-   * @param transfer     GPD response
+   * @param transfer GPD response
    * @param transferType XML request
    * @return maps input into {@link CtTransferPA} model
    */
-  private CtTransferPA getTransferResponse(PaymentsTransferModelResponse transfer, StTransferType transferType) {
+  private CtTransferPA getTransferResponse(
+      PaymentsTransferModelResponse transfer, StTransferType transferType) {
     CtTransferPA transferPa = new CtTransferPA();
     transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
     transferPa.setIBAN(getIbanByTransferType(transferType, transfer));
@@ -464,12 +532,14 @@ public class PartnerService {
   }
 
   /**
-   * @param transfer     GPD response
+   * @param transfer GPD response
    * @param transferType V2 XML request
    * @return maps input into {@link CtTransferPA} model
    */
-  private CtTransferPAV2 getTransferResponseV2(PaymentsTransferModelResponse transfer, StTransferType transferType) {
-    CtRichiestaMarcaDaBollo richiestaMarcaDaBollo = customizedModelMapper.map(transfer.getMarcaDaBollo(), CtRichiestaMarcaDaBollo.class);
+  private CtTransferPAV2 getTransferResponseV2(
+      PaymentsTransferModelResponse transfer, StTransferType transferType) {
+    CtRichiestaMarcaDaBollo richiestaMarcaDaBollo =
+        customizedModelMapper.map(transfer.getMarcaDaBollo(), CtRichiestaMarcaDaBollo.class);
     CtTransferPAV2 transferPa = new CtTransferPAV2();
     transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
     transferPa.setIBAN(getIbanByTransferType(transferType, transfer));
@@ -481,21 +551,23 @@ public class PartnerService {
     return transferPa;
   }
 
-
   /**
    * The method return iban given transferType and transfer, according to
    * https://pagopa.atlassian.net/wiki/spaces/PAG/pages/96403906/paGetPayment#trasferType
    */
-  private String getIbanByTransferType(StTransferType transferType, PaymentsTransferModelResponse transfer) {
+  private String getIbanByTransferType(
+      StTransferType transferType, PaymentsTransferModelResponse transfer) {
 
-    String defaultIban = Optional.ofNullable(transfer.getIban())
-        .orElseGet(() -> Optional.ofNullable(transfer.getPostalIban())
-            .orElseGet(() -> null));
+    String defaultIban =
+        Optional.ofNullable(transfer.getIban())
+            .orElseGet(() -> Optional.ofNullable(transfer.getPostalIban()).orElseGet(() -> null));
 
-    return transferType != null && transferType.value().equals(StTransferType.POSTAL.value())
-        && transfer.getPostalIban() != null ? transfer.getPostalIban() : defaultIban;
+    return transferType != null
+            && transferType.value().equals(StTransferType.POSTAL.value())
+            && transfer.getPostalIban() != null
+        ? transfer.getPostalIban()
+        : defaultIban;
   }
-
 
   private PaSendRTRes generatePaSendRTResponse() {
     PaSendRTRes result = factory.createPaSendRTRes();
@@ -515,9 +587,7 @@ public class PartnerService {
     Marshaller mar = context.createMarshaller();
     mar.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
     JAXBElement<PaSendRTReq> jaxbElement =
-        new JAXBElement<>(new QName("", "paSendRTReq"),
-            PaSendRTReq.class,
-            paSendRTReq);
+        new JAXBElement<>(new QName("", "paSendRTReq"), PaSendRTReq.class, paSendRTReq);
     mar.marshal(jaxbElement, sw);
     return sw.toString();
   }
@@ -528,35 +598,43 @@ public class PartnerService {
     Marshaller mar = context.createMarshaller();
     mar.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
     JAXBElement<PaSendRTV2Request> jaxbElement =
-        new JAXBElement<>(new QName("", "PaSendRTV2Request"),
-            PaSendRTV2Request.class,
-            paSendRTV2Request);
+        new JAXBElement<>(
+            new QName("", "PaSendRTV2Request"), PaSendRTV2Request.class, paSendRTV2Request);
     mar.marshal(jaxbElement, sw);
     return sw.toString();
   }
 
-  private void saveReceipt(ReceiptEntity receiptEntity) throws InvalidKeyException, URISyntaxException, StorageException {
+  private void saveReceipt(ReceiptEntity receiptEntity)
+      throws InvalidKeyException, URISyntaxException, StorageException {
     AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
     azuriteStorageUtil.createTable(receiptsTable);
-    CloudTable table = CloudStorageAccount.parse(storageConnectionString)
-        .createCloudTableClient()
-        .getTableReference(receiptsTable);
+    CloudTable table =
+        CloudStorageAccount.parse(storageConnectionString)
+            .createCloudTableClient()
+            .getTableReference(receiptsTable);
     TableBatchOperation batchOperation = new TableBatchOperation();
     batchOperation.insertOrReplace(receiptEntity);
     table.execute(batchOperation);
   }
 
-  private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv) throws InvalidKeyException, URISyntaxException, StorageException {
+  private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv)
+      throws InvalidKeyException, URISyntaxException, StorageException {
     AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
     azuriteStorageUtil.createTable(receiptsTable);
 
-    CloudTable table = CloudStorageAccount.parse(storageConnectionString)
-        .createCloudTableClient()
-        .getTableReference(receiptsTable);
+    CloudTable table =
+        CloudStorageAccount.parse(storageConnectionString)
+            .createCloudTableClient()
+            .getTableReference(receiptsTable);
 
-    TableQuery<ReceiptEntity> query = TableQuery.from(ReceiptEntity.class)
-        .where(TableQuery.generateFilterCondition("PartitionKey", TableQuery.QueryComparisons.EQUAL, organizationFiscalCode))
-        .where(TableQuery.generateFilterCondition("RowKey", TableQuery.QueryComparisons.EQUAL, iuv));
+    TableQuery<ReceiptEntity> query =
+        TableQuery.from(ReceiptEntity.class)
+            .where(
+                TableQuery.generateFilterCondition(
+                    "PartitionKey", TableQuery.QueryComparisons.EQUAL, organizationFiscalCode))
+            .where(
+                TableQuery.generateFilterCondition(
+                    "RowKey", TableQuery.QueryComparisons.EQUAL, iuv));
 
     Iterable<ReceiptEntity> result = table.execute(query);
 
@@ -567,8 +645,10 @@ public class PartnerService {
       throws InvalidKeyException, URISyntaxException, StorageException {
     AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
     azuriteStorageUtil.createTable(receiptsTable);
-    CloudTable table = CloudStorageAccount.parse(storageConnectionString).createCloudTableClient()
-        .getTableReference(receiptsTable);
+    CloudTable table =
+        CloudStorageAccount.parse(storageConnectionString)
+            .createCloudTableClient()
+            .getTableReference(receiptsTable);
     TableOperation updateOperation = TableOperation.merge(receiptEntity);
     table.execute(updateOperation);
   }
@@ -586,7 +666,8 @@ public class PartnerService {
     CtEntityUniqueIdentifier uniqueIdentifier = factory.createCtEntityUniqueIdentifier();
     CtSubject debtor = factory.createCtSubject();
 
-    uniqueIdentifier.setEntityUniqueIdentifierType(StEntityUniqueIdentifierType.fromValue(source.getType().name()));
+    uniqueIdentifier.setEntityUniqueIdentifierType(
+        StEntityUniqueIdentifierType.fromValue(source.getType().name()));
     uniqueIdentifier.setEntityUniqueIdentifierValue(source.getFiscalCode());
 
     debtor.setUniqueIdentifier(uniqueIdentifier);
@@ -601,12 +682,15 @@ public class PartnerService {
 
     return debtor;
   }
-  
-  private PaymentsModelResponse manageGetPaymentRequest(String idPa, String idBrokerPa, String idStation, CtQrCode qrCode) {
-    log.debug("[manageGetPaymentRequest] isAuthorize check [noticeNumber={}]", qrCode.getNoticeNumber());
+
+  private PaymentsModelResponse manageGetPaymentRequest(
+      String idPa, String idBrokerPa, String idStation, CtQrCode qrCode) {
+    log.debug(
+        "[manageGetPaymentRequest] isAuthorize check [noticeNumber={}]", qrCode.getNoticeNumber());
     paymentValidator.isAuthorize(idPa, idBrokerPa, idStation);
 
-    log.debug("[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
+    log.debug(
+        "[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
     PaymentsModelResponse paymentOption = null;
 
     try {
@@ -616,81 +700,140 @@ public class PartnerService {
       // GPD service works on IUVs directly, so we remove the Aux-Digit
       paymentOption = gpdClient.getPaymentOption(idPa, qrCode.getNoticeNumber().substring(1));
     } catch (FeignException.NotFound e) {
-      log.error("[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]", qrCode.getNoticeNumber(), e);
+      log.error(
+          "[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]",
+          qrCode.getNoticeNumber(),
+          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (Exception e) {
-      log.error("[manageGetPaymentRequest] GPD Generic Error [noticeNumber={}]", qrCode.getNoticeNumber(), e);
+      log.error(
+          "[manageGetPaymentRequest] GPD Generic Error [noticeNumber={}]",
+          qrCode.getNoticeNumber(),
+          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
     checkDebtPositionStatus(paymentOption);
     return paymentOption;
   }
-  
+
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTReq request) {
-    log.debug("[managePaSendRtRequest] isAuthorize check [noticeNumber={}]", request.getReceipt().getNoticeNumber());
-    paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
-    
-    ReceiptEntity receiptEntity = this.getReceiptEntity(request.getIdPA(), request.getReceipt().getCreditorReferenceId(), request.getReceipt().getDebtor());
+    log.debug(
+        "[managePaSendRtRequest] isAuthorize check [noticeNumber={}]",
+        request.getReceipt().getNoticeNumber());
+    paymentValidator.isAuthorize(
+        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
+
+    ReceiptEntity receiptEntity =
+        this.getReceiptEntity(
+            request.getIdPA(),
+            request.getReceipt().getCreditorReferenceId(),
+            request.getReceipt().getDebtor());
     // save the receipt info with status CREATED
     try {
       receiptEntity.setDocument(this.marshal(request));
       this.saveReceipt(receiptEntity);
     } catch (InvalidKeyException | URISyntaxException | StorageException | JAXBException e) {
-      log.error("[managePaSendRtRequest] Generic Error in receipt saving [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      log.error(
+          "[managePaSendRtRequest] Generic Error in receipt saving [noticeNumber={}]",
+          request.getReceipt().getNoticeNumber(),
+          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
-    
+
     // GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
-    LocalDateTime paymentDateTime = request.getReceipt().getPaymentDateTime() != null ? request.getReceipt().getPaymentDateTime().toGregorianCalendar().toZonedDateTime().toLocalDateTime() : null;
-    PaymentOptionModel body = PaymentOptionModel.builder()
-        .idReceipt(request.getReceipt().getReceiptId())
-        .paymentDate(paymentDateTime)
-        .pspCompany(request.getReceipt().getPSPCompanyName())
-        .paymentMethod(request.getReceipt().getPaymentMethod())
-        .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-        .build();
-    return this.getReceiptPaymentOption(request.getReceipt().getNoticeNumber(), request.getIdPA(), request.getReceipt().getCreditorReferenceId(), body, receiptEntity);
+    LocalDateTime paymentDateTime =
+        request.getReceipt().getPaymentDateTime() != null
+            ? request
+                .getReceipt()
+                .getPaymentDateTime()
+                .toGregorianCalendar()
+                .toZonedDateTime()
+                .toLocalDateTime()
+            : null;
+    PaymentOptionModel body =
+        PaymentOptionModel.builder()
+            .idReceipt(request.getReceipt().getReceiptId())
+            .paymentDate(paymentDateTime)
+            .pspCompany(request.getReceipt().getPSPCompanyName())
+            .paymentMethod(request.getReceipt().getPaymentMethod())
+            .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+            .build();
+    return this.getReceiptPaymentOption(
+        request.getReceipt().getNoticeNumber(),
+        request.getIdPA(),
+        request.getReceipt().getCreditorReferenceId(),
+        body,
+        receiptEntity);
   }
-  
+
   private PaymentOptionModelResponse managePaSendRTV2Request(PaSendRTV2Request request) {
-    log.debug("[managePaSendRTV2Request] isAuthorize check [noticeNumber={}]", request.getReceipt().getNoticeNumber());
-    paymentValidator.isAuthorize(request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
-    
-    ReceiptEntity receiptEntity = this.getReceiptEntity(request.getIdPA(), request.getReceipt().getCreditorReferenceId(), request.getReceipt().getDebtor());
+    log.debug(
+        "[managePaSendRTV2Request] isAuthorize check [noticeNumber={}]",
+        request.getReceipt().getNoticeNumber());
+    paymentValidator.isAuthorize(
+        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
+
+    ReceiptEntity receiptEntity =
+        this.getReceiptEntity(
+            request.getIdPA(),
+            request.getReceipt().getCreditorReferenceId(),
+            request.getReceipt().getDebtor());
     // save the receipt info with status CREATED
     try {
       receiptEntity.setDocument(this.marshalV2(request));
       this.saveReceipt(receiptEntity);
     } catch (InvalidKeyException | URISyntaxException | StorageException | JAXBException e) {
-      log.error("[managePaSendRTV2Request] Generic Error in receipt saving [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      log.error(
+          "[managePaSendRTV2Request] Generic Error in receipt saving [noticeNumber={}]",
+          request.getReceipt().getNoticeNumber(),
+          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
-    
+
     // GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
-    LocalDateTime paymentDateTime = request.getReceipt().getPaymentDateTime() != null ? request.getReceipt().getPaymentDateTime().toGregorianCalendar().toZonedDateTime().toLocalDateTime() : null;
-    PaymentOptionModel body = PaymentOptionModel.builder()
-        .idReceipt(request.getReceipt().getReceiptId())
-        .paymentDate(paymentDateTime)
-        .pspCompany(request.getReceipt().getPSPCompanyName())
-        .paymentMethod(request.getReceipt().getPaymentMethod())
-        .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-        .build();
-    return this.getReceiptPaymentOption(request.getReceipt().getNoticeNumber(), request.getIdPA(), request.getReceipt().getCreditorReferenceId(), body, receiptEntity);
+    LocalDateTime paymentDateTime =
+        request.getReceipt().getPaymentDateTime() != null
+            ? request
+                .getReceipt()
+                .getPaymentDateTime()
+                .toGregorianCalendar()
+                .toZonedDateTime()
+                .toLocalDateTime()
+            : null;
+    PaymentOptionModel body =
+        PaymentOptionModel.builder()
+            .idReceipt(request.getReceipt().getReceiptId())
+            .paymentDate(paymentDateTime)
+            .pspCompany(request.getReceipt().getPSPCompanyName())
+            .paymentMethod(request.getReceipt().getPaymentMethod())
+            .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+            .build();
+    return this.getReceiptPaymentOption(
+        request.getReceipt().getNoticeNumber(),
+        request.getIdPA(),
+        request.getReceipt().getCreditorReferenceId(),
+        body,
+        receiptEntity);
   }
 
-  private ReceiptEntity getReceiptEntity(String idPa, String creditorReferenceId, CtSubject debtor) {
+  private ReceiptEntity getReceiptEntity(
+      String idPa, String creditorReferenceId, CtSubject debtor) {
     ReceiptEntity receiptEntity = new ReceiptEntity(idPa, creditorReferenceId);
-    String debtorIdentifier = Optional.ofNullable(debtor)
-        .map(
-            CtSubject::getUniqueIdentifier
-            ).map(
-                CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue
-                ).orElse("");
+    String debtorIdentifier =
+        Optional.ofNullable(debtor)
+            .map(CtSubject::getUniqueIdentifier)
+            .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
+            .orElse("");
     receiptEntity.setDebtor(debtorIdentifier);
     return receiptEntity;
   }
-  
-  private PaymentOptionModelResponse getReceiptPaymentOption(String noticeNumber, String idPa, String creditorReferenceId, PaymentOptionModel body, ReceiptEntity receiptEntity) {
+
+  private PaymentOptionModelResponse getReceiptPaymentOption(
+      String noticeNumber,
+      String idPa,
+      String creditorReferenceId,
+      PaymentOptionModel body,
+      ReceiptEntity receiptEntity) {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.receiptPaymentOption(idPa, creditorReferenceId, body);
@@ -701,12 +844,19 @@ public class PartnerService {
       }
     } catch (FeignException.Conflict e) {
       try {
-        log.error("[getReceiptPaymentOption] GPD Conflict Error Response [noticeNumber={}]", noticeNumber, e);
+        log.error(
+            "[getReceiptPaymentOption] GPD Conflict Error Response [noticeNumber={}]",
+            noticeNumber,
+            e);
         ReceiptEntity receiptEntityToUpdate = this.getReceipt(idPa, creditorReferenceId);
         receiptEntityToUpdate.setStatus(Status.PAID.name());
         this.updateReceipt(receiptEntityToUpdate);
       } catch (Exception ex) {
-        log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}] during receipt status update", noticeNumber, e);
+        log.error(
+            "[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}] during receipt status"
+                + " update",
+            noticeNumber,
+            e);
       }
       throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
     } catch (RetryableException e) {
@@ -721,6 +871,4 @@ public class PartnerService {
     }
     return paymentOption;
   }
-  
-
 }

@@ -6,33 +6,33 @@ import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
 
 public class PaGetPaymentReqMock {
 
-    public static PaGetPaymentReq getMock() {
+  public static PaGetPaymentReq getMock() {
 
-        CtQrCode qrCode = new CtQrCode();
-        qrCode.setFiscalCode("77777777777");
-        qrCode.setNoticeNumber("311111111112222222");
+    CtQrCode qrCode = new CtQrCode();
+    qrCode.setFiscalCode("77777777777");
+    qrCode.setNoticeNumber("311111111112222222");
 
-        PaGetPaymentReq mock = new PaGetPaymentReq();
-        mock.setIdBrokerPA("77777777777");
-        mock.setIdPA("77777777777");
-        mock.setIdStation("77777777777_01");
-        mock.setQrCode(qrCode);
+    PaGetPaymentReq mock = new PaGetPaymentReq();
+    mock.setIdBrokerPA("77777777777");
+    mock.setIdPA("77777777777");
+    mock.setIdStation("77777777777_01");
+    mock.setQrCode(qrCode);
 
-        return mock;
-    }
-    
-    public static PaGetPaymentV2Request getMockV2() {
+    return mock;
+  }
 
-      CtQrCode qrCode = new CtQrCode();
-      qrCode.setFiscalCode("77777777777");
-      qrCode.setNoticeNumber("311111111112222222");
+  public static PaGetPaymentV2Request getMockV2() {
 
-      PaGetPaymentV2Request mock = new PaGetPaymentV2Request();
-      mock.setIdBrokerPA("77777777777");
-      mock.setIdPA("77777777777");
-      mock.setIdStation("77777777777_01");
-      mock.setQrCode(qrCode);
+    CtQrCode qrCode = new CtQrCode();
+    qrCode.setFiscalCode("77777777777");
+    qrCode.setNoticeNumber("311111111112222222");
 
-      return mock;
+    PaGetPaymentV2Request mock = new PaGetPaymentV2Request();
+    mock.setIdBrokerPA("77777777777");
+    mock.setIdPA("77777777777");
+    mock.setIdStation("77777777777_01");
+    mock.setQrCode(qrCode);
+
+    return mock;
   }
 }

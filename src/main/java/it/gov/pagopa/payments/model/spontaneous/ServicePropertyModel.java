@@ -1,13 +1,12 @@
 package it.gov.pagopa.payments.model.spontaneous;
 
+import java.io.Serializable;
+import javax.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import javax.validation.constraints.NotBlank;
-import java.io.Serializable;
 
 @Data
 @NoArgsConstructor
@@ -15,8 +14,7 @@ import java.io.Serializable;
 @Builder
 public class ServicePropertyModel implements Serializable {
 
-	@NotBlank
-	private String name;
+  @NotBlank private String name;
 
-	private String value;
+  private String value;
 }

@@ -1,12 +1,11 @@
 package it.gov.pagopa.payments.model;
 
+import java.io.Serializable;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class TransferModelResponse implements Serializable {
   private static final long serialVersionUID = 2528813110300207419L;
-  
+
   private String organizationFiscalCode;
   private String idTransfer;
   private long amount;
