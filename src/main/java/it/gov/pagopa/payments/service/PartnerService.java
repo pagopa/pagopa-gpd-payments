@@ -220,7 +220,7 @@ public class PartnerService {
   @Transactional
   public PaSendRTV2Response paSendRTV2(PaSendRTV2Request request) {
 
-    PaymentOptionModelResponse paymentOption = managePaSendRTV2Request(request);
+    PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
 
     if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
       log.error(
@@ -766,9 +766,9 @@ public class PartnerService {
         receiptEntity);
   }
 
-  private PaymentOptionModelResponse managePaSendRTV2Request(PaSendRTV2Request request) {
+  private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTV2Request request) {
     log.debug(
-        "[managePaSendRTV2Request] isAuthorize check [noticeNumber={}]",
+        "[managePaSendRtRequest] isAuthorize check [noticeNumber={}]",
         request.getReceipt().getNoticeNumber());
     paymentValidator.isAuthorize(
         request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
@@ -784,7 +784,7 @@ public class PartnerService {
       this.saveReceipt(receiptEntity);
     } catch (InvalidKeyException | URISyntaxException | StorageException | JAXBException e) {
       log.error(
-          "[managePaSendRTV2Request] Generic Error in receipt saving [noticeNumber={}]",
+          "[managePaSendRtRequest] Generic Error in receipt saving [noticeNumber={}]",
           request.getReceipt().getNoticeNumber(),
           e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
