@@ -48,6 +48,15 @@ jobs:
         id: checkout
         uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
 
+      - name: Login
+        id: login
+        # from https://github.com/Azure/login/commits/master
+        uses: azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+
       - name: Run tests
         shell: bash
         run: |
