@@ -51,5 +51,7 @@ jobs:
         run: |
           cd ./integration-test/
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
-          sh ./run_integration_tests.sh local
+          ls
+          chmod +x ./run_integration_tests.sh
+          ./run_integration_tests.sh local
     
