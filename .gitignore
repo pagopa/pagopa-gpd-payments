@@ -118,3 +118,4 @@ bin/
 
 # Helm
 /helm/charts/*
+**/.terraform/

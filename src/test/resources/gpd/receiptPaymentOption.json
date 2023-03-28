@@ -20,11 +20,12 @@
     {
       "organizationFiscalCode": "string",
       "idTransfer": "1",
-      "amount": 1005,
+      "amount": 1000,
       "remittanceInformation": "string",
       "category": "string",
       "iban": "string",
       "postalIban": "string",
+      "marcaDaBollo": null,
       "insertedDate": "2022-02-24T17:03:59.408Z",
       "status": "T_UNREPORTED",
       "lastUpdatedDate": "2022-02-24T17:03:59.408Z"
@@ -37,6 +38,24 @@
       "category": "G",
       "iban": "ABC",
       "postalIban": null,
+      "marcaDaBollo": null,
+      "insertedDate": "2022-02-24T17:03:59.408Z",
+      "status": "T_UNREPORTED",
+      "lastUpdatedDate": "2022-02-24T17:03:59.408Z"
+    }, 
+    {
+      "organizationFiscalCode": "77777777777",
+      "idTransfer": "3",
+      "amount": 5,
+      "remittanceInformation": "ri",
+      "category": "G",
+      "iban": null,
+      "postalIban": null,
+      "marcaDaBollo": {
+        "hashDocumento": "dasdsaAssadsadasd212sadasd",
+        "tipoBollo": "tipo",
+        "provinciaResidenza": "RM"
+      },
       "insertedDate": "2022-02-24T17:03:59.408Z",
       "status": "T_UNREPORTED",
       "lastUpdatedDate": "2022-02-24T17:03:59.408Z"

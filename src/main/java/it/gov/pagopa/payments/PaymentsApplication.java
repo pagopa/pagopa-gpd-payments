@@ -12,8 +12,7 @@ import org.springframework.retry.annotation.EnableRetry;
 @EnableCaching
 public class PaymentsApplication {
 
-    public static void main(final String[] args) {
-        SpringApplication.run(PaymentsApplication.class, args);
-    }
-
+  public static void main(final String[] args) {
+    SpringApplication.run(PaymentsApplication.class, args);
+  }
 }

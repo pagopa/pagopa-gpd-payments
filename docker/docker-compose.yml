@@ -31,14 +31,6 @@ services:
       app_net:
         ipv4_address: 10.20.0.3
 
-  node-container:
-    container_name: 'node-container'
-    image: ${containerRegistry}/yarn-testing-base:latest
-    tty: true
-    networks:
-      app_net:
-        ipv4_address: 10.20.0.4
-
 networks:
   app_net:
     driver: bridge

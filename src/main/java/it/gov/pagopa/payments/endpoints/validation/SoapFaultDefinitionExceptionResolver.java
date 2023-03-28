@@ -11,11 +11,11 @@ import org.springframework.ws.server.EndpointExceptionResolver;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class SoapFaultDefinitionExceptionResolver implements EndpointExceptionResolver {
 
-    public boolean resolveException(MessageContext messageContext, Object endpoint, Exception ex) {
+  public boolean resolveException(MessageContext messageContext, Object endpoint, Exception ex) {
 
-        if (ex instanceof PartnerValidationException) {
-            throw (PartnerValidationException) ex;
-        }
-        return false;
+    if (ex instanceof PartnerValidationException) {
+      throw (PartnerValidationException) ex;
     }
+    return false;
+  }
 }

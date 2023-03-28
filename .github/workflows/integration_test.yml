@@ -19,6 +19,11 @@ on:
         type: boolean
         default: true
 
+permissions:
+  id-token: write
+  contents: read
+
+
 jobs:
   integration_test:
     name: Test
@@ -29,11 +34,31 @@ jobs:
         id: checkout
         uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
 
+      - name: Login
+        id: login
+        # from https://github.com/Azure/login/commits/master
+        uses: azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+
       - name: Run Integration Tests
         run: |
-          cd ./integration-test/src
-          export subkey=${{ secrets.SUBKEY }}
+          az acr login -n pagopadcommonacr 
+          cd ./integration-test/
+          
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
+          
+          export APICONFIG_SUBSCRIPTION_KEY=${{secrets.APICONFIG_SUBKEY}}
+          export GPD_SUBSCRIPTION_KEY=${{secrets.GPD_SUBKEY}}
+          export GPS_SUBSCRIPTION_KEY=${{secrets.GPS_SUBKEY}}
+          export DONATIONS_SUBSCRIPTION_KEY=${{secrets.DONATION_SUBKEY}}
+          export IUVGENERATOR_SUBSCRIPTION_KEY=${{secrets.IUVGENERATOR_SUBKEY}}
+          export REST_PAYMENTS_SUBSCRIPTION_KEY=${{secrets.PAYMENTS_REST_SUBKEY}}
+          
+          export subkey=${{ secrets.SUBKEY }}
+          
           export canary=${{ inputs.canary }}          
           yarn install
           yarn test:${{( github.event.inputs == null && 'dev') || inputs.environment }}

@@ -13,27 +13,32 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PaymentValidator {
 
-    @Value("${pt.id_intermediario}")
-    private String ptIdIntermediario;
+  @Value("${pt.id_intermediario}")
+  private String ptIdIntermediario;
 
-    @Value("${pt.id_stazione}")
-    private String ptIdStazione;
+  @Value("${pt.id_stazione}")
+  private String ptIdStazione;
 
-    @Autowired
-    private ApiConfigClient apiConfigClient;
+  @Autowired private ApiConfigClient apiConfigClient;
 
-    public void isAuthorize(String ptIdDominioReq, String ptIdIntermediarioReq, String ptIdStazioneReq)
-            throws PartnerValidationException {
-        try {
-            apiConfigClient.getOrganization(ptIdStazioneReq, ptIdDominioReq);
-        } catch (Exception e) {
-            log.error("[isAuthorize ERROR] error during API Config call [station = " + ptIdStazioneReq + "; idPA = " + ptIdDominioReq + "]", e);
-            if (e instanceof FeignException.FeignClientException) {
-                throw new PartnerValidationException(PaaErrorEnum.PAA_ID_DOMINIO_ERRATO);
-            } else {
-                throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-            }
-        }
+  public void isAuthorize(
+      String ptIdDominioReq, String ptIdIntermediarioReq, String ptIdStazioneReq)
+      throws PartnerValidationException {
+    try {
+      apiConfigClient.getOrganization(ptIdStazioneReq, ptIdDominioReq);
+    } catch (Exception e) {
+      log.error(
+          "[isAuthorize ERROR] error during API Config call [station = "
+              + ptIdStazioneReq
+              + "; idPA = "
+              + ptIdDominioReq
+              + "]",
+          e);
+      if (e instanceof FeignException.FeignClientException) {
+        throw new PartnerValidationException(PaaErrorEnum.PAA_ID_DOMINIO_ERRATO);
+      } else {
+        throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      }
     }
-
+  }
 }
