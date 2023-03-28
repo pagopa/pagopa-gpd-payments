@@ -46,7 +46,7 @@ microservice-chart:
       cpu: "0.5"
     limits:
       memory: "768Mi"
-      cpu: "0.75"
+      cpu: "3.0"  # high limit used only in startup phase
   autoscaling:
     enable: true
     minReplica: 3
@@ -58,7 +58,7 @@ microservice-chart:
         metadata:
           # Required
           type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
-          value: "70"
+          value: "50"
   envConfig:
     WEBSITE_SITE_NAME: 'pagopa-u-gpd-payments-service'
     PAA_ID_INTERMEDIARIO: "15376371009"
