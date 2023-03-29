@@ -1,0 +1,39 @@
+{
+    "discardResponseBodies": true,
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(95)",
+      "p(99)",
+      "p(99.99)",
+      "count"
+    ],
+    "scenarios": {
+      "contacts": {
+        "executor": "constant-arrival-rate",
+        "duration": "1m",
+        "rate": 1,
+        "timeUnit": "1s",
+        "preAllocatedVUs": 10,
+        "maxVUs": 20
+      }
+    },
+    "thresholds": {
+      "http_req_failed": [
+        "rate<0.1"
+      ],
+      "http_req_duration": [
+        "p(99)<2000"
+      ],
+      "iteration_duration{group:::setup}": [
+        "max>=0"
+      ],
+      "iterations{group:::setup}": [
+        "rate>=0"
+      ]
+    },
+    "setupTimeout": "3600s",
+    "teardownTimeout": "3600s"
+}

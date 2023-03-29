@@ -49,5 +49,7 @@
     "http_req_duration{paymentRequest:SendRT}": [
       "p(95)<1000"
     ]
-  }
+  },
+  "setupTimeout": "3600s",
+  "teardownTimeout": "3600s"
 }
