@@ -1,11 +1,44 @@
 package it.gov.pagopa.payments.service;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.xml.sax.SAXException;
+
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableBatchOperation;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableQuery;
+
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
@@ -57,37 +90,9 @@ import it.gov.pagopa.payments.model.spontaneous.SpontaneousPaymentModel;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.namespace.QName;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.xml.sax.SAXException;
 
 @Service
 @Slf4j
@@ -672,13 +677,14 @@ public class PartnerService {
 
     debtor.setUniqueIdentifier(uniqueIdentifier);
     debtor.setFullName(source.getFullName());
-    debtor.setStreetName(source.getStreetName());
-    debtor.setCivicNumber(source.getCivicNumber());
-    debtor.setPostalCode(source.getPostalCode());
-    debtor.setCity(source.getCity());
-    debtor.setStateProvinceRegion(source.getProvince());
-    debtor.setCountry(source.getCountry());
-    debtor.setEMail(source.getEmail());
+    // optional fields --> before the set it is checked that the field is not null and not empty
+    Optional.ofNullable(source.getStreetName()).filter(Predicate.not(String::isEmpty)).ifPresent(debtor::setStreetName);
+    Optional.ofNullable(source.getCivicNumber()).filter(Predicate.not(String::isEmpty)).ifPresent(debtor::setCivicNumber);
+    Optional.ofNullable(source.getPostalCode()).filter(Predicate.not(String::isEmpty)).ifPresent(debtor::setPostalCode);
+    Optional.ofNullable(source.getCity()).filter(Predicate.not(String::isEmpty)).ifPresent(debtor::setCity);
+    Optional.ofNullable(source.getProvince()).filter(Predicate.not(String::isEmpty)).ifPresent(debtor::setStateProvinceRegion);
+    Optional.ofNullable(source.getCountry()).filter(Predicate.not(String::isEmpty)).ifPresent(debtor::setCountry);
+    Optional.ofNullable(source.getEmail()).filter(Predicate.not(String::isEmpty)).ifPresent(debtor::setEMail);
 
     return debtor;
   }
