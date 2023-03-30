@@ -106,9 +106,9 @@ class PartnerServiceTest {
 
   @ClassRule @Container
   public static GenericContainer<?> azurite =
-  new GenericContainer<>(
-      DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
-  .withExposedPorts(10001, 10002, 10000);
+      new GenericContainer<>(
+              DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
+          .withExposedPorts(10001, 10002, 10000);
 
   String storageConnectionString =
       String.format(
@@ -127,11 +127,11 @@ class PartnerServiceTest {
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
     when(factory.createPaVerifyPaymentNoticeRes())
-    .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes());
+        .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes());
     when(factory.createCtPaymentOptionDescriptionPA())
-    .thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
+        .thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
     when(factory.createCtPaymentOptionsDescriptionListPA())
-    .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
+        .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
 
     PaymentsModelResponse paymentModel =
         MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
@@ -144,9 +144,9 @@ class PartnerServiceTest {
     assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
     assertThat(responseBody.getPaymentList().getPaymentOptionDescription().isAllCCP()).isFalse();
     assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getAmount())
-    .isEqualTo(new BigDecimal(1055));
+        .isEqualTo(new BigDecimal(1055));
     assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getOptions())
-    .isEqualTo(StAmountOption.EQ); // de-scoping
+        .isEqualTo(StAmountOption.EQ); // de-scoping
     assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
     assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
   }
@@ -158,8 +158,8 @@ class PartnerServiceTest {
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO))
-    .when(paymentValidator)
-    .isAuthorize(anyString(), anyString(), anyString());
+        .when(paymentValidator)
+        .isAuthorize(anyString(), anyString(), anyString());
 
     // Test execution
     try {
@@ -169,11 +169,11 @@ class PartnerServiceTest {
     } catch (PartnerValidationException e) {
       // Test post condition
       assertThat(e.getError().getFaultCode())
-      .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultCode());
+          .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultCode());
       assertThat(e.getError().getDescription())
-      .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getDescription());
+          .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getDescription());
       assertThat(e.getError().getFaultString())
-      .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultString());
+          .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultString());
     }
   }
 
@@ -315,12 +315,12 @@ class PartnerServiceTest {
     when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
     when(factory.createCtEntityUniqueIdentifier())
-    .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+        .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
-    .thenReturn(
-        MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
+        .thenReturn(
+            MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
 
     // Test execution
     PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
@@ -329,11 +329,11 @@ class PartnerServiceTest {
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
     assertThat(responseBody.getData().getDescription()).isEqualTo("string");
     assertThat(responseBody.getData().getDueDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
     assertThat(responseBody.getData().getRetentionDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
     assertEquals(3, responseBody.getData().getTransferList().getTransfer().size());
 
@@ -363,25 +363,27 @@ class PartnerServiceTest {
     when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
     when(factory.createCtEntityUniqueIdentifier())
-    .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+        .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
-    .thenReturn(
-        MockUtil.readModelFromFile("gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
+        .thenReturn(
+            MockUtil.readModelFromFile(
+                "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
 
     // Test execution
     PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
-    assertThat(responseBody.getData().getDescription()).isEqualTo("Canone Unico Patrimoniale - CORPORATE");
+    assertThat(responseBody.getData().getDescription())
+        .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
     assertThat(responseBody.getData().getDueDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
 
     assertEquals("city", responseBody.getData().getDebtor().getCity());
@@ -402,7 +404,7 @@ class PartnerServiceTest {
                     "IBAN", org.hamcrest.Matchers.is("IT0000000000000000000000000"))),
             org.hamcrest.Matchers.allOf(
                 org.hamcrest.Matchers.<CtTransferPA>hasProperty(
-                    "IBAN",org.hamcrest.Matchers.nullValue()))));
+                    "IBAN", org.hamcrest.Matchers.nullValue()))));
   }
 
   @Test
@@ -462,16 +464,16 @@ class PartnerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMock();
 
     doNothing()
-    .doThrow(PartnerValidationException.class)
-    .when(paymentValidator)
-    .isAuthorize(anyString(), anyString(), anyString());
+        .doThrow(PartnerValidationException.class)
+        .when(paymentValidator)
+        .isAuthorize(anyString(), anyString(), anyString());
 
     when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
 
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenReturn(
-        MockUtil.readModelFromFile(
-            "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
+        .thenReturn(
+            MockUtil.readModelFromFile(
+                "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -513,7 +515,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.Conflict.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -561,7 +563,7 @@ class PartnerServiceTest {
             "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenReturn(paymentOption);
+        .thenReturn(paymentOption);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -605,7 +607,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(RetryableException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -648,7 +650,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -692,7 +694,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(NullPointerException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -727,10 +729,10 @@ class PartnerServiceTest {
   @Test
   void paDemandPaymentNoticeTest()
       throws DatatypeConfigurationException,
-      IOException,
-      XMLStreamException,
-      ParserConfigurationException,
-      SAXException {
+          IOException,
+          XMLStreamException,
+          ParserConfigurationException,
+          SAXException {
     var pService =
         spy(
             new PartnerService(
@@ -747,12 +749,12 @@ class PartnerServiceTest {
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
 
     when(factory.createPaDemandPaymentNoticeResponse())
-    .thenReturn(factoryUtil.createPaDemandPaymentNoticeResponse());
+        .thenReturn(factoryUtil.createPaDemandPaymentNoticeResponse());
     when(factory.createCtQrCode()).thenReturn(factoryUtil.createCtQrCode());
     when(factory.createCtPaymentOptionsDescriptionListPA())
-    .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
+        .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
     when(factory.createCtPaymentOptionDescriptionPA())
-    .thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
+        .thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
 
     var paymentModel =
         MockUtil.readModelFromFile(
@@ -766,9 +768,9 @@ class PartnerServiceTest {
     assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
     assertThat(responseBody.getPaymentList().getPaymentOptionDescription().isAllCCP()).isFalse();
     assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getAmount())
-    .isEqualTo(new BigDecimal(1055));
+        .isEqualTo(new BigDecimal(1055));
     assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getOptions())
-    .isEqualTo(StAmountOption.EQ); // de-scoping
+        .isEqualTo(StAmountOption.EQ); // de-scoping
     assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
     assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
   }
@@ -793,16 +795,16 @@ class PartnerServiceTest {
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
     when(factory.createPaGetPaymentV2Response())
-    .thenReturn(factoryUtil.createPaGetPaymentV2Response());
+        .thenReturn(factoryUtil.createPaGetPaymentV2Response());
     when(factory.createCtPaymentPAV2()).thenReturn(factoryUtil.createCtPaymentPAV2());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
     when(factory.createCtEntityUniqueIdentifier())
-    .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+        .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPAV2()).thenReturn(factoryUtil.createCtTransferListPAV2());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
-    .thenReturn(
-        MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
+        .thenReturn(
+            MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
 
     // Test execution
     PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
@@ -811,11 +813,11 @@ class PartnerServiceTest {
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
     assertThat(responseBody.getData().getDescription()).isEqualTo("string");
     assertThat(responseBody.getData().getDueDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
     assertThat(responseBody.getData().getRetentionDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
     assertEquals(3, responseBody.getData().getTransferList().getTransfer().size());
 
@@ -860,29 +862,31 @@ class PartnerServiceTest {
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
     when(factory.createPaGetPaymentV2Response())
-    .thenReturn(factoryUtil.createPaGetPaymentV2Response());
+        .thenReturn(factoryUtil.createPaGetPaymentV2Response());
     when(factory.createCtPaymentPAV2()).thenReturn(factoryUtil.createCtPaymentPAV2());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
     when(factory.createCtEntityUniqueIdentifier())
-    .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+        .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPAV2()).thenReturn(factoryUtil.createCtTransferListPAV2());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
-    .thenReturn(
-        MockUtil.readModelFromFile("gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
+        .thenReturn(
+            MockUtil.readModelFromFile(
+                "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
 
     // Test execution
     PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
-    assertThat(responseBody.getData().getDescription()).isEqualTo("Canone Unico Patrimoniale - CORPORATE");
+    assertThat(responseBody.getData().getDescription())
+        .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
     assertThat(responseBody.getData().getDueDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
-    .isEqualTo(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
 
     assertEquals("city", responseBody.getData().getDebtor().getCity());
@@ -907,7 +911,7 @@ class PartnerServiceTest {
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
                     "richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()),
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN",org.hamcrest.Matchers.nullValue()))));
+                    "IBAN", org.hamcrest.Matchers.nullValue()))));
   }
 
   @Test
@@ -967,16 +971,16 @@ class PartnerServiceTest {
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
 
     doNothing()
-    .doThrow(PartnerValidationException.class)
-    .when(paymentValidator)
-    .isAuthorize(anyString(), anyString(), anyString());
+        .doThrow(PartnerValidationException.class)
+        .when(paymentValidator)
+        .isAuthorize(anyString(), anyString(), anyString());
 
     when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
 
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenReturn(
-        MockUtil.readModelFromFile(
-            "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
+        .thenReturn(
+            MockUtil.readModelFromFile(
+                "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -1018,7 +1022,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.Conflict.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -1066,7 +1070,7 @@ class PartnerServiceTest {
             "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenReturn(paymentOption);
+        .thenReturn(paymentOption);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -1110,7 +1114,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(RetryableException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -1153,7 +1157,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -1197,7 +1201,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(NullPointerException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
-    .thenThrow(e);
+        .thenThrow(e);
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
