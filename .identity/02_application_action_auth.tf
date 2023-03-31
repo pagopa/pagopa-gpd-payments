@@ -16,8 +16,8 @@ resource "azurerm_role_assignment" "environment_terraform_resource_group_dashboa
   principal_id         = azuread_service_principal.action.object_id
 }
 
-resource "azurerm_role_assignment" "environment_runner_github_runner_rg" {
-  scope                = data.azurerm_resource_group.github_runner_rg.id
-  role_definition_name = "Contributor"
-  principal_id         = azuread_service_principal.action.object_id
-}
+#resource "azurerm_role_assignment" "environment_runner_github_runner_rg" {
+#  scope                = data.azurerm_resource_group.github_runner_rg.id
+#  role_definition_name = "Contributor"
+#  principal_id         = azuread_service_principal.action.object_id
+#}
