@@ -67,6 +67,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -672,13 +673,28 @@ public class PartnerService {
 
     debtor.setUniqueIdentifier(uniqueIdentifier);
     debtor.setFullName(source.getFullName());
-    debtor.setStreetName(source.getStreetName());
-    debtor.setCivicNumber(source.getCivicNumber());
-    debtor.setPostalCode(source.getPostalCode());
-    debtor.setCity(source.getCity());
-    debtor.setStateProvinceRegion(source.getProvince());
-    debtor.setCountry(source.getCountry());
-    debtor.setEMail(source.getEmail());
+    // optional fields --> before the set it is checked that the field is not null and not empty
+    Optional.ofNullable(source.getStreetName())
+        .filter(Predicate.not(String::isEmpty))
+        .ifPresent(debtor::setStreetName);
+    Optional.ofNullable(source.getCivicNumber())
+        .filter(Predicate.not(String::isEmpty))
+        .ifPresent(debtor::setCivicNumber);
+    Optional.ofNullable(source.getPostalCode())
+        .filter(Predicate.not(String::isEmpty))
+        .ifPresent(debtor::setPostalCode);
+    Optional.ofNullable(source.getCity())
+        .filter(Predicate.not(String::isEmpty))
+        .ifPresent(debtor::setCity);
+    Optional.ofNullable(source.getProvince())
+        .filter(Predicate.not(String::isEmpty))
+        .ifPresent(debtor::setStateProvinceRegion);
+    Optional.ofNullable(source.getCountry())
+        .filter(Predicate.not(String::isEmpty))
+        .ifPresent(debtor::setCountry);
+    Optional.ofNullable(source.getEmail())
+        .filter(Predicate.not(String::isEmpty))
+        .ifPresent(debtor::setEMail);
 
     return debtor;
   }

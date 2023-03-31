@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -346,6 +347,61 @@ class PartnerServiceTest {
             org.hamcrest.Matchers.allOf(
                 org.hamcrest.Matchers.<CtTransferPA>hasProperty(
                     "IBAN", org.hamcrest.Matchers.is("ABC"))),
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.<CtTransferPA>hasProperty(
+                    "IBAN", org.hamcrest.Matchers.nullValue()))));
+  }
+
+  @Test
+  void paGetPaymentIncompleteAddressTest()
+      throws PartnerValidationException, DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
+
+    when(factory.createPaGetPaymentRes()).thenReturn(factoryUtil.createPaGetPaymentRes());
+    when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
+    when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtEntityUniqueIdentifier())
+        .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+    when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
+
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+        .thenReturn(
+            MockUtil.readModelFromFile(
+                "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
+
+    // Test execution
+    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
+    assertThat(responseBody.getData().getDescription())
+        .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
+    assertThat(responseBody.getData().getDueDate())
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+    assertThat(responseBody.getData().getRetentionDate())
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+    assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
+
+    assertEquals("city", responseBody.getData().getDebtor().getCity());
+    assertEquals("RM", responseBody.getData().getDebtor().getStateProvinceRegion());
+    assertEquals("00100", responseBody.getData().getDebtor().getPostalCode());
+    assertNull(responseBody.getData().getDebtor().getStreetName());
+    assertNull(responseBody.getData().getDebtor().getCivicNumber());
+    assertNull(responseBody.getData().getDebtor().getCountry());
+    assertNull(responseBody.getData().getDebtor().getEMail());
+    assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
+
+    // in paGetPayment v1 the 'richiestaMarcaDaBollo' does not exist
+    org.hamcrest.MatcherAssert.assertThat(
+        responseBody.getData().getTransferList().getTransfer(),
+        org.hamcrest.Matchers.contains(
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.<CtTransferPA>hasProperty(
+                    "IBAN", org.hamcrest.Matchers.is("IT0000000000000000000000000"))),
             org.hamcrest.Matchers.allOf(
                 org.hamcrest.Matchers.<CtTransferPA>hasProperty(
                     "IBAN", org.hamcrest.Matchers.nullValue()))));
@@ -779,6 +835,78 @@ class PartnerServiceTest {
                     "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
                     "IBAN", org.hamcrest.Matchers.is("ABC"))),
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", org.hamcrest.Matchers.nullValue()))));
+  }
+
+  @Test
+  void paGetPaymentIncompleteAddressV2Test()
+      throws PartnerValidationException, DatatypeConfigurationException, IOException {
+
+    var pService =
+        spy(
+            new PartnerService(
+                storageConnectionString,
+                "receiptsTable",
+                resource,
+                factory,
+                gpdClient,
+                gpsClient,
+                paymentValidator,
+                customizedModelMapper));
+
+    // Test preconditions
+    PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
+
+    when(factory.createPaGetPaymentV2Response())
+        .thenReturn(factoryUtil.createPaGetPaymentV2Response());
+    when(factory.createCtPaymentPAV2()).thenReturn(factoryUtil.createCtPaymentPAV2());
+    when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtEntityUniqueIdentifier())
+        .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+    when(factory.createCtTransferListPAV2()).thenReturn(factoryUtil.createCtTransferListPAV2());
+
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+        .thenReturn(
+            MockUtil.readModelFromFile(
+                "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
+
+    // Test execution
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
+    assertThat(responseBody.getData().getDescription())
+        .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
+    assertThat(responseBody.getData().getDueDate())
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+    assertThat(responseBody.getData().getRetentionDate())
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+    assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
+
+    assertEquals("city", responseBody.getData().getDebtor().getCity());
+    assertEquals("RM", responseBody.getData().getDebtor().getStateProvinceRegion());
+    assertEquals("00100", responseBody.getData().getDebtor().getPostalCode());
+    assertNull(responseBody.getData().getDebtor().getStreetName());
+    assertNull(responseBody.getData().getDebtor().getCivicNumber());
+    assertNull(responseBody.getData().getDebtor().getCountry());
+    assertNull(responseBody.getData().getDebtor().getEMail());
+    assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
+
+    // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued
+    org.hamcrest.MatcherAssert.assertThat(
+        responseBody.getData().getTransferList().getTransfer(),
+        org.hamcrest.Matchers.contains(
+            org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", org.hamcrest.Matchers.is("IT0000000000000000000000000"))),
             org.hamcrest.Matchers.allOf(
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
                     "richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()),
