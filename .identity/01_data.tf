@@ -54,31 +54,37 @@ data "github_organization_teams" "all" {
 }
 
 data "azurerm_key_vault_secret" "key_vault_apiconfig_subkey" {
+  count  = var.env_short != "p" ? 1 : 0
   name = "gpd-d-apiconfig-subscription-key"
   key_vault_id = data.azurerm_key_vault.key_vault_gps.id
 }
 
 data "azurerm_key_vault_secret" "key_vault_donations_subkey" {
+  count  = var.env_short != "p" ? 1 : 0
   name = "gpd-d-donations-subscription-key"
   key_vault_id = data.azurerm_key_vault.key_vault_gps.id
 }
 
 data "azurerm_key_vault_secret" "key_vault_gpd_subkey" {
+  count  = var.env_short != "p" ? 1 : 0
   name = "gpd-d-gpd-subscription-key"
   key_vault_id = data.azurerm_key_vault.key_vault_gps.id
 }
 
 data "azurerm_key_vault_secret" "key_vault_gps_subkey" {
+  count  = var.env_short != "p" ? 1 : 0
   name = "gpd-d-gps-subscription-key"
   key_vault_id = data.azurerm_key_vault.key_vault_gps.id
 }
 
 data "azurerm_key_vault_secret" "key_vault_iuv_generator_subkey" {
+  count  = var.env_short != "p" ? 1 : 0
   name = "gpd-d-iuv-generator-subscription-key"
   key_vault_id = data.azurerm_key_vault.key_vault_gps.id
 }
 
 data "azurerm_key_vault_secret" "key_vault_payments_subkey" {
+  count  = var.env_short != "p" ? 1 : 0
   name = "gpd-d-payments-rest-subscription-key"
   key_vault_id = data.azurerm_key_vault.key_vault_gps.id
 }
