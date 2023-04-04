@@ -39,6 +39,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - run: |
+          jq  '."servers"[0]."url" += "/gpd/payments-receipts-service/v1"' "${GITHUB_WORKSPACE}/openapi/openapi.json"
+
       - name: Read terraform version
         id: read-version
         shell: bash
