@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.service;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.microsoft.azure.storage.StorageException;
@@ -26,7 +27,9 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -60,6 +63,32 @@ public class PaymentsServiceCosmos{
         this.tableConnectionString = tableConnectionString;
         this.receiptsTable = receiptsTable;
         this.gpdClient = gpdClient;
+    }
+
+    public PaymentsResult<ReceiptEntity> getOrganizationReceipts(
+            @Positive Integer limit,
+            @Min(0) Integer pageNum,
+            @NotBlank String organizationFiscalCode,
+            String debtor,
+            String service) {
+        List<ReceiptEntityCosmos> receiptList = new ArrayList<>();
+
+        try {
+            TableClient tableClient = getOrganizationTable();
+
+            for (TableEntity entity : tableClient.listEntities()) {
+                receiptList.add(
+                        new ReceiptEntityCosmos(
+                                entity.getPartitionKey(), entity.getRowKey(), entity.getProperty(DEBTOR_PROPERTY).toString(),
+                                entity.getProperty(DOCUMENT_PROPERTY).toString(), entity.getProperty(STATUS_PROPERTY).toString())
+                        );
+            }
+        }
+        catch (TableServiceException e) {
+            log.error("Error in processing get organizations list", e);
+            throw new AppException(AppError.NOT_CONNECTED, "ALL");
+        }
+        return null;
     }
 
     public ReceiptEntityCosmos getReceiptByOrganizationFCAndIUV(
@@ -96,6 +125,22 @@ public class PaymentsServiceCosmos{
             tableEntity.addProperty(STATUS_PROPERTY, Status.PAID.name());
             tableClient.updateEntity(tableEntity);
         }
+    }
+
+    public List<TableEntity> retrieveEntitiesByFilter(TableEntity tableEntity, TableClient tableClient) {
+
+        List<String> filters = new ArrayList<>();
+
+        filters.add(String.format("PartitionKey eq '%s'", tableEntity.getPartitionKey()));
+
+        filters.add(String.format("Debtor eq '%s'", tableEntity.getProperty(DEBTOR_PROPERTY)));
+
+        //filters.add(String.format("Service eq '%s'", tableEntity.getProperty()))
+
+        List<TableEntity> modelList = tableClient.listEntities(new ListEntitiesOptions()
+                        .setFilter(String.join(" and ", filters)), null, null).stream()
+                        .collect(Collectors.toList());
+        return modelList;
     }
 
     private TableClient getOrganizationTable() {
