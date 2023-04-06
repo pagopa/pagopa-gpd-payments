@@ -23,6 +23,8 @@
         <java.version>11</java.version>
         <azure.functions.java.library.version>1.4.2</azure.functions.java.library.version>
         <azure.storage.table.version>8.6.6</azure.storage.table.version>
+        <azure.data.table.version>12.3.9</azure.data.table.version>
+        <azure.core.version>1.26.0</azure.core.version>
         <springdoc-version>1.6.6</springdoc-version>
     </properties>
 
@@ -40,6 +42,18 @@
             <version>${azure.storage.table.version}</version>
         </dependency>
         <!-- End Azure -->
+        <!-- Start cosmos tables-->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
+            <version>${azure.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-data-tables</artifactId>
+            <version>${azure.data.table.version}</version>
+        </dependency>
+        <!-- End cosmos tables -->
         <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-bean-validators</artifactId>
