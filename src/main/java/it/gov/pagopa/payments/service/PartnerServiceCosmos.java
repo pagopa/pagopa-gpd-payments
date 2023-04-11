@@ -20,6 +20,7 @@ import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntityCosmos;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.model.spontaneous.*;
@@ -584,51 +585,44 @@ public class PartnerServiceCosmos {
 
   private void saveReceipt(ReceiptEntityCosmos receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
-    TableEntity tableEntity = new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
-    Map<String, Object> properties = new HashMap<>();
-    properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
-    properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
-    properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
-    tableEntity.setProperties(properties);
-    getOrganizationTable().createEntity(tableEntity);
+    try {
+      TableEntity tableEntity = new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
+      Map<String, Object> properties = new HashMap<>();
+      properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
+      properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
+      properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
+      tableEntity.setProperties(properties);
+      getOrganizationTable().createEntity(tableEntity);
+    } catch (TableServiceException e) {
+      log.error("Error in organization table connection", e);
+      throw new AppException(AppError.NOT_CONNECTED);
+    }
   }
 
-  private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv)
+  private ReceiptEntityCosmos getReceipt(String organizationFiscalCode, String iuv)
       throws InvalidKeyException, URISyntaxException, StorageException {
-    AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
-    azuriteStorageUtil.createTable(receiptsTable);
-
-    CloudTable table =
-        CloudStorageAccount.parse(storageConnectionString)
-            .createCloudTableClient()
-            .getTableReference(receiptsTable);
-
-    TableQuery<ReceiptEntity> query =
-        TableQuery.from(ReceiptEntity.class)
-            .where(
-                TableQuery.generateFilterCondition(
-                    "PartitionKey", TableQuery.QueryComparisons.EQUAL, organizationFiscalCode))
-            .where(
-                TableQuery.generateFilterCondition(
-                    "RowKey", TableQuery.QueryComparisons.EQUAL, iuv));
-
-    Iterable<ReceiptEntity> result = table.execute(query);
-
-    return result.iterator().next();
+    try{
+      TableEntity tableEntity = getOrganizationTable().getEntity(organizationFiscalCode, iuv);
+      return ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(tableEntity);
+    } catch (TableServiceException e) {
+      log.error("Error in organization table connection", e);
+      throw new AppException(AppError.NOT_CONNECTED);
+    }
   }
 
   private void updateReceipt(ReceiptEntityCosmos receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
-    TableEntity tableEntity = getOrganizationTable().getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
-
-    AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
-    azuriteStorageUtil.createTable(receiptsTable);
-    CloudTable table =
-        CloudStorageAccount.parse(storageConnectionString)
-            .createCloudTableClient()
-            .getTableReference(receiptsTable);
-    TableOperation updateOperation = TableOperation.merge(receiptEntity);
-    table.execute(updateOperation);
+    try {
+      TableEntity tableEntity = getOrganizationTable().getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
+      Map<String, Object> properties = new HashMap<>();
+      properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
+      properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
+      properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
+      getOrganizationTable().updateEntity(tableEntity);
+    } catch (TableServiceException e) {
+      log.error("Error in organization table connection", e);
+      throw new AppException(AppError.NOT_CONNECTED);
+    }
   }
 
   private long getFeeInCent(BigDecimal fee) {
@@ -841,7 +835,7 @@ public class PartnerServiceCosmos {
             "[getReceiptPaymentOption] GPD Conflict Error Response [noticeNumber={}]",
             noticeNumber,
             e);
-        ReceiptEntity receiptEntityToUpdate = this.getReceipt(idPa, creditorReferenceId);
+        ReceiptEntityCosmos receiptEntityToUpdate = this.getReceipt(idPa, creditorReferenceId);
         receiptEntityToUpdate.setStatus(Status.PAID.name());
         this.updateReceipt(receiptEntityToUpdate);
       } catch (Exception ex) {
