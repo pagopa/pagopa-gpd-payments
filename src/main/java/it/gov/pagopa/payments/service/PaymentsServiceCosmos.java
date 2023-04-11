@@ -47,8 +47,6 @@ public class PaymentsServiceCosmos{
     private static final String[] columns =
             new String[] {PARTITION_KEY_FIELD, ROW_KEY_FIELD, DEBTOR_FIELD, STATUS_FIELD};
 
-    public final static String DEBTOR_PROPERTY = "debtor";
-    public final static String DOCUMENT_PROPERTY = "document";
     public final static String STATUS_PROPERTY = "status";
 
     @Value("${azure.tables.connection.string}")
