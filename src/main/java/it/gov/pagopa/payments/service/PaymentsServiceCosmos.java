@@ -6,14 +6,18 @@ import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
+import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
+import com.microsoft.azure.storage.table.TableQuery;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntityCosmos;
 import it.gov.pagopa.payments.model.PaymentOptionStatus;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
 import it.gov.pagopa.payments.model.PaymentsResult;
@@ -30,11 +34,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 @Slf4j
 public class PaymentsServiceCosmos{
-
 
     private static final String PARTITION_KEY_FIELD = "PartitionKey";
     private static final String ROW_KEY_FIELD = "RowKey";
@@ -65,7 +69,7 @@ public class PaymentsServiceCosmos{
         this.gpdClient = gpdClient;
     }
 
-    public PaymentsResult<ReceiptEntity> getOrganizationReceipts(
+    public PaymentsResult<ReceiptEntityCosmos> getOrganizationReceipts(
             @Positive Integer limit,
             @Min(0) Integer pageNum,
             @NotBlank String organizationFiscalCode,
@@ -74,21 +78,16 @@ public class PaymentsServiceCosmos{
         List<ReceiptEntityCosmos> receiptList = new ArrayList<>();
 
         try {
-            TableClient tableClient = getOrganizationTable();
 
-            for (TableEntity entity : tableClient.listEntities()) {
-                receiptList.add(
-                        new ReceiptEntityCosmos(
-                                entity.getPartitionKey(), entity.getRowKey(), entity.getProperty(DEBTOR_PROPERTY).toString(),
-                                entity.getProperty(DOCUMENT_PROPERTY).toString(), entity.getProperty(STATUS_PROPERTY).toString())
-                        );
-            }
+            List<ReceiptEntityCosmos> filteredEntities = retrieveEntitiesByFilter(getOrganizationTable(),
+                    organizationFiscalCode, debtor, service, limit, pageNum);
+            return this.setReceiptsOutput(filteredEntities, pageNum);
+
         }
         catch (TableServiceException e) {
             log.error("Error in processing get organizations list", e);
             throw new AppException(AppError.NOT_CONNECTED, "ALL");
         }
-        return null;
     }
 
     public ReceiptEntityCosmos getReceiptByOrganizationFCAndIUV(
@@ -98,9 +97,7 @@ public class PaymentsServiceCosmos{
         try{
             TableEntity tableEntity = getOrganizationTable().getEntity(organizationFiscalCode, iuv);
             this.checkGPDDebtPosStatus(tableEntity, getOrganizationTable());
-            return new ReceiptEntityCosmos(tableEntity.getPartitionKey(), tableEntity.getRowKey(),
-                tableEntity.getProperty(DEBTOR_PROPERTY).toString(), tableEntity.getProperty(DOCUMENT_PROPERTY).toString(),
-                tableEntity.getProperty(STATUS_PROPERTY).toString());
+            return ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(tableEntity);
         } catch (TableServiceException e) {
             log.error("Error in organization table connection", e);
             throw new AppException(AppError.NOT_CONNECTED);
@@ -127,20 +124,49 @@ public class PaymentsServiceCosmos{
         }
     }
 
-    public List<TableEntity> retrieveEntitiesByFilter(TableEntity tableEntity, TableClient tableClient) {
+    public List<ReceiptEntityCosmos> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
+                                                              String debtor, String service, Integer limit, Integer pageNum) {
 
         List<String> filters = new ArrayList<>();
 
-        filters.add(String.format("PartitionKey eq '%s'", tableEntity.getPartitionKey()));
+        filters.add(String.format("PartitionKey eq '%s'", organizationFiscalCode));
 
-        filters.add(String.format("Debtor eq '%s'", tableEntity.getProperty(DEBTOR_PROPERTY)));
+        if(null != debtor){
+            filters.add(String.format("Debtor eq '%s'", debtor));
+        }
 
-        //filters.add(String.format("Service eq '%s'", tableEntity.getProperty()))
+        if(null != service){
+            PaymentsServiceCosmos.getStartsWithFilter(filters, service);
+        }
 
-        List<TableEntity> modelList = tableClient.listEntities(new ListEntitiesOptions()
+        if(null != limit){
+            filters.add(String.format("skip=%i", pageNum*limit));
+            filters.add(String.format("top=%i", limit));
+        }
+
+        List<ReceiptEntityCosmos> modelList = tableClient.listEntities(new ListEntitiesOptions()
                         .setFilter(String.join(" and ", filters)), null, null).stream()
+                        .map(ConvertTableEntityToReceiptEntityCosmos::mapTableEntityToReceiptEntity)
                         .collect(Collectors.toList());
         return modelList;
+    }
+
+    private static void getStartsWithFilter(List<String> filters, String startsWith) {
+        var length = startsWith.length() - 1;
+        var nextChar = startsWith.toCharArray()[length] + 1;
+
+        var startWithEnd = startsWith.substring(0, length) + (char) nextChar;
+
+        filters.add(String.format("Rowkey ge %s", startsWith));
+        filters.add(String.format("Rowkey lt %s", startWithEnd));
+    }
+
+    private PaymentsResult<ReceiptEntityCosmos> setReceiptsOutput(List<ReceiptEntityCosmos> listOfEntity, Integer pageNum) {
+        PaymentsResult<ReceiptEntityCosmos> result = new PaymentsResult<>();
+        result.setResults(listOfEntity);
+        result.setCurrentPageNumber(pageNum);
+        result.setLength(listOfEntity.size());
+        return result;
     }
 
     private TableClient getOrganizationTable() {
