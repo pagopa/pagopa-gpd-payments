@@ -27,10 +27,10 @@ public enum AppError {
       "The debt position is in an inappropriate state [status= %s] to provide the receipt"
           + " [Organization Fiscal Code= %s, IUV= %s]"),
 
-  NOT_CONNECTED(
+  DB_ERROR(
           HttpStatus.SERVICE_UNAVAILABLE,
-          "The connection could not be established",
-          "The connection to the Cosmos DB could not be established"),
+          "Internal DB error",
+          "Something went wrong in the DB operation"),
   UNKNOWN(null, null, null);
 
   public final HttpStatus httpStatus;

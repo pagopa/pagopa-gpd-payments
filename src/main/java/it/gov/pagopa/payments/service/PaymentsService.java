@@ -116,7 +116,6 @@ public class PaymentsService {
     AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
     try {
       azuriteStorageUtil.createTable(receiptsTable);
-
       CloudTable table =
           CloudStorageAccount.parse(storageConnectionString)
               .createCloudTableClient()

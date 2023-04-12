@@ -203,7 +203,7 @@ public class PartnerService {
   public PaSendRTRes paSendRT(PaSendRTReq request) {
 
     PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
-
+    System.out.println("HERE 1");
     if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
       log.error(
           "[paSendRT] Payment Option [statusError: {}] [noticeNumber={}]",
@@ -211,7 +211,7 @@ public class PartnerService {
           request.getReceipt().getNoticeNumber());
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     }
-
+    System.out.println("HERE 2");
     log.info(
         "[paSendRT] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
     // status is always equals to PO_PAID

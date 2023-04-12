@@ -2,10 +2,12 @@ package it.gov.pagopa.payments.controller.receipt.impl;
 
 import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
+import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.model.ReceiptsInfo;
 import it.gov.pagopa.payments.service.PaymentsService;
+import it.gov.pagopa.payments.service.PaymentsServiceCosmos;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
@@ -32,6 +34,7 @@ public class PaymentsController implements IPaymentsController {
   @Autowired private ModelMapper modelMapper;
 
   @Autowired private PaymentsService paymentsService;
+  @Autowired private PaymentsServiceCosmos paymentsServiceCosmos;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(String organizationFiscalCode, String iuv) {
@@ -41,8 +44,8 @@ public class PaymentsController implements IPaymentsController {
             "GET",
             "getReceiptByIUV",
             String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode) + "; iuv= " + iuv));
-    ReceiptEntity receipt =
-        paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv);
+    ReceiptEntityCosmos receipt =
+        paymentsServiceCosmos.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv);
     return new ResponseEntity<>(receipt.getDocument(), HttpStatus.OK);
   }
 
@@ -63,8 +66,8 @@ public class PaymentsController implements IPaymentsController {
                 + debtor
                 + "; service= "
                 + service));
-    PaymentsResult<ReceiptEntity> receipts =
-        paymentsService.getOrganizationReceipts(
+    PaymentsResult<ReceiptEntityCosmos> receipts =
+        paymentsServiceCosmos.getOrganizationReceipts(
             limit, page, organizationFiscalCode, debtor, service);
     return new ResponseEntity<>(
         ReceiptsInfo.builder()
@@ -73,7 +76,7 @@ public class PaymentsController implements IPaymentsController {
                     .map(
                         receiptEntity -> modelMapper.map(receiptEntity, ReceiptModelResponse.class))
                     .collect(Collectors.toList()))
-            .pageInfo(CommonUtil.buildPageInfo(receipts))
+            .pageInfo(CommonUtil.buildPageInfoCosmos(receipts))
             .build(),
         HttpStatus.OK);
   }

@@ -6,13 +6,6 @@ import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import com.microsoft.azure.storage.ResultSegment;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableOperation;
-import com.microsoft.azure.storage.table.TableQuery;
-import io.swagger.v3.oas.models.security.SecurityScheme;
-import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
@@ -31,10 +24,8 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 @Slf4j
@@ -52,7 +43,7 @@ public class PaymentsServiceCosmos{
     @Value("${azure.tables.connection.string}")
     private String tableConnectionString;
 
-    @Value("${receipts.table}")
+    @Value("${azure.tables.tableName}")
     private String receiptsTable;
 
     @Autowired
@@ -84,7 +75,7 @@ public class PaymentsServiceCosmos{
         }
         catch (TableServiceException e) {
             log.error("Error in processing get organizations list", e);
-            throw new AppException(AppError.NOT_CONNECTED, "ALL");
+            throw new AppException(AppError.DB_ERROR, "ALL");
         }
     }
 
@@ -98,7 +89,7 @@ public class PaymentsServiceCosmos{
             return ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(tableEntity);
         } catch (TableServiceException e) {
             log.error("Error in organization table connection", e);
-            throw new AppException(AppError.NOT_CONNECTED);
+            throw new AppException(AppError.DB_ERROR);
         }
     }
 
@@ -175,7 +166,7 @@ public class PaymentsServiceCosmos{
             return tableServiceClient.getTableClient(receiptsTable);
         } catch (TableServiceException e) {
             log.error("Error in organization table connection", e);
-            throw new AppException(AppError.NOT_CONNECTED);
+            throw new AppException(AppError.DB_ERROR);
         }
     }
 }

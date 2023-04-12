@@ -20,6 +20,8 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+
+import it.gov.pagopa.payments.service.PartnerServiceCosmos;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
@@ -35,6 +37,8 @@ public class PartnerEndpoint {
 
   @Autowired private PartnerService partnerService;
 
+  @Autowired private PartnerServiceCosmos partnerServiceCosmos;
+
   @Autowired private ObjectFactory factory;
 
   @SoapAction("paVerifyPaymentNotice")
@@ -46,7 +50,7 @@ public class PartnerEndpoint {
 
     log.info(" paVerifyPaymentNotice START ");
     return factory.createPaVerifyPaymentNoticeRes(
-        partnerService.paVerifyPaymentNotice(request.getValue()));
+        partnerServiceCosmos.paVerifyPaymentNotice(request.getValue()));
   }
 
   @SoapAction("paGetPayment")
@@ -57,7 +61,7 @@ public class PartnerEndpoint {
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.info(" paGetPayment START ");
-    return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue()));
+    return factory.createPaGetPaymentRes(partnerServiceCosmos.paGetPayment(request.getValue()));
   }
 
   @SoapAction("paGetPaymentV2")
@@ -68,7 +72,7 @@ public class PartnerEndpoint {
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.info(" paGetPaymentV2 START ");
-    return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue()));
+    return factory.createPaGetPaymentV2Response(partnerServiceCosmos.paGetPaymentV2(request.getValue()));
   }
 
   @SoapAction("paSendRT")
@@ -77,7 +81,7 @@ public class PartnerEndpoint {
   public JAXBElement<PaSendRTRes> paSendRT(@RequestPayload JAXBElement<PaSendRTReq> request) {
 
     log.info(" paSendRT START ");
-    return factory.createPaSendRTRes(partnerService.paSendRT(request.getValue()));
+    return factory.createPaSendRTRes(partnerServiceCosmos.paSendRT(request.getValue()));
   }
 
   @SoapAction("paSendRTV2")
@@ -87,7 +91,7 @@ public class PartnerEndpoint {
       @RequestPayload JAXBElement<PaSendRTV2Request> request) {
 
     log.info(" paSendRTV2 START ");
-    return factory.createPaSendRTV2Response(partnerService.paSendRTV2(request.getValue()));
+    return factory.createPaSendRTV2Response(partnerServiceCosmos.paSendRTV2(request.getValue()));
   }
 
   @SoapAction("paDemandPaymentNotice")
@@ -103,6 +107,6 @@ public class PartnerEndpoint {
 
     log.info(" paDemandPaymentNotice START ");
     return factory.createPaDemandPaymentNoticeResponse(
-        partnerService.paDemandPaymentNotice(request.getValue()));
+        partnerServiceCosmos.paDemandPaymentNotice(request.getValue()));
   }
 }

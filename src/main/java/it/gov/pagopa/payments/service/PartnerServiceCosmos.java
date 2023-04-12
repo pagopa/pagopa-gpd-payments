@@ -5,17 +5,11 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableBatchOperation;
-import com.microsoft.azure.storage.table.TableOperation;
-import com.microsoft.azure.storage.table.TableQuery;
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
-import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
@@ -24,7 +18,6 @@ import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntityCosmos;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.model.spontaneous.*;
-import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import lombok.AllArgsConstructor;
@@ -84,7 +77,7 @@ public class PartnerServiceCosmos {
   @Value("${azure.tables.connection.string}")
   private String tableConnectionString;
 
-  @Value("${receipts.table}")
+  @Value("${azure.tables.tableName}")
   private String receiptsTable;
 
   @Autowired private ObjectFactory factory;
@@ -595,7 +588,7 @@ public class PartnerServiceCosmos {
       getOrganizationTable().createEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
-      throw new AppException(AppError.NOT_CONNECTED);
+      throw new AppException(AppError.DB_ERROR);
     }
   }
 
@@ -606,7 +599,7 @@ public class PartnerServiceCosmos {
       return ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
-      throw new AppException(AppError.NOT_CONNECTED);
+      throw new AppException(AppError.DB_ERROR);
     }
   }
 
@@ -621,7 +614,7 @@ public class PartnerServiceCosmos {
       getOrganizationTable().updateEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
-      throw new AppException(AppError.NOT_CONNECTED);
+      throw new AppException(AppError.DB_ERROR);
     }
   }
 
@@ -709,7 +702,6 @@ public class PartnerServiceCosmos {
         request.getReceipt().getNoticeNumber());
     paymentValidator.isAuthorize(
         request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
-
     ReceiptEntityCosmos receiptEntity =
         this.getReceiptEntity(
             request.getIdPA(),
@@ -867,7 +859,7 @@ public class PartnerServiceCosmos {
       return tableServiceClient.getTableClient(receiptsTable);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
-      throw new AppException(AppError.NOT_CONNECTED);
+      throw new AppException(AppError.DB_ERROR);
     }
   }
 }

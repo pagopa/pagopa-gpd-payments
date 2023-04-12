@@ -45,11 +45,6 @@
         <!-- Start cosmos tables-->
         <dependency>
             <groupId>com.azure</groupId>
-            <artifactId>azure-core</artifactId>
-            <version>${azure.core.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
             <artifactId>azure-data-tables</artifactId>
             <version>${azure.data.table.version}</version>
         </dependency>
