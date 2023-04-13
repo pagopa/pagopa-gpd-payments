@@ -1,8 +1,15 @@
 package it.gov.pagopa.payments.service;
 
+import com.azure.core.http.rest.PagedFlux;
+import com.azure.core.http.rest.PagedIterable;
+import com.azure.core.http.rest.PagedResponse;
+import com.azure.core.util.Context;
+import com.azure.core.util.paging.ContinuablePagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.implementation.EntityPaged;
+import com.azure.data.tables.implementation.TableUtils;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
@@ -24,7 +31,11 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -129,12 +140,27 @@ public class PaymentsServiceCosmos{
         }
 
         if(null != limit){
-            filters.add(String.format("skip=%i", pageNum*limit));
-            filters.add(String.format("top=%i", limit));
+            Iterator<PagedResponse<TableEntity>> res = tableClient.listEntities(new ListEntitiesOptions().
+                            setFilter(String.join(" and ", filters)), null, null)
+                    .iterableByPage(limit)
+                    .iterator();
+            List<TableEntity> list = new ArrayList<>();
+            for(int i = 0; i < pageNum; i++){
+                if(!res.hasNext()){
+                    throw new AppException(AppError.NOT_ENOUGH_PAGES);
+                }
+                list = res.next().getValue();
+            }
+            List<ReceiptEntityCosmos> out = new ArrayList<>();
+            for(int i = 0; i < list.size() - 1; i++){
+                out.set(i, ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(list.get(i)));
+            }
+            return out;
         }
 
         List<ReceiptEntityCosmos> modelList = tableClient.listEntities(new ListEntitiesOptions()
-                        .setFilter(String.join(" and ", filters)), null, null).stream()
+                        .setFilter(String.join(" and ", filters)), null, null)
+                        .stream()
                         .map(ConvertTableEntityToReceiptEntityCosmos::mapTableEntityToReceiptEntity)
                         .collect(Collectors.toList());
         return modelList;

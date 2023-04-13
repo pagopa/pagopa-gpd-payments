@@ -31,6 +31,12 @@ public enum AppError {
           HttpStatus.SERVICE_UNAVAILABLE,
           "Internal DB error",
           "Something went wrong in the DB operation"),
+
+  NOT_ENOUGH_PAGES(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          "Not enough pages",
+          "There are not enough receipts for the inserted limit and page number"),
+
   UNKNOWN(null, null, null);
 
   public final HttpStatus httpStatus;

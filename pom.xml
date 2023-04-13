@@ -24,7 +24,7 @@
         <azure.functions.java.library.version>1.4.2</azure.functions.java.library.version>
         <azure.storage.table.version>8.6.6</azure.storage.table.version>
         <azure.data.table.version>12.3.9</azure.data.table.version>
-        <azure.core.version>1.26.0</azure.core.version>
+        <azure.core.version>1.37.0</azure.core.version>
         <springdoc-version>1.6.6</springdoc-version>
     </properties>
 
@@ -43,6 +43,11 @@
         </dependency>
         <!-- End Azure -->
         <!-- Start cosmos tables-->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
+            <version>${azure.core.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-data-tables</artifactId>

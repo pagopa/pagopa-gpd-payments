@@ -16,7 +16,7 @@ public class ConvertReceiptEntityToReceiptModelResponse
     return ReceiptModelResponse.builder()
         .organizationFiscalCode(re.getPartitionKey())
         .iuv(re.getRowKey())
-        .debtorFiscalCode(re.getDebtor())
+        .debtor(re.getDebtor())
         .build();
   }
 }
