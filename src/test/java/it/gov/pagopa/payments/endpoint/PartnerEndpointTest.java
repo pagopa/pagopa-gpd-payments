@@ -22,12 +22,13 @@ import it.gov.pagopa.payments.model.partner.PaSendRTReq;
 import it.gov.pagopa.payments.model.partner.PaSendRTRes;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
-import it.gov.pagopa.payments.service.PartnerService;
 import java.io.IOException;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+
+import it.gov.pagopa.payments.service.PartnerServiceCosmos;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,12 +36,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.xml.sax.SAXException;
 
+//TODO change the tests adapting them to the cosmos table
 @ExtendWith(MockitoExtension.class)
 class PartnerEndpointTest {
 
   @InjectMocks private PartnerEndpoint partnerEndpoint;
 
-  @Mock private PartnerService partnerService;
+  @Mock private PartnerServiceCosmos partnerServiceCosmos;
 
   @Mock private ObjectFactory factory;
 
@@ -55,7 +57,7 @@ class PartnerEndpointTest {
     JAXBElement<PaVerifyPaymentNoticeReq> request =
         factoryUtil.createPaVerifyPaymentNoticeReq(requestBody);
 
-    when(partnerService.paVerifyPaymentNotice(requestBody)).thenReturn(responseBody);
+    when(partnerServiceCosmos.paVerifyPaymentNotice(requestBody)).thenReturn(responseBody);
     when(factory.createPaVerifyPaymentNoticeRes(responseBody))
         .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes(responseBody));
 
@@ -74,7 +76,7 @@ class PartnerEndpointTest {
     PaGetPaymentRes responseBody = PaGetPaymentResMock.getMock();
     JAXBElement<PaGetPaymentReq> request = factoryUtil.createPaGetPaymentReq(requestBody);
 
-    when(partnerService.paGetPayment(requestBody)).thenReturn(responseBody);
+    when(partnerServiceCosmos.paGetPayment(requestBody)).thenReturn(responseBody);
     when(factory.createPaGetPaymentRes(responseBody))
         .thenReturn(factoryUtil.createPaGetPaymentRes(responseBody));
 
@@ -93,7 +95,7 @@ class PartnerEndpointTest {
     PaSendRTRes responseBody = PaSendRTResMock.getMock();
     JAXBElement<PaSendRTReq> request = factoryUtil.createPaSendRTReq(requestBody);
 
-    when(partnerService.paSendRT(requestBody)).thenReturn(responseBody);
+    when(partnerServiceCosmos.paSendRT(requestBody)).thenReturn(responseBody);
     when(factory.createPaSendRTRes(responseBody))
         .thenReturn(factoryUtil.createPaSendRTRes(responseBody));
 
@@ -116,7 +118,7 @@ class PartnerEndpointTest {
     PaSendRTRes responseBody = PaSendRTResMock.getMock();
     JAXBElement<PaSendRTReq> request = factoryUtil.createPaSendRTReq(requestBody);
 
-    when(partnerService.paSendRT(requestBody)).thenReturn(responseBody);
+    when(partnerServiceCosmos.paSendRT(requestBody)).thenReturn(responseBody);
     when(factory.createPaSendRTRes(responseBody))
         .thenReturn(factoryUtil.createPaSendRTRes(responseBody));
 
@@ -141,7 +143,7 @@ class PartnerEndpointTest {
     JAXBElement<PaDemandPaymentNoticeRequest> request =
         factoryUtil.createPaDemandPaymentNoticeRequest(requestBody);
 
-    when(partnerService.paDemandPaymentNotice(requestBody)).thenReturn(responseBody);
+    when(partnerServiceCosmos.paDemandPaymentNotice(requestBody)).thenReturn(responseBody);
     when(factory.createPaDemandPaymentNoticeResponse(responseBody))
         .thenReturn(factoryUtil.createPaDemandPaymentNoticeResponse(responseBody));
 

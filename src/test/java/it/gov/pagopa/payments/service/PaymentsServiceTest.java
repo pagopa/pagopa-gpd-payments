@@ -34,6 +34,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+//TODO change the tests adapting them to the cosmos table
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
 class PaymentsServiceTest {

@@ -68,14 +68,11 @@ public class PartnerServiceCosmos {
 
   public final static String STATUS_PROPERTY = "status";
 
-  @Value("${payments.sa.connection}")
-  private String storageConnectionString;
+  @Value("${azure.tables.connection.string}")
+  private String tableConnectionString;
 
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
-
-  @Value("${azure.tables.connection.string}")
-  private String tableConnectionString;
 
   @Value("${azure.tables.tableName}")
   private String receiptsTable;
