@@ -132,7 +132,8 @@ public class PaymentsServiceCosmos{
         filters.add(String.format("PartitionKey eq '%s'", organizationFiscalCode));
 
         if(null != debtor){
-            filters.add(String.format("Debtor eq '%s'", debtor));
+            System.out.println("HERE");
+            filters.add(String.format("debtor eq '%s'", debtor));
         }
 
         if(null != service){
