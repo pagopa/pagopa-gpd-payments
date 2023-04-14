@@ -4,6 +4,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableErrorCode;
 import com.azure.data.tables.models.TableServiceException;
 import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
@@ -588,6 +589,10 @@ public class PartnerServiceCosmos {
       getOrganizationTable().createEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
+      if(e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS)
+      {
+        throw new AppException(AppError.RECEIPT_CONFLICT);
+      }
       throw new AppException(AppError.DB_ERROR);
     }
   }

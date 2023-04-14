@@ -32,6 +32,11 @@ public enum AppError {
           "Internal DB error",
           "Something went wrong in the DB operation"),
 
+  RECEIPT_CONFLICT(
+          HttpStatus.CONFLICT,
+          "Receipt conflict",
+          "The receipt inserted already exists"),
+
   NOT_ENOUGH_PAGES(
           HttpStatus.INTERNAL_SERVER_ERROR,
           "Not enough pages",
