@@ -14,4 +14,5 @@ public class ReceiptModelResponse {
   private String organizationFiscalCode;
   private String iuv;
   private String debtor;
+  private String paymentDateTime;
 }

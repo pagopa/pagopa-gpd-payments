@@ -7,12 +7,15 @@ public class ConvertTableEntityToReceiptEntityCosmos {
     public final static String DEBTOR_PROPERTY = "debtor";
     public final static String DOCUMENT_PROPERTY = "document";
     public final static String STATUS_PROPERTY = "status";
+    public final static String PAYMENT_DATE_PROPERTY = "paymentDate";
 
     public static ReceiptEntityCosmos mapTableEntityToReceiptEntity(TableEntity tableEntity) {
         ReceiptEntityCosmos observation = new ReceiptEntityCosmos(
                 tableEntity.getPartitionKey(), tableEntity.getRowKey(),
-                tableEntity.getProperty(DEBTOR_PROPERTY).toString(), tableEntity.getProperty(DOCUMENT_PROPERTY).toString(),
-                tableEntity.getProperty(STATUS_PROPERTY).toString());
+                tableEntity.getProperty(DEBTOR_PROPERTY).toString(),
+                tableEntity.getProperty(DOCUMENT_PROPERTY).toString(),
+                tableEntity.getProperty(STATUS_PROPERTY).toString(),
+                tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString());
         return observation;
     }
 }

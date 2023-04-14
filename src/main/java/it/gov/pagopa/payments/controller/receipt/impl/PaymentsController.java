@@ -55,7 +55,9 @@ public class PaymentsController implements IPaymentsController {
       @Valid @Positive @Max(999) Integer limit,
       @Valid @Min(0) Integer page,
       String debtor,
-      String service) {
+      String service,
+      String from,
+      String to) {
     log.info(
         String.format(
             LOG_BASE_HEADER_INFO,
@@ -67,8 +69,7 @@ public class PaymentsController implements IPaymentsController {
                 + "; service= "
                 + service));
     PaymentsResult<ReceiptEntityCosmos> receipts =
-        paymentsServiceCosmos.getOrganizationReceipts(
-            limit, page, organizationFiscalCode, debtor, service);
+        paymentsServiceCosmos.getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to);
     return new ResponseEntity<>(
         ReceiptsInfo.builder()
             .receiptsList(

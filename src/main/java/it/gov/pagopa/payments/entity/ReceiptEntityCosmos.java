@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import javax.xml.datatype.XMLGregorianCalendar;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,6 +18,7 @@ public class ReceiptEntityCosmos{
     private String debtor;
     private String document;
     private String status = Status.CREATED.name();
+    private String paymentDateTime;
 
     public ReceiptEntityCosmos(String organizationFiscalCode, String iuv){
         this.organizationFiscalCode = organizationFiscalCode;

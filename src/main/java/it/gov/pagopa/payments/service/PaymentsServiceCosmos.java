@@ -70,18 +70,18 @@ public class PaymentsServiceCosmos{
     }
 
     public PaymentsResult<ReceiptEntityCosmos> getOrganizationReceipts(
-            @Positive Integer limit,
-            @Min(0) Integer pageNum,
             @NotBlank String organizationFiscalCode,
             String debtor,
-            String service) {
+            String service,
+            String from,
+            String to) {
         List<ReceiptEntityCosmos> receiptList = new ArrayList<>();
 
         try {
 
             List<ReceiptEntityCosmos> filteredEntities = retrieveEntitiesByFilter(getOrganizationTable(),
-                    organizationFiscalCode, debtor, service, limit, pageNum);
-            return this.setReceiptsOutput(filteredEntities, pageNum);
+                    organizationFiscalCode, debtor, service, from, to);
+            return this.setReceiptsOutput(filteredEntities);
 
         }
         catch (TableServiceException e) {
@@ -125,14 +125,13 @@ public class PaymentsServiceCosmos{
     }
 
     public List<ReceiptEntityCosmos> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
-                                                              String debtor, String service, Integer limit, Integer pageNum) {
+                                                              String debtor, String service, String from, String to) {
 
         List<String> filters = new ArrayList<>();
 
         filters.add(String.format("PartitionKey eq '%s'", organizationFiscalCode));
 
         if(null != debtor){
-            System.out.println("HERE");
             filters.add(String.format("debtor eq '%s'", debtor));
         }
 
@@ -140,23 +139,8 @@ public class PaymentsServiceCosmos{
             PaymentsServiceCosmos.getStartsWithFilter(filters, service);
         }
 
-        if(null != limit){
-            Iterator<PagedResponse<TableEntity>> res = tableClient.listEntities(new ListEntitiesOptions().
-                            setFilter(String.join(" and ", filters)), null, null)
-                    .iterableByPage(limit)
-                    .iterator();
-            List<TableEntity> list = new ArrayList<>();
-            for(int i = 0; i < pageNum; i++){
-                if(!res.hasNext()){
-                    throw new AppException(AppError.NOT_ENOUGH_PAGES);
-                }
-                list = res.next().getValue();
-            }
-            List<ReceiptEntityCosmos> out = new ArrayList<>();
-            for(int i = 0; i < list.size() - 1; i++){
-                out.set(i, ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(list.get(i)));
-            }
-            return out;
+        if(null != from && null != to){
+            filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
         }
 
         List<ReceiptEntityCosmos> modelList = tableClient.listEntities(new ListEntitiesOptions()
@@ -177,10 +161,9 @@ public class PaymentsServiceCosmos{
         filters.add(String.format("Rowkey lt %s", startWithEnd));
     }
 
-    private PaymentsResult<ReceiptEntityCosmos> setReceiptsOutput(List<ReceiptEntityCosmos> listOfEntity, Integer pageNum) {
+    private PaymentsResult<ReceiptEntityCosmos> setReceiptsOutput(List<ReceiptEntityCosmos> listOfEntity) {
         PaymentsResult<ReceiptEntityCosmos> result = new PaymentsResult<>();
         result.setResults(listOfEntity);
-        result.setCurrentPageNumber(pageNum);
         result.setLength(listOfEntity.size());
         return result;
     }

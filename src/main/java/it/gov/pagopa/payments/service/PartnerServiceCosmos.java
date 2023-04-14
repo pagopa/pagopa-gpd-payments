@@ -68,6 +68,8 @@ public class PartnerServiceCosmos {
 
   public final static String STATUS_PROPERTY = "status";
 
+  public final static String PAYMENT_DATE_PROPERTY = "paymentDate";
+
   @Value("${azure.tables.connection.string}")
   private String tableConnectionString;
 
@@ -581,6 +583,7 @@ public class PartnerServiceCosmos {
       properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
       properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
       properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
+      properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
       tableEntity.setProperties(properties);
       getOrganizationTable().createEntity(tableEntity);
     } catch (TableServiceException e) {
@@ -608,6 +611,7 @@ public class PartnerServiceCosmos {
       properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
       properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
       properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
+      properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
       getOrganizationTable().updateEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
@@ -703,7 +707,8 @@ public class PartnerServiceCosmos {
         this.getReceiptEntity(
             request.getIdPA(),
             request.getReceipt().getCreditorReferenceId(),
-            request.getReceipt().getDebtor());
+            request.getReceipt().getDebtor(),
+            request.getReceipt().getPaymentDateTime().toString());
     // save the receipt info with status CREATED
     try {
       receiptEntity.setDocument(this.marshal(request));
@@ -753,7 +758,8 @@ public class PartnerServiceCosmos {
         this.getReceiptEntity(
             request.getIdPA(),
             request.getReceipt().getCreditorReferenceId(),
-            request.getReceipt().getDebtor());
+            request.getReceipt().getDebtor(),
+            request.getReceipt().getPaymentDateTime().toString());
     // save the receipt info with status CREATED
     try {
       receiptEntity.setDocument(this.marshalV2(request));
@@ -793,7 +799,7 @@ public class PartnerServiceCosmos {
   }
 
   private ReceiptEntityCosmos getReceiptEntity(
-      String idPa, String creditorReferenceId, CtSubject debtor) {
+      String idPa, String creditorReferenceId, CtSubject debtor, String paymentDateTime) {
     ReceiptEntityCosmos receiptEntity = new ReceiptEntityCosmos(idPa, creditorReferenceId);
     String debtorIdentifier =
         Optional.ofNullable(debtor)
@@ -801,6 +807,7 @@ public class PartnerServiceCosmos {
             .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
             .orElse("");
     receiptEntity.setDebtor(debtorIdentifier);
+    receiptEntity.setPaymentDateTime(paymentDateTime);
     return receiptEntity;
   }
 

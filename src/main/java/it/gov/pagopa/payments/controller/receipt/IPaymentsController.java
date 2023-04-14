@@ -133,5 +133,7 @@ public interface IPaymentsController {
           @Min(0)
           Integer page,
       @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
-      @Parameter(description = "Filter by service") @RequestParam(required = false) String service);
+      @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
+      @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
+      @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to);
 }
