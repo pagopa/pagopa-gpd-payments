@@ -13,6 +13,9 @@ import com.azure.data.tables.implementation.TableUtils;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
+import com.microsoft.azure.storage.table.CloudTable;
+import feign.FeignException;
+import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
@@ -56,9 +59,9 @@ public class PaymentsServiceCosmos{
 
     public PaymentsServiceCosmos() {}
 
-    public PaymentsServiceCosmos(
-            GpdClient gpdClient) {
+    public PaymentsServiceCosmos(GpdClient gpdClient, TableClient tableClient) {
         this.gpdClient = gpdClient;
+        this.tableClient = tableClient;
     }
 
     public PaymentsResult<ReceiptEntityCosmos> getOrganizationReceipts(
@@ -67,13 +70,11 @@ public class PaymentsServiceCosmos{
             String service,
             String from,
             String to) {
-        List<ReceiptEntityCosmos> receiptList = new ArrayList<>();
-
         try {
 
             List<ReceiptEntityCosmos> filteredEntities = retrieveEntitiesByFilter(tableClient,
                     organizationFiscalCode, debtor, service, from, to);
-            return this.setReceiptsOutput(filteredEntities);
+            return this.setReceiptsOutput(getGPDCheckedReceiptsList(filteredEntities, tableClient));
 
         }
         catch (TableServiceException e) {
@@ -114,6 +115,29 @@ public class PaymentsServiceCosmos{
             tableEntity.addProperty(STATUS_PROPERTY, Status.PAID.name());
             tableClient.updateEntity(tableEntity);
         }
+    }
+
+    public List<ReceiptEntityCosmos> getGPDCheckedReceiptsList(List<ReceiptEntityCosmos> result, TableClient tableClient) {
+        // for all the receipts in the azure table, only those that have been already PAID status or are
+        // in PAID status on GPD are returned
+        List<ReceiptEntityCosmos> checkedReceipts = new ArrayList<>();
+        for (ReceiptEntityCosmos re : result) {
+            try {
+                this.checkGPDDebtPosStatus(new TableEntity(re.getOrganizationFiscalCode(), re.getIuv()), tableClient);
+                checkedReceipts.add(re);
+            } catch (FeignException.NotFound e) {
+                log.error(
+                        "[getGPDCheckedReceiptsList] Non-blocking error: "
+                                + "get not found exception in the recovery of payment options",
+                        e);
+            } catch (AppException e) {
+                log.error(
+                        "[getGPDCheckedReceiptsList] Non-blocking error: Receipt is not in an eligible state on"
+                                + " GPD in order to be returned to the caller",
+                        e);
+            }
+        }
+        return checkedReceipts;
     }
 
     public List<ReceiptEntityCosmos> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,

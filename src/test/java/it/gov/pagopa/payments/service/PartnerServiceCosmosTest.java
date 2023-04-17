@@ -71,8 +71,6 @@ import static org.mockito.Mockito.*;
 @Slf4j
 @SpringBootTest
 class PartnerServiceCosmosTest {
-
-  private static final CosmosDBEmulatorContainer emulator = Initializer.getEmulator();
   @InjectMocks private PartnerService partnerService;
 
   @Mock PaymentValidator paymentValidator;
