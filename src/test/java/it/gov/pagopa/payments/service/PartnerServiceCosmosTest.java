@@ -1,5 +1,7 @@
 package it.gov.pagopa.payments.service;
 
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableServiceException;
@@ -93,29 +95,13 @@ class PartnerServiceCosmosTest {
   public static GenericContainer<?> cosmos =
           new GenericContainer<>(
                   DockerImageName.parse("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest"))
-                  .withExposedPorts(10001, 10002, 10000);
+                  .withExposedPorts(8902);
 
   String cosmosConnectionString =
           String.format(
                   "DefaultEndpointsProtocol=http;AccountName=localhost;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;TableEndpoint=http://%s:%s/;",
                   cosmos.getContainerIpAddress(),
                   cosmos.getMappedPort(8902));
-
-  @ClassRule @Container
-  public static GenericContainer<?> azurite =
-      new GenericContainer<>(
-              DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
-          .withExposedPorts(10001, 10002, 10000);
-
-  String storageConnectionString =
-      String.format(
-          "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://%s:%s/devstoreaccount1;QueueEndpoint=http://%s:%s/devstoreaccount1;BlobEndpoint=http://%s:%s/devstoreaccount1",
-          azurite.getContainerIpAddress(),
-          azurite.getMappedPort(10002),
-          azurite.getContainerIpAddress(),
-          azurite.getMappedPort(10001),
-          azurite.getContainerIpAddress(),
-          azurite.getMappedPort(10000));
 
   @Test
   void paVerifyPaymentNoticeTest() throws DatatypeConfigurationException, IOException {
@@ -446,16 +432,14 @@ class PartnerServiceCosmosTest {
   void paSendRTTest() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock();
@@ -472,18 +456,6 @@ class PartnerServiceCosmosTest {
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
 
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception e) {
-      log.info("Error during table creation", e);
-    }
-
     // Test execution
     PaSendRTRes responseBody = pService.paSendRT(requestBody);
 
@@ -496,16 +468,14 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKOConflict() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock();
@@ -513,18 +483,6 @@ class PartnerServiceCosmosTest {
     var e = Mockito.mock(FeignException.Conflict.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
 
     try {
       // Test execution
@@ -541,16 +499,14 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKOStatus(String status) throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock();
@@ -561,18 +517,6 @@ class PartnerServiceCosmosTest {
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(paymentOption);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", ex);
-    }
 
     try {
       // Test execution
@@ -588,16 +532,14 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKORetryableException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock();
@@ -605,18 +547,6 @@ class PartnerServiceCosmosTest {
     var e = Mockito.mock(RetryableException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
 
     try {
       // Test execution
@@ -632,34 +562,20 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKOFeignException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock();
 
     var e = Mockito.mock(FeignException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
 
     try {
       // Test execution
@@ -675,16 +591,14 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKO() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock();
@@ -692,18 +606,6 @@ class PartnerServiceCosmosTest {
     var e = Mockito.mock(NullPointerException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
 
     try {
       // Test execution
@@ -717,18 +619,11 @@ class PartnerServiceCosmosTest {
 
   @Test
   void cosmosStorageTest() throws TableServiceException {
-    TableServiceClient tableServiceClient = new TableServiceClientBuilder()
+    TableClient tableClient = new TableClientBuilder()
             .connectionString(cosmosConnectionString)
+            .tableName("testTable")
             .buildClient();
     //return tableServiceClient.getTableClient("testTable");
-  }
-
-  @Test
-  void azureStorageTest() throws InvalidKeyException, URISyntaxException, StorageException {
-    AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString, true);
-    azuriteStorageUtil.createTable("testTable");
-    // se arrivo a questa riga la tabella è stata creata
-    assertTrue(true);
   }
 
   @Test
@@ -739,16 +634,14 @@ class PartnerServiceCosmosTest {
           ParserConfigurationException,
           SAXException {
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
@@ -785,16 +678,14 @@ class PartnerServiceCosmosTest {
       throws PartnerValidationException, DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -852,16 +743,14 @@ class PartnerServiceCosmosTest {
       throws PartnerValidationException, DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -961,16 +850,14 @@ class PartnerServiceCosmosTest {
   void paSendRTV2Test() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
@@ -987,18 +874,6 @@ class PartnerServiceCosmosTest {
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
 
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception e) {
-      log.info("Error during table creation", e);
-    }
-
     // Test execution
     PaSendRTV2Response responseBody = pService.paSendRTV2(requestBody);
 
@@ -1011,16 +886,14 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKOConflict() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
@@ -1028,18 +901,6 @@ class PartnerServiceCosmosTest {
     var e = Mockito.mock(FeignException.Conflict.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
 
     try {
       // Test execution
@@ -1056,16 +917,14 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKOStatus(String status) throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
@@ -1076,18 +935,6 @@ class PartnerServiceCosmosTest {
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(paymentOption);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", ex);
-    }
 
     try {
       // Test execution
@@ -1103,16 +950,14 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKORetryableException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                    resource,
+                    factory,
+                    gpdClient,
+                    gpsClient,
+                    tableClientConfiguration(),
+                    paymentValidator,
+                    customizedModelMapper));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
@@ -1120,18 +965,6 @@ class PartnerServiceCosmosTest {
     var e = Mockito.mock(RetryableException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
 
     try {
       // Test execution
@@ -1147,34 +980,21 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKOFeignException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                            resource,
+                            factory,
+                            gpdClient,
+                            gpsClient,
+                            tableClientConfiguration(),
+                            paymentValidator,
+                            customizedModelMapper));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+
 
     var e = Mockito.mock(FeignException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
 
     try {
       // Test execution
@@ -1190,16 +1010,14 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKO() throws DatatypeConfigurationException, IOException {
 
     var pService =
-        spy(
-            new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
-                resource,
-                factory,
-                gpdClient,
-                gpsClient,
-                paymentValidator,
-                customizedModelMapper));
+            spy(new PartnerServiceCosmos(
+                            resource,
+                            factory,
+                            gpdClient,
+                            gpsClient,
+                            tableClientConfiguration(),
+                            paymentValidator,
+                            customizedModelMapper));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
@@ -1207,19 +1025,6 @@ class PartnerServiceCosmosTest {
     var e = Mockito.mock(NullPointerException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
-
-    try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
-      table.createIfNotExists();
-    } catch (Exception ex) {
-      log.info("Error during table creation", e);
-    }
-
     try {
       // Test execution
       pService.paSendRTV2(requestBody);
@@ -1228,5 +1033,12 @@ class PartnerServiceCosmosTest {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
     }
+  }
+
+  private TableClient tableClientConfiguration() {
+    return new TableClientBuilder()
+            .connectionString(cosmosConnectionString)
+            .tableName("testTable")
+            .buildClient();
   }
 }
