@@ -71,20 +71,16 @@ public class PartnerServiceCosmos {
 
   public final static String PAYMENT_DATE_PROPERTY = "paymentDate";
 
-  @Value("${azure.tables.connection.string}")
-  private String tableConnectionString;
-
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
-
-  @Value("${azure.tables.tableName}")
-  private String receiptsTable;
 
   @Autowired private ObjectFactory factory;
 
   @Autowired private GpdClient gpdClient;
 
   @Autowired private GpsClient gpsClient;
+
+  @Autowired private TableClient tableClient;
 
   @Autowired private PaymentValidator paymentValidator;
 
@@ -586,7 +582,7 @@ public class PartnerServiceCosmos {
       properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
       properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
       tableEntity.setProperties(properties);
-      getOrganizationTable().createEntity(tableEntity);
+      tableClient.createEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
       if(e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS)
@@ -600,7 +596,7 @@ public class PartnerServiceCosmos {
   private ReceiptEntityCosmos getReceipt(String organizationFiscalCode, String iuv)
       throws InvalidKeyException, URISyntaxException, StorageException {
     try{
-      TableEntity tableEntity = getOrganizationTable().getEntity(organizationFiscalCode, iuv);
+      TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
       return ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
@@ -611,13 +607,13 @@ public class PartnerServiceCosmos {
   private void updateReceipt(ReceiptEntityCosmos receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
     try {
-      TableEntity tableEntity = getOrganizationTable().getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
+      TableEntity tableEntity = tableClient.getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
       Map<String, Object> properties = new HashMap<>();
       properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
       properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
       properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
       properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
-      getOrganizationTable().updateEntity(tableEntity);
+      tableClient.updateEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
       throw new AppException(AppError.DB_ERROR);
@@ -858,17 +854,5 @@ public class PartnerServiceCosmos {
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
     return paymentOption;
-  }
-
-  private TableClient getOrganizationTable() {
-    try {
-      TableServiceClient tableServiceClient = new TableServiceClientBuilder()
-              .connectionString(tableConnectionString)
-              .buildClient();
-      return tableServiceClient.getTableClient(receiptsTable);
-    } catch (TableServiceException e) {
-      log.error("Error in organization table connection", e);
-      throw new AppException(AppError.DB_ERROR);
-    }
   }
 }

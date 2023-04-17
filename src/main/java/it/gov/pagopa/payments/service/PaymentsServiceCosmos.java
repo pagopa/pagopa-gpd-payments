@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class PaymentsServiceCosmos{
-
     private static final String PARTITION_KEY_FIELD = "PartitionKey";
     private static final String ROW_KEY_FIELD = "RowKey";
     private static final String DEBTOR_FIELD = "Debtor";
@@ -51,21 +50,14 @@ public class PaymentsServiceCosmos{
 
     public final static String STATUS_PROPERTY = "status";
 
-    @Value("${azure.tables.connection.string}")
-    private String tableConnectionString;
-
-    @Value("${azure.tables.tableName}")
-    private String receiptsTable;
-
+    @Autowired private TableClient tableClient;
     @Autowired
     private GpdClient gpdClient;
 
     public PaymentsServiceCosmos() {}
 
     public PaymentsServiceCosmos(
-            String tableConnectionString, String receiptsTable, GpdClient gpdClient) {
-        this.tableConnectionString = tableConnectionString;
-        this.receiptsTable = receiptsTable;
+            GpdClient gpdClient) {
         this.gpdClient = gpdClient;
     }
 
@@ -79,7 +71,7 @@ public class PaymentsServiceCosmos{
 
         try {
 
-            List<ReceiptEntityCosmos> filteredEntities = retrieveEntitiesByFilter(getOrganizationTable(),
+            List<ReceiptEntityCosmos> filteredEntities = retrieveEntitiesByFilter(tableClient,
                     organizationFiscalCode, debtor, service, from, to);
             return this.setReceiptsOutput(filteredEntities);
 
@@ -95,8 +87,8 @@ public class PaymentsServiceCosmos{
 
         final String LOG_BASE_PARAMS_DETAIL = "organizationFiscalCode= %s, iuv=%s";
         try{
-            TableEntity tableEntity = getOrganizationTable().getEntity(organizationFiscalCode, iuv);
-            this.checkGPDDebtPosStatus(tableEntity, getOrganizationTable());
+            TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
+            this.checkGPDDebtPosStatus(tableEntity, tableClient);
             return ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(tableEntity);
         } catch (TableServiceException e) {
             log.error("Error in organization table connection", e);
@@ -166,17 +158,5 @@ public class PaymentsServiceCosmos{
         result.setResults(listOfEntity);
         result.setLength(listOfEntity.size());
         return result;
-    }
-
-    private TableClient getOrganizationTable() {
-        try {
-            TableServiceClient tableServiceClient = new TableServiceClientBuilder()
-                    .connectionString(tableConnectionString)
-                    .buildClient();
-            return tableServiceClient.getTableClient(receiptsTable);
-        } catch (TableServiceException e) {
-            log.error("Error in organization table connection", e);
-            throw new AppException(AppError.DB_ERROR);
-        }
     }
 }
