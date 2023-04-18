@@ -13,7 +13,7 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
-import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntityCosmos;
+import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.model.spontaneous.*;
@@ -595,7 +595,7 @@ public class PartnerService {
       throws InvalidKeyException, URISyntaxException, StorageException {
     try{
       TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
-      return ConvertTableEntityToReceiptEntityCosmos.mapTableEntityToReceiptEntity(tableEntity);
+      return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error("Error in organization table connection", e);
       throw new AppException(AppError.DB_ERROR);

@@ -3,7 +3,7 @@ package it.gov.pagopa.payments.mapper;
 import com.azure.data.tables.models.TableEntity;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 
-public class ConvertTableEntityToReceiptEntityCosmos {
+public class ConvertTableEntityToReceiptEntity {
     public final static String DEBTOR_PROPERTY = "debtor";
     public final static String DOCUMENT_PROPERTY = "document";
     public final static String STATUS_PROPERTY = "status";
