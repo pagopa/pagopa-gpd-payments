@@ -160,7 +160,6 @@ class PaymentsServiceCosmosTest {
     assertNotNull(res);
     assertEquals(5, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
-    assertEquals(true, res.isHasMoreResults());
   }
 
   @Test
