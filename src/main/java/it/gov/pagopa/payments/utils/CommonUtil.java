@@ -1,7 +1,6 @@
 package it.gov.pagopa.payments.utils;
 
 import it.gov.pagopa.payments.entity.ReceiptEntity;
-import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.model.PageInfo;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import java.io.ByteArrayInputStream;
@@ -37,7 +36,7 @@ public class CommonUtil {
    * @param receipts Page returned from the database
    * @return return the page info
    */
-  public PageInfo buildPageInfoCosmos(PaymentsResult<ReceiptEntityCosmos> receipts) {
+  public PageInfo buildPageInfoCosmos(PaymentsResult<ReceiptEntity> receipts) {
     return PageInfo.builder()
             .limit(receipts.getPageSize())
             .morePages(receipts.isHasMoreResults())

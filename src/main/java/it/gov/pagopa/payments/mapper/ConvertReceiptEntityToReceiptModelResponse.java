@@ -14,8 +14,8 @@ public class ConvertReceiptEntityToReceiptModelResponse
       MappingContext<ReceiptEntity, ReceiptModelResponse> mappingContext) {
     @Valid ReceiptEntity re = mappingContext.getSource();
     return ReceiptModelResponse.builder()
-        .organizationFiscalCode(re.getPartitionKey())
-        .iuv(re.getRowKey())
+        .organizationFiscalCode(re.getOrganizationFiscalCode())
+        .iuv(re.getIuv())
         .debtor(re.getDebtor())
         .build();
   }

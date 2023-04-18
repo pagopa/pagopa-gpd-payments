@@ -6,8 +6,10 @@ import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeResMock;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
-import it.gov.pagopa.payments.service.PartnerService;
+
 import javax.xml.datatype.DatatypeConfigurationException;
+
+import it.gov.pagopa.payments.service.PartnerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;

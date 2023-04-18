@@ -28,7 +28,7 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
-import it.gov.pagopa.payments.service.PartnerServiceCosmos;
+import it.gov.pagopa.payments.service.PartnerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,7 +42,7 @@ class PartnerEndpointTest {
 
   @InjectMocks private PartnerEndpoint partnerEndpoint;
 
-  @Mock private PartnerServiceCosmos partnerServiceCosmos;
+  @Mock private PartnerService partnerServiceCosmos;
 
   @Mock private ObjectFactory factory;
 

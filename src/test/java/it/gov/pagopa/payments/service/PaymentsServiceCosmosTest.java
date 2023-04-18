@@ -3,11 +3,8 @@ package it.gov.pagopa.payments.service;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.RetryNoRetry;
 import com.microsoft.azure.storage.StorageException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
-import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mock.MockUtil;
@@ -52,7 +49,7 @@ class PaymentsServiceCosmosTest {
   public final static String PAYMENT_DATE_PROPERTY = "paymentDate";
 
   @InjectMocks
-  private PaymentsServiceCosmos paymentsService;
+  private PaymentsService paymentsService;
 
   @Mock private GpdClient gpdClient;
 
@@ -104,11 +101,11 @@ class PaymentsServiceCosmosTest {
   void getReceiptByOrganizationFCAndIUV() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsService(cosmosConnectionString, "receiptsTable", gpdClient));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     ReceiptEntity re = paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0");
-    assertEquals("org123456", re.getPartitionKey());
-    assertEquals("iuv0", re.getRowKey());
+    assertEquals("org123456", re.getOrganizationFiscalCode());
+    assertEquals("iuv0", re.getIuv());
     assertEquals("debtor0", re.getDebtor());
   }
 
@@ -130,7 +127,7 @@ class PaymentsServiceCosmosTest {
             .tableName("testTable")
             .buildClient();
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClient));
+        spy(new PaymentsService(gpdClient, tableClient));
 
     try {
       paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0");
@@ -144,9 +141,9 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_noFilter() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts(null, null, "org123456", null, null);
     assertNotNull(res);
     assertEquals(15, res.getResults().size());
@@ -156,9 +153,9 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_page_and_limit_filters() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts("5", "0", "org123456", null, null);
     assertNotNull(res);
     assertEquals(5, res.getResults().size());
@@ -170,9 +167,9 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_debtor_filter() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts(null, null, "org123456", "debtor5", null);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
@@ -183,9 +180,9 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_PAID_service_filter() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts(null, null, "org123456", null, "iuv5");
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
@@ -196,14 +193,14 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_CREATED_PO_PAID_service_filter() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     // precondition
     PaymentsModelResponse paymentModel =
         MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts(null, null, "org123456", null, "iuv11");
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
@@ -214,7 +211,7 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_CREATED_PO_UNPAID_service_filter() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     // precondition
     PaymentsModelResponse paymentModel =
@@ -222,7 +219,7 @@ class PaymentsServiceCosmosTest {
             "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts(null, null, "org123456", null, "iuv13");
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
@@ -233,9 +230,9 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_all_filters() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts("5", "0", "org123456", "debtor5", "iuv5");
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
@@ -246,7 +243,7 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_404_page_not_exist() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     try {
       paymentsService.getOrganizationReceipts("5", "3", "org123456", null, null);
@@ -259,9 +256,9 @@ class PaymentsServiceCosmosTest {
   void getOrganizationReceipts_debtor_not_exist() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptEntityCosmos> res =
+    PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts(null, null, "org123456", "debtor15", null);
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
@@ -277,7 +274,7 @@ class PaymentsServiceCosmosTest {
             .tableName("testTable")
             .buildClient();
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClient));
+        spy(new PaymentsService(gpdClient, tableClient));
 
     try {
       paymentsService.getOrganizationReceipts(null, null, "org123456", null, null);
@@ -291,20 +288,20 @@ class PaymentsServiceCosmosTest {
   void getGPDCheckedReceiptsList() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    List<ReceiptEntityCosmos> receipts = new ArrayList<>();
-    ReceiptEntityCosmos re1 = new ReceiptEntityCosmos("111", "aaa");
+    List<ReceiptEntity> receipts = new ArrayList<>();
+    ReceiptEntity re1 = new ReceiptEntity("111", "aaa");
     re1.setStatus(Status.PAID.name());
-    ReceiptEntityCosmos re2 = new ReceiptEntityCosmos("222", "bbb");
+    ReceiptEntity re2 = new ReceiptEntity("222", "bbb");
     re2.setStatus(Status.PAID.name());
-    ReceiptEntityCosmos re3 = new ReceiptEntityCosmos("333", "ccc");
+    ReceiptEntity re3 = new ReceiptEntity("333", "ccc");
     re3.setStatus(Status.PAID.name());
     receipts.add(re1);
     receipts.add(re2);
     receipts.add(re3);
 
-    List<ReceiptEntityCosmos> result = paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
+    List<ReceiptEntity> result = paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
 
     assertEquals(receipts.size(), result.size());
   }
@@ -313,12 +310,12 @@ class PaymentsServiceCosmosTest {
   void getGPDCheckedReceiptsList_GPDCheckFail() throws Exception {
 
     var paymentsService =
-        spy(new PaymentsServiceCosmos(gpdClient, tableClientConfiguration()));
+        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    List<ReceiptEntityCosmos> receipts = new ArrayList<>();
-    ReceiptEntityCosmos re1 = new ReceiptEntityCosmos("111", "aaa");
-    ReceiptEntityCosmos re2 = new ReceiptEntityCosmos("222", "bbb");
-    ReceiptEntityCosmos re3 = new ReceiptEntityCosmos("333", "ccc");
+    List<ReceiptEntity> receipts = new ArrayList<>();
+    ReceiptEntity re1 = new ReceiptEntity("111", "aaa");
+    ReceiptEntity re2 = new ReceiptEntity("222", "bbb");
+    ReceiptEntity re3 = new ReceiptEntity("333", "ccc");
     receipts.add(re1);
     receipts.add(re2);
     receipts.add(re3);
@@ -329,7 +326,7 @@ class PaymentsServiceCosmosTest {
             "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
-    List<ReceiptEntityCosmos> result = paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
+    List<ReceiptEntity> result = paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
 
     // tutte le ricevute sono state scartate
     assertEquals(0, result.size());

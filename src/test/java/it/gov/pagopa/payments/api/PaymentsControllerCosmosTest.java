@@ -5,14 +5,12 @@ import com.azure.data.tables.TableClientBuilder;
 import it.gov.pagopa.payments.PaymentsApplication;
 import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
-import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptsInfo;
 import it.gov.pagopa.payments.service.GpdClient;
 import it.gov.pagopa.payments.service.PaymentsService;
-import it.gov.pagopa.payments.service.PaymentsServiceCosmos;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,7 +58,7 @@ class PaymentsControllerCosmosTest {
   @Test
   void getReceiptByIUV_200() throws Exception {
     // precondition
-    ReceiptEntityCosmos receipt = new ReceiptEntityCosmos("mock", "mock");
+    ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
     receipt.setDebtor("XML");
     when(getPaymentsService().getReceiptByOrganizationFCAndIUV(anyString(), anyString()))
         .thenReturn(receipt);
@@ -86,8 +84,8 @@ class PaymentsControllerCosmosTest {
   @Test
   void getOrganizationReceipts_200() throws Exception {
     // precondition
-    PaymentsResult<ReceiptEntityCosmos> receipts = new PaymentsResult<ReceiptEntityCosmos>();
-    receipts.setResults(new ArrayList<ReceiptEntityCosmos>());
+    PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
+    receipts.setResults(new ArrayList<ReceiptEntity>());
     when(getPaymentsService().getOrganizationReceipts(
             anyString(), anyString(), anyString(), anyString(), anyString()))
         .thenReturn(receipts);
@@ -112,11 +110,11 @@ class PaymentsControllerCosmosTest {
     }
   }
 
-  private PaymentsServiceCosmos getPaymentsService(){
+  private PaymentsService getPaymentsService(){
     TableClient tableClient = new TableClientBuilder()
             .connectionString(cosmosConnectionString)
             .tableName("testTable")
             .buildClient();
-    return new PaymentsServiceCosmos(gpdClient, tableClient);
+    return new PaymentsService(gpdClient, tableClient);
   }
 }

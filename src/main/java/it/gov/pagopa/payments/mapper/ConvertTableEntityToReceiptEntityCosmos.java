@@ -1,7 +1,7 @@
 package it.gov.pagopa.payments.mapper;
 
 import com.azure.data.tables.models.TableEntity;
-import it.gov.pagopa.payments.entity.ReceiptEntityCosmos;
+import it.gov.pagopa.payments.entity.ReceiptEntity;
 
 public class ConvertTableEntityToReceiptEntityCosmos {
     public final static String DEBTOR_PROPERTY = "debtor";
@@ -9,8 +9,8 @@ public class ConvertTableEntityToReceiptEntityCosmos {
     public final static String STATUS_PROPERTY = "status";
     public final static String PAYMENT_DATE_PROPERTY = "paymentDate";
 
-    public static ReceiptEntityCosmos mapTableEntityToReceiptEntity(TableEntity tableEntity) {
-        ReceiptEntityCosmos observation = new ReceiptEntityCosmos(
+    public static ReceiptEntity mapTableEntityToReceiptEntity(TableEntity tableEntity) {
+        ReceiptEntity observation = new ReceiptEntity(
                 tableEntity.getPartitionKey(), tableEntity.getRowKey(),
                 tableEntity.getProperty(DEBTOR_PROPERTY).toString(),
                 tableEntity.getProperty(DOCUMENT_PROPERTY).toString(),

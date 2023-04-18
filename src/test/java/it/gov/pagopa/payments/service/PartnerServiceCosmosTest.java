@@ -2,30 +2,18 @@ package it.gov.pagopa.payments.service;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
-import com.azure.data.tables.TableServiceClient;
-import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableServiceException;
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.RetryNoRetry;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.CloudTableClient;
-import com.microsoft.azure.storage.table.TableRequestOptions;
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
-import it.gov.pagopa.payments.initializer.Initializer;
 import it.gov.pagopa.payments.mock.*;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
-import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.ClassRule;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,7 +27,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.testcontainers.containers.CosmosDBEmulatorContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -52,11 +39,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -430,7 +412,7 @@ class PartnerServiceCosmosTest {
   void paSendRTTest() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -466,7 +448,7 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKOConflict() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -497,7 +479,7 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKOStatus(String status) throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -530,7 +512,7 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKORetryableException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -560,7 +542,7 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKOFeignException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -589,7 +571,7 @@ class PartnerServiceCosmosTest {
   void paSendRTTestKO() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -632,7 +614,7 @@ class PartnerServiceCosmosTest {
           ParserConfigurationException,
           SAXException {
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -676,7 +658,7 @@ class PartnerServiceCosmosTest {
       throws PartnerValidationException, DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -741,7 +723,7 @@ class PartnerServiceCosmosTest {
       throws PartnerValidationException, DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -848,7 +830,7 @@ class PartnerServiceCosmosTest {
   void paSendRTV2Test() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -884,7 +866,7 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKOConflict() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -915,7 +897,7 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKOStatus(String status) throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -948,7 +930,7 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKORetryableException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                     resource,
                     factory,
                     gpdClient,
@@ -978,7 +960,7 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKOFeignException() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                             resource,
                             factory,
                             gpdClient,
@@ -1008,7 +990,7 @@ class PartnerServiceCosmosTest {
   void paSendRTV2TestKO() throws DatatypeConfigurationException, IOException {
 
     var pService =
-            spy(new PartnerServiceCosmos(
+            spy(new PartnerService(
                             resource,
                             factory,
                             gpdClient,

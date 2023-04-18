@@ -20,7 +20,7 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
-import it.gov.pagopa.payments.service.PartnerServiceCosmos;
+import it.gov.pagopa.payments.service.PartnerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
@@ -34,7 +34,7 @@ import org.xml.sax.SAXException;
 @Slf4j
 public class PartnerEndpoint {
 
-  @Autowired private PartnerServiceCosmos partnerServiceCosmos;
+  @Autowired private PartnerService partnerServiceCosmos;
 
   @Autowired private ObjectFactory factory;
 
