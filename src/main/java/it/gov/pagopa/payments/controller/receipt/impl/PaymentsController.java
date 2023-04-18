@@ -31,7 +31,7 @@ public class PaymentsController implements IPaymentsController {
 
   @Autowired private ModelMapper modelMapper;
 
-  @Autowired private PaymentsService paymentsServiceCosmos;
+  @Autowired private PaymentsService paymentsService;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(String organizationFiscalCode, String iuv) {
@@ -42,7 +42,7 @@ public class PaymentsController implements IPaymentsController {
             "getReceiptByIUV",
             String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode) + "; iuv= " + iuv));
     ReceiptEntity receipt =
-        paymentsServiceCosmos.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv);
+        paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv);
     return new ResponseEntity<>(receipt.getDocument(), HttpStatus.OK);
   }
 
@@ -66,7 +66,7 @@ public class PaymentsController implements IPaymentsController {
                 + "; service= "
                 + service));
     PaymentsResult<ReceiptEntity> receipts =
-        paymentsServiceCosmos.getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to);
+        paymentsService.getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to);
     return new ResponseEntity<>(
         ReceiptsInfo.builder()
             .receiptsList(
