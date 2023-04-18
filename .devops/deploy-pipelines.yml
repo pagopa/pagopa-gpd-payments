@@ -173,7 +173,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh smoke ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
+                sh run_integration_test.sh ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
                 $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
@@ -252,7 +252,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh integration ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) \
+                sh run_integration_test.sh ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) \
                 $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
