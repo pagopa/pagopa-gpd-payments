@@ -26,12 +26,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class PaymentsService {
-    private static final String PARTITION_KEY_FIELD = "PartitionKey";
-    private static final String ROW_KEY_FIELD = "RowKey";
-    private static final String DEBTOR_FIELD = "Debtor";
-    private static final String STATUS_FIELD = "Status";
-    private static final String[] columns =
-            new String[] {PARTITION_KEY_FIELD, ROW_KEY_FIELD, DEBTOR_FIELD, STATUS_FIELD};
 
     public final static String STATUS_PROPERTY = "status";
 
