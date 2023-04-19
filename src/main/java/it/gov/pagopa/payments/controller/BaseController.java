@@ -90,7 +90,7 @@ public class BaseController {
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ProblemJson.class)))
       })
-  @GetMapping(value = "/info")
+  @GetMapping(value = "/info", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseStatus(HttpStatus.OK)
   public ResponseEntity<AppInfo> healthCheck() {
     // Used just for health checking
