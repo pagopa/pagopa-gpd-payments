@@ -76,20 +76,24 @@ public class PaymentsService {
     public void checkGPDDebtPosStatus(TableEntity receipt, TableClient tableClient) {
         TableEntity tableEntity = tableClient.getEntity(receipt.getPartitionKey(), receipt.getRowKey());
         // the check on GPD is necessary if the status of the receipt is different from PAID
-        if (!tableEntity.getProperty(STATUS_PROPERTY).toString().trim().equalsIgnoreCase(Status.PAID.name())) {
-            PaymentsModelResponse paymentOption =
-                    gpdClient.getPaymentOption(tableEntity.getPartitionKey(), tableEntity.getRowKey());
-            if (null != paymentOption && !PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-                throw new AppException(
-                        AppError.UNPROCESSABLE_RECEIPT,
-                        paymentOption.getStatus(),
-                        tableEntity.getPartitionKey(),
-                        tableEntity.getRowKey());
+        try{
+            if (!tableEntity.getProperty(STATUS_PROPERTY).toString().trim().equalsIgnoreCase(Status.PAID.name())) {
+                PaymentsModelResponse paymentOption =
+                        gpdClient.getPaymentOption(tableEntity.getPartitionKey(), tableEntity.getRowKey());
+                if (null != paymentOption && !PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
+                    throw new AppException(
+                            AppError.UNPROCESSABLE_RECEIPT,
+                            paymentOption.getStatus(),
+                            tableEntity.getPartitionKey(),
+                            tableEntity.getRowKey());
+                }
+                // if no exception is raised the status on GPD is correctly in PAID -> for congruence update
+                // receipt status
+                tableEntity.addProperty(STATUS_PROPERTY, Status.PAID.name());
+                tableClient.updateEntity(tableEntity);
             }
-            // if no exception is raised the status on GPD is correctly in PAID -> for congruence update
-            // receipt status
-            tableEntity.addProperty(STATUS_PROPERTY, Status.PAID.name());
-            tableClient.updateEntity(tableEntity);
+        } catch (TableServiceException e){
+            throw new AppException(AppError.DB_ERROR, "Error when updating receipt status");
         }
     }
 
