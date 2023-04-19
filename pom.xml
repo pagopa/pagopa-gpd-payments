@@ -29,13 +29,6 @@
     </properties>
 
     <dependencies>
-        <!-- workaround for Cosmos DB Emulator bug, see: https://github.com/testcontainers/testcontainers-java/issues/5518 -->
-        <dependency>
-            <groupId>com.github.terma</groupId>
-            <artifactId>javaniotcpproxy</artifactId>
-            <version>1.6</version>
-        </dependency>
-        <!-- END workaround for Cosmos DB Emulator bug, see: https://github.com/testcontainers/testcontainers-java/issues/5518 -->
         <!-- Start Azure -->
         <dependency>
             <groupId>com.microsoft.azure.functions</groupId>
