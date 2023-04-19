@@ -72,7 +72,6 @@ public class PaymentsController implements IPaymentsController {
                     .map(
                         receiptEntity -> modelMapper.map(receiptEntity, ReceiptModelResponse.class))
                     .collect(Collectors.toList()))
-            .pageInfo(CommonUtil.buildPageInfoCosmos(receipts))
             .build(),
         HttpStatus.OK);
   }

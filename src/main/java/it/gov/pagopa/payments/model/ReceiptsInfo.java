@@ -27,10 +27,4 @@ public class ReceiptsInfo {
   @NotNull
   @Valid
   private List<ReceiptModelResponse> receiptsList;
-
-  @JsonProperty("page_info")
-  @Schema(required = true)
-  @NotNull
-  @Valid
-  private PageInfo pageInfo;
 }

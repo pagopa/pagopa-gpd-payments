@@ -20,29 +20,6 @@ import org.xml.sax.SAXException;
 
 @UtilityClass
 public class CommonUtil {
-
-  /**
-   * @param receipts Page returned from the database
-   * @return return the page info
-   */
-  public PageInfo buildPageInfo(PaymentsResult<ReceiptEntity> receipts) {
-    return PageInfo.builder()
-        .itemsFound(receipts.getLength())
-        .page(receipts.getCurrentPageNumber())
-        .build();
-  }
-
-  /**
-   * @param receipts Page returned from the database
-   * @return return the page info
-   */
-  public PageInfo buildPageInfoCosmos(PaymentsResult<ReceiptEntity> receipts) {
-    return PageInfo.builder()
-            .itemsFound(receipts.getLength())
-            .page(receipts.getCurrentPageNumber())
-            .build();
-  }
-
   /**
    * @param xml file XML to validate
    * @param xsdUrl url of XSD
