@@ -93,7 +93,7 @@ class PaymentsControllerTest {
 
     ResponseEntity<ReceiptsInfo> res =
         paymentsController.getOrganizationReceipts(
-            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString());
+            anyString(), anyString(), anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -105,7 +105,7 @@ class PaymentsControllerTest {
         .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString());
     try {
       paymentsController.getOrganizationReceipts(
-          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString());
+          anyString(), anyString(), anyString(), anyString(), anyString());
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }

@@ -121,17 +121,6 @@ public interface IPaymentsController {
               required = true)
           @PathVariable("organizationfiscalcode")
           String organizationFiscalCode,
-      @Valid
-          @Parameter(description = "Number of elements on one page")
-          @RequestParam(required = false)
-          @Positive
-          @Max(999)
-          Integer limit,
-      @Valid
-          @Parameter(description = "Page number. Page value starts from 0")
-          @RequestParam(required = false, defaultValue = "0")
-          @Min(0)
-          Integer page,
       @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
       @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
       @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,

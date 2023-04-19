@@ -49,8 +49,6 @@ public class PaymentsController implements IPaymentsController {
   @Override
   public ResponseEntity<ReceiptsInfo> getOrganizationReceipts(
       String organizationFiscalCode,
-      @Valid @Positive @Max(999) Integer limit,
-      @Valid @Min(0) Integer page,
       String debtor,
       String service,
       String from,
