@@ -124,5 +124,9 @@ export default function (data) {
 
   const response = http.post(url, payload, soapParams);
 
+  if(parseHTML(response.body).find("outcome").get(0).textContent() !== "OK"){
+    console.log(response.body);
+  }
+
   check(response, { "SendRT status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, tag);
 }
