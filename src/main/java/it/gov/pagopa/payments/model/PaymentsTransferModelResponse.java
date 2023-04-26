@@ -15,7 +15,7 @@ public class PaymentsTransferModelResponse implements Serializable {
   private String remittanceInformation; // causale
   private String category; // taxonomy
   private String iban;
-  private MarcaDaBollo marcaDaBollo;
+  private Stamp stamp;
   private String postalIban;
   private LocalDateTime insertedDate;
   private TransferStatus status;

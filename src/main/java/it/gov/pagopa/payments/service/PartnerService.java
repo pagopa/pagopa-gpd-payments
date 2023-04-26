@@ -540,7 +540,7 @@ public class PartnerService {
   private CtTransferPAV2 getTransferResponseV2(
       PaymentsTransferModelResponse transfer, StTransferType transferType) {
     CtRichiestaMarcaDaBollo richiestaMarcaDaBollo =
-        customizedModelMapper.map(transfer.getMarcaDaBollo(), CtRichiestaMarcaDaBollo.class);
+        customizedModelMapper.map(transfer.getStamp(), CtRichiestaMarcaDaBollo.class);
     CtTransferPAV2 transferPa = new CtTransferPAV2();
     transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
     transferPa.setIBAN(getIbanByTransferType(transferType, transfer));

@@ -1,12 +1,17 @@
 const axios = require("axios");
 const fs = require('fs');
 
+if (process.env.canary) {
+    axios.defaults.headers.common['X-Pod-Version'] = 'canary' // for all requests
+}
+
 function get(url, config) {
     return axios.get(url, config)
          .then(res => {
              return res;
          })
          .catch(error => {
+             console.error(error)
              return error.response;
          });
 }
