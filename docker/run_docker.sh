@@ -19,7 +19,10 @@ else
 fi
 export image=${image}
 
-rm .env || true
+FILE=.env
+if test -f "$FILE"; then
+    rm .env
+fi
 config=$(yq  -r '."microservice-chart".envConfig' ../helm/values-$ENV.yaml)
 for line in $(echo $config | jq -r '. | to_entries[] | select(.key) | "\(.key)=\(.value)"'); do
     echo $line >> .env
