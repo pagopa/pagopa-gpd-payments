@@ -37,14 +37,17 @@ jobs:
 
       - name: Login
         id: login
-        uses: azure/login@v1.4.6
+        # from https://github.com/Azure/login/commits/master
+        uses: azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2
         with:
           client-id: ${{ secrets.CLIENT_ID }}
           tenant-id: ${{ secrets.TENANT_ID }}
           subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
 
       - name: Run Integration Tests
-        run: |        
+        run: |
+          az acr login -n pagopadcommonacr 
+
           export SUBKEY=${{ secrets.SUBKEY }}      
           export CANARY=${{ inputs.canary }}      
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
@@ -52,21 +55,21 @@ jobs:
           cd ./integration-test
           sh run_integration_test.sh ${{( github.event.inputs == null && 'dev') || inputs.environment }}
 
-  notify:
-    needs: [ integration_test ]
-    runs-on: ubuntu-latest
-    name: Notify
-    if: always()
-    steps:
-      - name: Report Status
-        if: always()
-        uses: ravsamhq/notify-slack-action@v2
-        with:
-          status: ${{ needs.integration_test.result }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          notify_when: 'failure,skipped'
-          notification_title: '{workflow} has {status_message}'
-          message_format: '{emoji} <{workflow_url}|{workflow}> {status_message} in <{repo_url}|{repo}>'
-          footer: 'Linked to Repo <{repo_url}|{repo}>'
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#  notify:
+#    needs: [ integration_test ]
+#    runs-on: ubuntu-latest
+#    name: Notify
+#    if: always()
+#    steps:
+#      - name: Report Status
+#        if: always()
+#        uses: ravsamhq/notify-slack-action@v2
+#        with:
+#          status: ${{ needs.integration_test.result }}
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          notify_when: 'failure,skipped'
+#          notification_title: '{workflow} has {status_message}'
+#          message_format: '{emoji} <{workflow_url}|{workflow}> {status_message} in <{repo_url}|{repo}>'
+#          footer: 'Linked to Repo <{repo_url}|{repo}>'
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

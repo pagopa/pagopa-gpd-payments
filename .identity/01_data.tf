@@ -39,6 +39,10 @@ data "azurerm_kubernetes_cluster" "aks" {
   resource_group_name = local.aks_resource_group_name
 }
 
+data "azurerm_resource_group" "github_runner_rg" {
+  name = "${local.runner}-github-runner-rg"
+}
+
 data "github_organization_teams" "all" {
   root_teams_only = true
   summary_only    = true
