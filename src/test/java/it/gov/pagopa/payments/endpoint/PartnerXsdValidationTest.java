@@ -2,7 +2,7 @@ package it.gov.pagopa.payments.endpoint;
 
 import it.gov.pagopa.payments.PaymentsApplication;
 import it.gov.pagopa.payments.config.WebServicesConfiguration;
-import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
+import it.gov.pagopa.payments.service.PaymentValidator;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeResMock;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;

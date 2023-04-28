@@ -22,8 +22,8 @@ public class ConvertMarcaDaBolloToCtRichiestaMarcaDaBollo
     CtRichiestaMarcaDaBollo ctRichiestaMarcaDaBollo = new CtRichiestaMarcaDaBollo();
     try {
       ctRichiestaMarcaDaBollo.setTipoBollo(source.getStampType());
-      ctRichiestaMarcaDaBollo.setProvinciaResidenza(source.getStampType());
-      ctRichiestaMarcaDaBollo.setHashDocumento(mapper.writeValueAsBytes(source.getStampType()));
+      ctRichiestaMarcaDaBollo.setProvinciaResidenza(source.getProvincialResidence());
+      ctRichiestaMarcaDaBollo.setHashDocumento(mapper.writeValueAsBytes(source.getHashDocument()));
     } catch (JsonProcessingException e) {
       throw new MappingException(Collections.singletonList(new ErrorMessage(e.getMessage())));
     }
