@@ -5,7 +5,8 @@ set -e
 
 # create containers
 cd ../docker || exit
-sh ./run_docker.sh "$1"
+chmod +x ./run_docker.sh
+./run_docker.sh "$1"
 
 # run integration tests
 cd ../integration-test/src || exit
