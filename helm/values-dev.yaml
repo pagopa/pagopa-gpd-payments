@@ -94,3 +94,7 @@ microservice-chart:
                 operator: In
                 values:
                   - user
+  canaryDelivery:
+    deployment:
+      image:
+        tag: 0.0.17-1-PAGOPA-831-payment-integrazione-con-gpd-core
