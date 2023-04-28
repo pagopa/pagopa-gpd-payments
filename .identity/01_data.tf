@@ -14,11 +14,6 @@ data "azurerm_key_vault" "key_vault" {
   resource_group_name = "pagopa-${var.env_short}-sec-rg"
 }
 
-data "azurerm_key_vault" "key_vault_gps" {
-  name = "pagopa-${var.env_short}-gps-kv"
-  resource_group_name = "pagopa-${var.env_short}-gps-sec-rg"
-}
-
 data "azurerm_key_vault_secret" "key_vault_sonar" {
   count  = var.env_short == "d" ? 1 : 0
 
@@ -53,38 +48,8 @@ data "github_organization_teams" "all" {
   summary_only    = true
 }
 
-data "azurerm_key_vault_secret" "key_vault_apiconfig_subkey" {
+data "azurerm_key_vault_secret" "key_vault_integration_test_subkey" {
   count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-apiconfig-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_donations_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-donations-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_gpd_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-gpd-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_gps_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-gps-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_iuv_generator_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-iuv-generator-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_payments_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-payments-rest-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
+  name = "integration-test-subkey"
+  key_vault_id = data.azurerm_key_vault.key_vault.id
 }

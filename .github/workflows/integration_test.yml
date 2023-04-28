@@ -46,11 +46,12 @@ jobs:
 
       - name: Run Integration Tests
         run: |        
-          export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
+          export SUBKEY=${{ secrets.SUBKEY }}      
           export CANARY=${{ inputs.canary }}      
+          export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           
           cd ./integration-test
-          sh run_integration_test.sh ${{( github.event.inputs == null && 'dev') || inputs.environment }} ${{ secrets.SUBKEY }}
+          sh run_integration_test.sh ${{( github.event.inputs == null && 'dev') || inputs.environment }}
 
   notify:
     needs: [ integration_test ]

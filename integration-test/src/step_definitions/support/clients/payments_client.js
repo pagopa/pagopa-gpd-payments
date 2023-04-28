@@ -11,7 +11,7 @@ function healthCheck() {
     return get(payments_info, {
         headers: {
             "X-Forwarded-For": ipAddress,
-            "Ocp-Apim-Subscription-Key": process.env.REST_PAYMENTS_SUBSCRIPTION_KEY
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
