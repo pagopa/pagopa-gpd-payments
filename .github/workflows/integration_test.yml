@@ -52,7 +52,8 @@ jobs:
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           
           cd ./integration-test
-          sh run_integration_test.sh ${{( github.event.inputs == null && 'dev') || inputs.environment }}
+          chmod +x ./run_integration_test.sh
+          ./run_integration_test.sh ${{( github.event.inputs == null && 'dev') || inputs.environment }}
 
 #  notify:
 #    needs: [ integration_test ]
