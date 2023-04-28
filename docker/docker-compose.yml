@@ -9,11 +9,7 @@ services:
       dockerfile: Dockerfile
       context: ../
     env_file:
-      - ./config/.env
-    environment:
-      - APICONFIG_SUBSCRIPTION_KEY=${APICONFIG_SUBSCRIPTION_KEY}
-      - GPD_SUBSCRIPTION_KEY=${GPD_SUBSCRIPTION_KEY}
-      - GPS_SUBSCRIPTION_KEY=${GPS_SUBSCRIPTION_KEY}
+      - ./.env
     ports:
       - "8080:8080"
     networks:

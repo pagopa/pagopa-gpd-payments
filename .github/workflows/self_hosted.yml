@@ -13,7 +13,7 @@ on:
         type: string
 
 env:
-  NAMESPACE: afm
+  NAMESPACE: gps
   APP_NAME: pagopagpdpayments
 
 
@@ -73,7 +73,7 @@ jobs:
         uses: azure/login@89d153571fe9a34ed70fcf9f1d95ab8debea7a73
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-        # TODO:  az ad sp create-for-rbac --name github-action-dev --role contributor --scopes /subscriptions/<sub-id> --sdk-auth
+        # TODO:  az ad sp create-for-rbac --name github-action-dev --role contributor --scopes /subscriptions/b9fc9419-6097-45fe-9f74-ba0641c91912 --sdk-auth
 
       - name: Gets K8s context
         id: login
