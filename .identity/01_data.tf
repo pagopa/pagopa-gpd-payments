@@ -39,10 +39,6 @@ data "azurerm_kubernetes_cluster" "aks" {
   resource_group_name = local.aks_resource_group_name
 }
 
-#data "azurerm_resource_group" "github_runner_rg" {
-#  name = "${local.runner}-github-runner-rg"
-#}
-
 data "github_organization_teams" "all" {
   root_teams_only = true
   summary_only    = true
@@ -51,5 +47,5 @@ data "github_organization_teams" "all" {
 data "azurerm_key_vault_secret" "key_vault_integration_test_subkey" {
   count  = var.env_short != "p" ? 1 : 0
   name = "integration-test-subkey"
-  key_vault_id = data.azurerm_key_vault.key_vault.id
+  key_vault_id = data.azurerm_key_vault.key_vault[0].id
 }
