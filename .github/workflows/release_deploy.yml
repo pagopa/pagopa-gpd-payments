@@ -113,10 +113,9 @@ jobs:
     steps:
       - name: Build and Push
         id: semver
-        uses: pagopa/github-actions-template/ghcr-build-push@main
+        uses: pagopa/github-actions-template/ghcr-build-push@v1.4.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name}}
           tag: ${{ needs.release.outputs.version }}
 
   deploy_aks:
@@ -130,7 +129,6 @@ jobs:
     with:
       target: ${{ matrix.environment }}
       environment: ${{ needs.setup.outputs.environment }}
-      beta: ${{ inputs.beta }}
     secrets: inherit
 
   notify:

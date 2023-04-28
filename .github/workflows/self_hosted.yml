@@ -11,11 +11,6 @@ on:
         required: true
         description: The environment target of the job
         type: string
-      beta:
-        required: false
-        type: boolean
-        description: deploy beta version on AKS
-        default: false
 
 env:
   NAMESPACE: afm
@@ -57,7 +52,7 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
 #      - name: Deploy
-#        uses: pagopa/github-actions-template/aks-deploy@main
+#        uses: pagopa/github-actions-template/aks-deploy@v1.4.1
 #        with:
 #          branch: ${{ github.ref_name }}
 #          client_id: ${{ secrets.CLIENT_ID }}
