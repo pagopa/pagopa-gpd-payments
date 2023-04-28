@@ -9,4 +9,4 @@ sh ./run_docker.sh "$1"
 export subkey=$2
 cd ../integration-test/src || exit
 yarn install
-yarn test
+yarn test:"$1"

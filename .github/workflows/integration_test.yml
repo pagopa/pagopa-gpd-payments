@@ -11,6 +11,7 @@ on:
         type: choice
         description: Select the Environment
         options:
+          - local
           - dev
           - uat
           - prod
@@ -44,16 +45,12 @@ jobs:
           subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
 
       - name: Run Integration Tests
-        run: |
-          az acr login -n pagopadcommonacr 
-          cd ./integration-test/src
-          
+        run: |        
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
-          export SUBKEY=${{ secrets.SUBKEY }}
-          export CANARY=${{ inputs.canary }}          
+          export CANARY=${{ inputs.canary }}      
           
-          yarn install
-          yarn test:${{( github.event.inputs == null && 'dev') || inputs.environment }}
+          cd ./integration-test
+          sh run_integration_test.sh ${{( github.event.inputs == null && 'dev') || inputs.environment }} ${{ secrets.SUBKEY }}
 
   notify:
     needs: [ integration_test ]
