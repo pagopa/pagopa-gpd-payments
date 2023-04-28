@@ -97,4 +97,4 @@ microservice-chart:
   canaryDelivery:
     deployment:
       image:
-        tag: 0.0.17-3-PAGOPA-831-payment-integrazione-con-gpd-core
+        tag: 0.0.17-4-PAGOPA-831-payment-integrazione-con-gpd-core
