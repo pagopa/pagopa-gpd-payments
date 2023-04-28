@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # sh ./run_docker.sh <local|dev|uat|prod>
 
 ENV=$1

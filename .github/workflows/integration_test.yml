@@ -45,6 +45,7 @@ jobs:
           subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
 
       - name: Run Integration Tests
+        shell: bash
         run: |
           export SUBKEY=${{ secrets.SUBKEY }}      
           export CANARY=${{ inputs.canary }}      
