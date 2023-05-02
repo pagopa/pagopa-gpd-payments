@@ -13,9 +13,9 @@ public class ConvertTableEntityToReceiptEntity {
         ReceiptEntity observation = new ReceiptEntity(
                 tableEntity.getPartitionKey(), tableEntity.getRowKey(),
                 tableEntity.getProperty(DEBTOR_PROPERTY).toString(),
-                tableEntity.getProperty(DOCUMENT_PROPERTY).toString(),
+                tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString(),
                 tableEntity.getProperty(STATUS_PROPERTY).toString(),
-                tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString());
+                tableEntity.getProperty(DOCUMENT_PROPERTY).toString());
         return observation;
     }
 }

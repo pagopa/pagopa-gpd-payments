@@ -15,4 +15,5 @@ public class ReceiptModelResponse {
   private String iuv;
   private String debtor;
   private String paymentDateTime;
+  private String status;
 }

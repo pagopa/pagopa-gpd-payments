@@ -14,9 +14,9 @@ public class ReceiptEntity {
     private String organizationFiscalCode;
     private String iuv;
     private String debtor;
-    private String document;
-    private String status = Status.CREATED.name();
     private String paymentDateTime;
+    private String status = Status.CREATED.name();
+    private String document;
 
     public ReceiptEntity(String organizationFiscalCode, String iuv){
         this.organizationFiscalCode = organizationFiscalCode;
