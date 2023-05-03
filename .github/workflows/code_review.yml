@@ -66,7 +66,8 @@ jobs:
         shell: bash
         run: |
           cd ./docker
-          sh ./run_docker.sh local
+          chmod +x ./run_docker.sh
+          ./run_docker.sh local
 
       - name: Run Integration Tests
         shell: bash
@@ -76,5 +77,6 @@ jobs:
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           
           cd ./integration-test
-          sh ./run_integration_test.sh local
+          chmod +x ./run_integration_test.sh
+          ./run_integration_test.sh local
 
