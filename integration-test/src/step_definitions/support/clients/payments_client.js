@@ -22,6 +22,7 @@ function demandPaymentNotice(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paDemandPaymentNotice',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -32,6 +33,7 @@ function verifyPaymentNotice(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paVerifyPaymentNotice',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -42,6 +44,7 @@ function getPayment(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paGetPayment',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -52,6 +55,7 @@ function sendRT(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paSendRT',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -61,7 +65,8 @@ function activatePaymentNotice(body) {
         timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'activatePaymentNotice'
+            'SOAPAction': 'activatePaymentNotice',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -71,7 +76,8 @@ function sendPaymentOutcome(body) {
         timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'sendPaymentOutcome'
+            'SOAPAction': 'sendPaymentOutcome',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }

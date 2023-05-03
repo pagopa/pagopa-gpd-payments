@@ -42,3 +42,39 @@ jobs:
           project_key: ${{env.PROJECT_KEY}}
           coverage_exclusions: "**/config/*,**/*Mock*,**/model/**,**/entity/*"
           cpd_exclusions: "**/model/**,**/entity/*"
+
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
+
+      - name: Login
+        id: login
+        # from https://github.com/Azure/login/commits/master
+        uses: azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+
+      - name: Run Service on Docker
+        shell: bash
+        run: |
+          cd ./docker
+          sh ./run_docker.sh local
+
+      - name: Run Integration Tests
+        shell: bash
+        run: |
+          export SUBKEY=${{ secrets.SUBKEY }}      
+          export CANARY=${{ inputs.canary }}      
+          export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
+          
+          cd ./integration-test
+          sh ./run_integration_test.sh local
+
