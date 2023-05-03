@@ -71,6 +71,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Formatting
         id: format
         continue-on-error: true
@@ -116,11 +117,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Dump GitHub context
-        run: echo $JSON
-        env:
-          JSON: ${{ toJSON(github) }}
-
       - name: Check Size
         uses: actions/github-script@v6.3.3
         env:
@@ -142,14 +138,14 @@ jobs:
             
                 const ignored_additions_str = execSync('git --no-pager  diff --numstat origin/main..origin/${{ github.head_ref}} | grep ' + file + ' | cut -f 1', { encoding: 'utf-8' })
                 const ignored_deletions_str = execSync('git --no-pager  diff --numstat origin/main..origin/${{ github.head_ref}} | grep ' + file + ' | cut -f 2', { encoding: 'utf-8' })
-              
+            
                 const ignored_additions = ignored_additions_str.split('\n').map(elem=> parseInt(elem || 0)).reduce(
                 (accumulator, currentValue) => accumulator + currentValue,
                 0);
                 const ignored_deletions = ignored_deletions_str.split('\n').map(elem=> parseInt(elem || 0)).reduce(
                 (accumulator, currentValue) => accumulator + currentValue,
                 0);
-              
+            
                 ignored += ignored_additions + ignored_deletions;
               }
               changes -= ignored
@@ -188,7 +184,7 @@ jobs:
                 repo: context.repo.repo,
                 labels: ['size/large']
               })
-              
+            
               var comments = await github.rest.issues.listComments({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
