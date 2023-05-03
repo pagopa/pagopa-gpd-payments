@@ -39,6 +39,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Prepare openapi
+        id: prepare-openapi
+        shell: bash
+        run: |
+          echo $(jq  '."servers"[0]."url" += "/gpd/payments-receipts-service/v1"' "${GITHUB_WORKSPACE}/openapi/openapi.json") > "${GITHUB_WORKSPACE}/openapi/openapi.json"
+
       - name: Read terraform version
         id: read-version
         shell: bash
