@@ -4,6 +4,6 @@
 set -e
 
 # run integration tests
-cd ./integration-test/src || exit
+cd ./src || exit
 yarn install
 yarn test:"$1"
