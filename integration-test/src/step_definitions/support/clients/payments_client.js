@@ -65,8 +65,7 @@ function activatePaymentNotice(body) {
         timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'activatePaymentNotice',
-            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+            'SOAPAction': 'activatePaymentNotice'
         }
     })
 }
@@ -76,8 +75,7 @@ function sendPaymentOutcome(body) {
         timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'sendPaymentOutcome',
-            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+            'SOAPAction': 'sendPaymentOutcome'
         }
     })
 }

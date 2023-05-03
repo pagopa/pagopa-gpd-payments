@@ -8,6 +8,7 @@ Feature: All about Spontaneous Payments
     And IUV Generator running
     And ApiConfig running
 
+    # TODO fix this scenario
 #  @GPSScenario
 #  Scenario: call donation service
 #    Given the service "12345" for donations
