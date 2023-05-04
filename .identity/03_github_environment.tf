@@ -85,7 +85,7 @@ resource "github_actions_secret" "secret_sonar_token" {
 }
 
 #tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_secret" "secret_sonar_bot_token" {
+resource "github_actions_secret" "secret_bot_token" {
   count  = var.env_short == "d" ? 1 : 0
 
   repository       = local.github.repository
