@@ -20,6 +20,7 @@ const {
     sendActivatePaymentNoticeRequest,
     sendSendPaymentOutcomeRequest,
     sendSendRTRequest,
+    sendSendRTV2Request,
     sendVerifyPaymentNoticeRequest
 } = require('./logic/gpd_logic');
 const { assertAmount, assertFaultCode, assertOutcome, assertStatusCode, executeAfterAllStep } = require('./logic/common_logic');
@@ -74,6 +75,7 @@ When('the client sends the VerifyPaymentNoticeRequest', () => sendVerifyPaymentN
 When('the client sends the ActivatePaymentNoticeRequest to Nodo', () => sendActivatePaymentNoticeRequest(gpdSessionBundle));
 When('the client sends the SendPaymentOutcomeRequest to Nodo', () => sendSendPaymentOutcomeRequest(gpdSessionBundle));
 When('the client sends the SendRTRequest', () => sendSendRTRequest(gpdSessionBundle));
+When('the client sends the SendRTV2Request', () => sendSendRTV2Request(gpdSessionBundle));
 
 
 /* 

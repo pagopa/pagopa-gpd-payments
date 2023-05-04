@@ -17,6 +17,7 @@ function healthCheck() {
 }
 
 function demandPaymentNotice(body) {
+    console.log(body)
     return post(payments_host, body, {
         timeout: 10000,
         headers: {
@@ -60,6 +61,17 @@ function sendRT(body) {
     })
 }
 
+function sendRTV2(body) {
+    return post(payments_host, body, {
+        timeout: 10000,
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'paSendRTV2',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
 function activatePaymentNotice(body) {
     return post(nodo_host + "/node-for-psp/v1", body, {
         timeout: 10000,
@@ -87,5 +99,6 @@ module.exports = {
     healthCheck,
     sendPaymentOutcome,
     sendRT,
+    sendRTV2,
     verifyPaymentNotice,
 }
