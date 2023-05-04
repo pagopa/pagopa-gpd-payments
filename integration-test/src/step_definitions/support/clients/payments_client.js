@@ -17,7 +17,6 @@ function healthCheck() {
 }
 
 function demandPaymentNotice(body) {
-    console.log(body)
     return post(payments_host, body, {
         timeout: 10000,
         headers: {
