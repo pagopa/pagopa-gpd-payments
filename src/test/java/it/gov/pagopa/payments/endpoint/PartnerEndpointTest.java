@@ -91,7 +91,7 @@ class PartnerEndpointTest {
   void paSendRTTest() throws DatatypeConfigurationException {
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
     PaSendRTRes responseBody = PaSendRTResMock.getMock();
     JAXBElement<PaSendRTReq> request = factoryUtil.createPaSendRTReq(requestBody);
 
@@ -110,7 +110,7 @@ class PartnerEndpointTest {
   void paSendRTTest_only_with_required_receipt_fields() throws DatatypeConfigurationException {
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222227");
     // set to null paymentMethod, paymentDateTime and Fee
     requestBody.getReceipt().setPaymentDateTime(null);
     requestBody.getReceipt().setPaymentMethod(null);
