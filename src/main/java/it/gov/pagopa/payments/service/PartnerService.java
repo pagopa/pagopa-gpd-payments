@@ -8,7 +8,6 @@ import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableQuery;
 import feign.FeignException;
 import feign.RetryableException;
-import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.Status;
@@ -540,7 +539,7 @@ public class PartnerService {
   private CtTransferPAV2 getTransferResponseV2(
       PaymentsTransferModelResponse transfer, StTransferType transferType) {
     CtRichiestaMarcaDaBollo richiestaMarcaDaBollo =
-        customizedModelMapper.map(transfer.getMarcaDaBollo(), CtRichiestaMarcaDaBollo.class);
+        customizedModelMapper.map(transfer.getStamp(), CtRichiestaMarcaDaBollo.class);
     CtTransferPAV2 transferPa = new CtTransferPAV2();
     transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
     transferPa.setIBAN(getIbanByTransferType(transferType, transfer));

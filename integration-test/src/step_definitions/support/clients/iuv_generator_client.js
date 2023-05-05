@@ -6,7 +6,7 @@ const iuv_generator_host = process.env.iuv_generator_host;
 function iuvGenHealthCheck() {
     return get(iuv_generator_host + `/info`, {
         headers: {
-            "Ocp-Apim-Subscription-Key": process.env.IUVGENERATOR_SUBSCRIPTION_KEY
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }

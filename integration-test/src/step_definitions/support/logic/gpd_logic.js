@@ -14,6 +14,7 @@ const {
     activatePaymentNotice,
     sendPaymentOutcome,
     sendRT,
+    sendRTV2,
     verifyPaymentNotice
 } = require("../clients/payments_client");
 const { 
@@ -105,6 +106,9 @@ async function sendSendPaymentOutcomeRequest(bundle) {
 async function sendSendRTRequest(bundle) {
     bundle.responseToCheck = await sendRT(buildSendRTRequest(bundle, bundle.debtPosition.fiscalCode));
 }
+async function sendSendRTV2Request(bundle) {
+    bundle.responseToCheck = await sendRTV2(buildSendRTRequest(bundle, bundle.debtPosition.fiscalCode));
+}
 
 async function sendVerifyPaymentNoticeRequest(bundle) {
     bundle.responseToCheck = await verifyPaymentNotice(buildVerifyPaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode));
@@ -123,6 +127,7 @@ module.exports = {
     readValidCreditorInstitutionInfo,
     sendActivatePaymentNoticeRequest,
     sendSendRTRequest,
+    sendSendRTV2Request,
     sendSendPaymentOutcomeRequest,
     sendVerifyPaymentNoticeRequest,
 }

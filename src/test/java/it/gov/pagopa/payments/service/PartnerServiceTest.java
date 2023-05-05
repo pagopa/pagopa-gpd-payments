@@ -20,7 +20,6 @@ import com.microsoft.azure.storage.table.CloudTableClient;
 import com.microsoft.azure.storage.table.TableRequestOptions;
 import feign.FeignException;
 import feign.RetryableException;
-import it.gov.pagopa.payments.endpoints.validation.PaymentValidator;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.mock.MockUtil;
 import it.gov.pagopa.payments.mock.PaDemandNoticePaymentReqMock;

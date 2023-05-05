@@ -38,7 +38,7 @@
       "remittanceInformation": "remittanceInformation 1",
       "category": "9/0101108TS/",
       "iban": "IT0000000000000000000000000",
-      "marcaDaBollo": null,
+      "stamp": null,
       "postalIban": null,
       "insertedDate": "2022-03-21T13:15:48.03354",
       "status": "T_UNREPORTED",
@@ -51,10 +51,10 @@
       "remittanceInformation": "remittanceInformation 2",
       "category": "9/0101108TS/",
       "iban": null,
-      "marcaDaBollo": {
-        "hashDocumento": "dasdsaAssadsadasd212sadasd",
-        "tipoBollo": "tipo",
-        "provinciaResidenza": "RM"
+      "stamp": {
+        "hashDocument": "dasdsaAssadsadasd212sadasd",
+        "stampType": "tipo",
+        "provincialResidence": "RM"
       },
       "postalIban": null,
       "insertedDate": "2022-03-21T13:15:48.03354",

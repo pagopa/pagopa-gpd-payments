@@ -11,7 +11,7 @@ function healthCheck() {
     return get(payments_info, {
         headers: {
             "X-Forwarded-For": ipAddress,
-            "Ocp-Apim-Subscription-Key": process.env.REST_PAYMENTS_SUBSCRIPTION_KEY
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -22,6 +22,7 @@ function demandPaymentNotice(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paDemandPaymentNotice',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -32,6 +33,7 @@ function verifyPaymentNotice(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paVerifyPaymentNotice',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -42,6 +44,7 @@ function getPayment(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paGetPayment',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -52,6 +55,18 @@ function sendRT(body) {
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'paSendRT',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
+function sendRTV2(body) {
+    return post(payments_host, body, {
+        timeout: 10000,
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'paSendRTV2',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
     })
 }
@@ -83,5 +98,6 @@ module.exports = {
     healthCheck,
     sendPaymentOutcome,
     sendRT,
+    sendRTV2,
     verifyPaymentNotice,
 }

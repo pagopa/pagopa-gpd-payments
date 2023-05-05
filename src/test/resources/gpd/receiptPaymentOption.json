@@ -25,7 +25,7 @@
       "category": "string",
       "iban": "string",
       "postalIban": "string",
-      "marcaDaBollo": null,
+      "stamp": null,
       "insertedDate": "2022-02-24T17:03:59.408Z",
       "status": "T_UNREPORTED",
       "lastUpdatedDate": "2022-02-24T17:03:59.408Z"
@@ -38,7 +38,7 @@
       "category": "G",
       "iban": "ABC",
       "postalIban": null,
-      "marcaDaBollo": null,
+      "stamp": null,
       "insertedDate": "2022-02-24T17:03:59.408Z",
       "status": "T_UNREPORTED",
       "lastUpdatedDate": "2022-02-24T17:03:59.408Z"
@@ -51,10 +51,10 @@
       "category": "G",
       "iban": null,
       "postalIban": null,
-      "marcaDaBollo": {
-        "hashDocumento": "dasdsaAssadsadasd212sadasd",
-        "tipoBollo": "tipo",
-        "provinciaResidenza": "RM"
+      "stamp": {
+        "hashDocument": "dasdsaAssadsadasd212sadasd",
+        "stampType": "tipo",
+        "provincialResidence": "RM"
       },
       "insertedDate": "2022-02-24T17:03:59.408Z",
       "status": "T_UNREPORTED",

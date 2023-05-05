@@ -21,7 +21,7 @@ public class TransferModelResponse implements Serializable {
   private String category; // taxonomy
   private String iban;
   private String postalIban;
-  private MarcaDaBollo marcaDaBollo;
+  private Stamp stamp;
   private LocalDateTime insertedDate;
   private TransferStatus status;
   private LocalDateTime lastUpdatedDate;

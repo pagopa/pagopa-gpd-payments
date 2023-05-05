@@ -35,7 +35,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Code Review
-        uses: pagopa/github-actions-template/maven-code-review@main
+        uses: pagopa/github-actions-template/maven-code-review@v1.4.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
@@ -45,7 +45,7 @@ jobs:
 
   smoke-test:
     name: Smoke Test
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     environment:
       name: dev
     steps:
@@ -62,19 +62,21 @@ jobs:
           tenant-id: ${{ secrets.TENANT_ID }}
           subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
 
-      - name: Run tests
+      - name: Run Service on Docker
         shell: bash
         run: |
-          az acr login -n pagopadcommonacr 
-          cd ./integration-test/
-          
+          cd ./docker
+          chmod +x ./run_docker.sh
+          ./run_docker.sh local
+
+      - name: Run Integration Tests
+        shell: bash
+        run: |
+          export SUBKEY=${{ secrets.SUBKEY }}      
+          export CANARY=${{ inputs.canary }}      
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           
-          export APICONFIG_SUBSCRIPTION_KEY=${{secrets.APICONFIG_SUBKEY}}
-          export GPD_SUBSCRIPTION_KEY=${{secrets.GPD_SUBKEY}}
-          export GPS_SUBSCRIPTION_KEY=${{secrets.GPS_SUBKEY}}
-          export DONATIONS_SUBSCRIPTION_KEY=${{secrets.DONATION_SUBKEY}}
-          export IUVGENERATOR_SUBSCRIPTION_KEY=${{secrets.IUVGENERATOR_SUBKEY}}
-          export REST_PAYMENTS_SUBSCRIPTION_KEY=${{secrets.PAYMENTS_REST_SUBKEY}}
-          
-          sh ./run_integration_test.sh local
+          cd ./integration-test
+          chmod +x ./run_integration_test.sh
+          ./run_integration_test.sh local
+
