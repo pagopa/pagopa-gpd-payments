@@ -86,7 +86,6 @@ class PaymentsServiceTest {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    TableBatchOperation batchOperation = new TableBatchOperation();
     for (int i = 0; i < 10; i++) {
       TableEntity tableEntity = new TableEntity("org123456", "iuv" + i);
       Map<String, Object> properties = new HashMap<>();
@@ -108,7 +107,6 @@ class PaymentsServiceTest {
         tableEntity.setProperties(properties);
         tableClientConfiguration().createEntity(tableEntity);
     }
-    table.execute(batchOperation);
   }
 
   @AfterEach

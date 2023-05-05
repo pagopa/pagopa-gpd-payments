@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.service;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableErrorCode;
 import com.azure.data.tables.models.TableServiceException;
 import feign.FeignException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
@@ -68,6 +69,9 @@ public class PaymentsService {
             this.checkGPDDebtPosStatus(tableEntity, tableClient);
             return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
         } catch (TableServiceException e) {
+            if(e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND){
+                throw new AppException(AppError.RECEIPT_NOT_FOUND, organizationFiscalCode, iuv);
+            }
             log.error("Error in organization table connection", e);
             throw new AppException(AppError.DB_ERROR);
         }
