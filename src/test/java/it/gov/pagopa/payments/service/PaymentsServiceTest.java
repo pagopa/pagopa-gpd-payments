@@ -249,7 +249,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", "debtor", "iuv5", "2022-09-30T17:48:22", "2022-10-02T17:48:22");
+        paymentsService.getOrganizationReceipts("org123456", "debtor5", "iuv5", "2021-09-30", "2023-10-02");
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -337,6 +337,19 @@ class PaymentsServiceTest {
 
     var paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    Map<String, Object> properties = new HashMap<>();
+    properties.put(STATUS_PROPERTY, Status.CREATED.name());
+
+    TableEntity te1 = new TableEntity("111", "aaa");
+    te1.setProperties(properties);
+    tableClientConfiguration().createEntity(te1);
+    TableEntity te2 = new TableEntity("222", "bbb");
+    te2.setProperties(properties);
+    tableClientConfiguration().createEntity(te2);
+    TableEntity te3 = new TableEntity("333", "ccc");
+    te3.setProperties(properties);
+    tableClientConfiguration().createEntity(te3);
 
     List<ReceiptEntity> receipts = new ArrayList<>();
     ReceiptEntity re1 = new ReceiptEntity("111", "aaa");

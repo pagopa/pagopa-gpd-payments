@@ -144,6 +144,7 @@ public class PaymentsService {
         if(null != from && null != to){
             filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
         }
+        List<TableEntity> tb = tableClient.listEntities().stream().collect(Collectors.toList());
 
         List<ReceiptEntity> modelList = tableClient.listEntities(new ListEntitiesOptions()
                         .setFilter(String.join(" and ", filters)), null, null)
