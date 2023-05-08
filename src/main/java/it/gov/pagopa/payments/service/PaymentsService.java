@@ -79,6 +79,8 @@ public class PaymentsService {
 
     public void checkGPDDebtPosStatus(TableEntity receipt, TableClient tableClient) {
         TableEntity tableEntity = tableClient.getEntity(receipt.getPartitionKey(), receipt.getRowKey());
+        Object k = tableEntity.getProperty(STATUS_PROPERTY);
+        System.out.println("");
         // the check on GPD is necessary if the status of the receipt is different from PAID
         try{
             if (!tableEntity.getProperty(STATUS_PROPERTY).toString().trim().equalsIgnoreCase(Status.PAID.name())) {
@@ -157,8 +159,8 @@ public class PaymentsService {
 
         var startWithEnd = startsWith.substring(0, length) + (char) nextChar;
 
-        filters.add(String.format("Rowkey ge %s", startsWith));
-        filters.add(String.format("Rowkey lt %s", startWithEnd));
+        filters.add(String.format("RowKey ge '%s'", startsWith));
+        filters.add(String.format("RowKey lt '%s'", startWithEnd));
     }
 
     private PaymentsResult<ReceiptEntity> setReceiptsOutput(List<ReceiptEntity> listOfEntity) {
