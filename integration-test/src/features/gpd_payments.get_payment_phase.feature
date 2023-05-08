@@ -1,4 +1,4 @@
-Feature: All about Verify Phase on Debt Position Payments workflow
+Feature: All about Activate Phase on Debt Position Payments workflow
 
   Background:
     Given Payments running
@@ -10,15 +10,15 @@ Feature: All about Verify Phase on Debt Position Payments workflow
     And a valid debt position
 
   @GPDScenario
-  Scenario: Verify phase - Fail (no valid station)
-    Given an invalid fiscal code
-    When the client sends the VerifyPaymentNoticeRequest
-    Then the client receives status code 200
-    And the client receives a KO with the "PAA_ID_DOMINIO_ERRATO" fault code error
-
-  @GPDScenario
-  Scenario: Verify phase - Success
+  Scenario: Get Payment phase - Success
     Given a valid fiscal code
-    When the client sends the VerifyPaymentNoticeRequest
+    When the client sends the GetPaymentRequest
+    Then the client receives status code 200
+    And the client retrieves the amount "300.00" in the response
+    
+  @GPDScenario
+  Scenario: Get Payment V2 phase - Success
+    Given a valid fiscal code
+    When the client sends the GetPaymentV2Request
     Then the client receives status code 200
     And the client retrieves the amount "300.00" in the response

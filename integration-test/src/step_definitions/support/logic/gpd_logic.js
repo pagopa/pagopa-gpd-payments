@@ -114,6 +114,10 @@ async function sendVerifyPaymentNoticeRequest(bundle) {
     bundle.responseToCheck = await verifyPaymentNotice(buildVerifyPaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode));
 }
 
+async function sendGetPaymentRequest(bundle) {
+    bundle.responseToCheck = await getPayment(buildGetPaymentReq(bundle, bundle.debtPosition.fiscalCode));
+}
+
 
 module.exports = {
     assertPaymentTokenExistence,
