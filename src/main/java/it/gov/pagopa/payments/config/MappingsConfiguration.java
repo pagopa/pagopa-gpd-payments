@@ -3,7 +3,7 @@ package it.gov.pagopa.payments.config;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.mapper.ConvertMarcaDaBolloToCtRichiestaMarcaDaBollo;
 import it.gov.pagopa.payments.mapper.ConvertReceiptEntityToReceiptModelResponse;
-import it.gov.pagopa.payments.model.MarcaDaBollo;
+import it.gov.pagopa.payments.model.Stamp;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.model.partner.CtRichiestaMarcaDaBollo;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
@@ -36,11 +36,11 @@ public class MappingsConfiguration {
     CustomizedMapper mapper = new CustomizedMapper();
     mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
-    Converter<MarcaDaBollo, CtRichiestaMarcaDaBollo> convertMarcaDaBolloToCtRichiestaMarcaDaBollo =
+    Converter<Stamp, CtRichiestaMarcaDaBollo> convertMarcaDaBolloToCtRichiestaMarcaDaBollo =
         new ConvertMarcaDaBolloToCtRichiestaMarcaDaBollo();
 
     mapper
-        .createTypeMap(MarcaDaBollo.class, CtRichiestaMarcaDaBollo.class)
+        .createTypeMap(Stamp.class, CtRichiestaMarcaDaBollo.class)
         .setConverter(convertMarcaDaBolloToCtRichiestaMarcaDaBollo);
 
     return mapper;

@@ -28,7 +28,7 @@ jobs:
   integration_test:
     name: Test
     runs-on: ubuntu-latest
-    environment: ${{( github.event.inputs == null && 'dev') || inputs.environment }}
+    environment: ${{(github.event.inputs == null && 'dev') || inputs.environment }}
     steps:
       - name: Checkout
         id: checkout
@@ -44,24 +44,15 @@ jobs:
           subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
 
       - name: Run Integration Tests
+        shell: bash
         run: |
-          az acr login -n pagopadcommonacr 
-          cd ./integration-test/src
-          
+          export SUBKEY=${{ secrets.SUBKEY }}      
+          export CANARY=${{ inputs.canary }}      
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           
-          export APICONFIG_SUBSCRIPTION_KEY=${{secrets.APICONFIG_SUBKEY}}
-          export GPD_SUBSCRIPTION_KEY=${{secrets.GPD_SUBKEY}}
-          export GPS_SUBSCRIPTION_KEY=${{secrets.GPS_SUBKEY}}
-          export DONATIONS_SUBSCRIPTION_KEY=${{secrets.DONATION_SUBKEY}}
-          export IUVGENERATOR_SUBSCRIPTION_KEY=${{secrets.IUVGENERATOR_SUBKEY}}
-          export REST_PAYMENTS_SUBSCRIPTION_KEY=${{secrets.PAYMENTS_REST_SUBKEY}}
-          
-          export subkey=${{ secrets.SUBKEY }}
-          
-          export canary=${{ inputs.canary }}          
-          yarn install
-          yarn test:${{( github.event.inputs == null && 'dev') || inputs.environment }}
+          cd ./integration-test
+          chmod +x ./run_integration_test.sh
+          ./run_integration_test.sh ${{( github.event.inputs == null && 'dev') || inputs.environment }}
 
   notify:
     needs: [ integration_test ]

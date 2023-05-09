@@ -14,6 +14,8 @@ import it.gov.pagopa.payments.model.PaaErrorEnum;
 import it.gov.pagopa.payments.model.creditorinstitution.StationCreditorInstitution;
 import it.gov.pagopa.payments.service.ApiConfigClient;
 import java.util.HashMap;
+
+import it.gov.pagopa.payments.service.PaymentValidator;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +28,8 @@ class PaymentValidatorTest {
 
   @MockBean ApiConfigClient apiConfigClient;
 
-  @Autowired @InjectMocks PaymentValidator paymentValidator;
+  @Autowired @InjectMocks
+  PaymentValidator paymentValidator;
 
   @Test
   void isAuthorize_OK() {

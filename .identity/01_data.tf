@@ -14,9 +14,11 @@ data "azurerm_key_vault" "key_vault" {
   resource_group_name = "pagopa-${var.env_short}-sec-rg"
 }
 
-data "azurerm_key_vault" "key_vault_gps" {
-  name = "pagopa-${var.env_short}-gps-kv"
-  resource_group_name = "pagopa-${var.env_short}-gps-sec-rg"
+data "azurerm_key_vault" "domain_key_vault" {
+  count  = var.env_short != "p" ? 1 : 0
+
+  name = "pagopa-${var.env_short}-${local.domain}-kv"
+  resource_group_name = "pagopa-${var.env_short}-${local.domain}-sec-rg"
 }
 
 data "azurerm_key_vault_secret" "key_vault_sonar" {
@@ -44,47 +46,17 @@ data "azurerm_kubernetes_cluster" "aks" {
   resource_group_name = local.aks_resource_group_name
 }
 
-#data "azurerm_resource_group" "github_runner_rg" {
-#  name = "${local.runner}-github-runner-rg"
-#}
+data "azurerm_resource_group" "github_runner_rg" {
+  name = "${local.runner}-github-runner-rg"
+}
 
 data "github_organization_teams" "all" {
   root_teams_only = true
   summary_only    = true
 }
 
-data "azurerm_key_vault_secret" "key_vault_apiconfig_subkey" {
+data "azurerm_key_vault_secret" "key_vault_integration_test_subkey" {
   count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-apiconfig-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_donations_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-donations-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_gpd_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-gpd-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_gps_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-gps-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_iuv_generator_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-iuv-generator-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
-}
-
-data "azurerm_key_vault_secret" "key_vault_payments_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  name = "gpd-d-payments-rest-subscription-key"
-  key_vault_id = data.azurerm_key_vault.key_vault_gps.id
+  name = "integration-test-subkey"
+  key_vault_id = data.azurerm_key_vault.key_vault[0].id
 }

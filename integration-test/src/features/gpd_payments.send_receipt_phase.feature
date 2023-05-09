@@ -26,3 +26,11 @@ Feature: All about Send Receipt Phase on Debt Position Payments workflow
     And the client sends the SendRTRequest
     Then the client receives status code 200
     And the client receives an OK in the response
+
+  @GPDScenario
+  Scenario: Activate phase V2 - Success
+    Given a valid fiscal code
+    When the client sends the SendPaymentOutcomeRequest to Nodo
+    And the client sends the SendRTV2Request
+    Then the client receives status code 200
+    And the client receives an OK in the response

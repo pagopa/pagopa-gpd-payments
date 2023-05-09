@@ -9,6 +9,8 @@ import it.gov.pagopa.payments.mock.PaDemandNoticePaymentReqMock;
 import it.gov.pagopa.payments.mock.PaDemandNoticePaymentResMock;
 import it.gov.pagopa.payments.mock.PaGetPaymentReqMock;
 import it.gov.pagopa.payments.mock.PaGetPaymentResMock;
+import it.gov.pagopa.payments.mock.PaGetPaymentV2ReqMock;
+import it.gov.pagopa.payments.mock.PaGetPaymentV2ResMock;
 import it.gov.pagopa.payments.mock.PaSendRTReqMock;
 import it.gov.pagopa.payments.mock.PaSendRTResMock;
 import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeReqMock;
@@ -18,6 +20,8 @@ import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeRequest;
 import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Response;
 import it.gov.pagopa.payments.model.partner.PaSendRTReq;
 import it.gov.pagopa.payments.model.partner.PaSendRTRes;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
@@ -88,6 +92,26 @@ class PartnerEndpointTest {
   }
 
   @Test
+  void paGetPaymentV2Test() throws PartnerValidationException, DatatypeConfigurationException {
+
+    // Test preconditions
+    PaGetPaymentV2Request requestBody = PaGetPaymentV2ReqMock.getMock();
+    PaGetPaymentV2Response responseBody = PaGetPaymentV2ResMock.getMock();
+    JAXBElement<PaGetPaymentV2Request> request =
+        factoryUtil.createPaGetPaymentV2Request(requestBody);
+
+    when(partnerService.paGetPaymentV2(requestBody)).thenReturn(responseBody);
+    when(factory.createPaGetPaymentV2Response(responseBody))
+        .thenReturn(factoryUtil.createPaGetPaymentV2Response(responseBody));
+
+    // Test execution
+    JAXBElement<PaGetPaymentV2Response> response = partnerEndpoint.paGetPaymentV2(request);
+
+    // Test postcondiction
+    assertThat(response.getValue()).isEqualTo(responseBody);
+  }
+
+  @Test
   void paSendRTTest() throws DatatypeConfigurationException {
 
     // Test preconditions
@@ -131,11 +155,8 @@ class PartnerEndpointTest {
 
   @Test
   void paDemandNoticePaymentTest()
-      throws DatatypeConfigurationException,
-          XMLStreamException,
-          ParserConfigurationException,
-          IOException,
-          SAXException {
+      throws DatatypeConfigurationException, XMLStreamException, ParserConfigurationException,
+          IOException, SAXException {
 
     // Test preconditions
     PaDemandPaymentNoticeRequest requestBody = PaDemandNoticePaymentReqMock.getMock();

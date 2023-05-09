@@ -2,7 +2,7 @@ package it.gov.pagopa.payments.mapper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.gov.pagopa.payments.model.MarcaDaBollo;
+import it.gov.pagopa.payments.model.Stamp;
 import it.gov.pagopa.payments.model.partner.CtRichiestaMarcaDaBollo;
 import java.util.Collections;
 import javax.validation.Valid;
@@ -12,18 +12,18 @@ import org.modelmapper.spi.ErrorMessage;
 import org.modelmapper.spi.MappingContext;
 
 public class ConvertMarcaDaBolloToCtRichiestaMarcaDaBollo
-    implements Converter<MarcaDaBollo, CtRichiestaMarcaDaBollo> {
+    implements Converter<Stamp, CtRichiestaMarcaDaBollo> {
 
   @Override
   public CtRichiestaMarcaDaBollo convert(
-      MappingContext<MarcaDaBollo, CtRichiestaMarcaDaBollo> context) throws MappingException {
+      MappingContext<Stamp, CtRichiestaMarcaDaBollo> context) throws MappingException {
     ObjectMapper mapper = new ObjectMapper();
-    @Valid MarcaDaBollo mb = context.getSource();
+    @Valid Stamp source = context.getSource();
     CtRichiestaMarcaDaBollo ctRichiestaMarcaDaBollo = new CtRichiestaMarcaDaBollo();
     try {
-      ctRichiestaMarcaDaBollo.setTipoBollo(mb.getTipoBollo());
-      ctRichiestaMarcaDaBollo.setProvinciaResidenza(mb.getTipoBollo());
-      ctRichiestaMarcaDaBollo.setHashDocumento(mapper.writeValueAsBytes(mb.getTipoBollo()));
+      ctRichiestaMarcaDaBollo.setTipoBollo(source.getStampType());
+      ctRichiestaMarcaDaBollo.setProvinciaResidenza(source.getProvincialResidence());
+      ctRichiestaMarcaDaBollo.setHashDocumento(mapper.writeValueAsBytes(source.getHashDocument()));
     } catch (JsonProcessingException e) {
       throw new MappingException(Collections.singletonList(new ErrorMessage(e.getMessage())));
     }

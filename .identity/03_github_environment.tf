@@ -85,7 +85,7 @@ resource "github_actions_secret" "secret_sonar_token" {
 }
 
 #tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_secret" "secret_sonar_bot_token" {
+resource "github_actions_secret" "secret_bot_token" {
   count  = var.env_short == "d" ? 1 : 0
 
   repository       = local.github.repository
@@ -103,55 +103,10 @@ resource "github_actions_secret" "secret_cucumber_token" {
 }
 
 #tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_environment_secret" "secret_apiconfig_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  repository      = local.github.repository
-  environment     = var.env
-  secret_name      = "APICONFIG_SUBKEY"
-  plaintext_value  = data.azurerm_key_vault_secret.key_vault_apiconfig_subkey[0].value
-}
-
-#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_environment_secret" "secret_gpd_subkey" {
+resource "github_actions_environment_secret" "secret_integration_test_subkey" {
   count  = var.env_short != "p" ? 1 : 0
   repository       = local.github.repository
-  environment     = var.env
-  secret_name      = "GPD_SUBKEY"
-  plaintext_value  = data.azurerm_key_vault_secret.key_vault_gpd_subkey[0].value
-}
-
-#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_environment_secret" "secret_gps_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  repository       = local.github.repository
-  environment     = var.env
-  secret_name      = "GPS_SUBKEY"
-  plaintext_value  = data.azurerm_key_vault_secret.key_vault_gps_subkey[0].value
-}
-
-#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_environment_secret" "secret_donation_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  repository       = local.github.repository
-  environment     = var.env
-  secret_name      = "DONATION_SUBKEY"
-  plaintext_value  = data.azurerm_key_vault_secret.key_vault_donations_subkey[0].value
-}
-
-#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_environment_secret" "secret_iuv_generator_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  repository       = local.github.repository
-  environment     = var.env
-  secret_name      = "IUVGENERATOR_SUBKEY"
-  plaintext_value  = data.azurerm_key_vault_secret.key_vault_iuv_generator_subkey[0].value
-}
-
-#tfsec:ignore:github-actions-no-plain-text-action-secrets # not real secret
-resource "github_actions_environment_secret" "secret_payments_subkey" {
-  count  = var.env_short != "p" ? 1 : 0
-  repository       = local.github.repository
-  environment     = var.env
-  secret_name      = "PAYMENTS_REST_SUBKEY"
-  plaintext_value  = data.azurerm_key_vault_secret.key_vault_payments_subkey[0].value
+  environment      = var.env
+  secret_name      = "SUBKEY"
+  plaintext_value  = data.azurerm_key_vault_secret.key_vault_integration_test_subkey[0].value
 }

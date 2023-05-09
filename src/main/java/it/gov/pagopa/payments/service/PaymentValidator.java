@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.endpoints.validation;
+package it.gov.pagopa.payments.service;
 
 import feign.FeignException;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
