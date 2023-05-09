@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PaymentsService {
 
-    public final static String STATUS_PROPERTY = "status";
+    public static final String STATUS_PROPERTY = "status";
 
     @Autowired private TableClient tableClient;
     @Autowired
@@ -63,7 +63,6 @@ public class PaymentsService {
     public ReceiptEntity getReceiptByOrganizationFCAndIUV(
             @Validated @NotBlank String organizationFiscalCode, @Validated @NotBlank String iuv) {
 
-        final String LOG_BASE_PARAMS_DETAIL = "organizationFiscalCode= %s, iuv=%s";
         try{
             TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
             this.checkGPDDebtPosStatus(tableEntity, tableClient);
@@ -79,8 +78,6 @@ public class PaymentsService {
 
     public void checkGPDDebtPosStatus(TableEntity receipt, TableClient tableClient) {
         TableEntity tableEntity = tableClient.getEntity(receipt.getPartitionKey(), receipt.getRowKey());
-        Object k = tableEntity.getProperty(STATUS_PROPERTY);
-        System.out.println("");
         // the check on GPD is necessary if the status of the receipt is different from PAID
         try{
             if (!tableEntity.getProperty(STATUS_PROPERTY).toString().trim().equalsIgnoreCase(Status.PAID.name())) {
@@ -144,14 +141,11 @@ public class PaymentsService {
         if(null != from && null != to){
             filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
         }
-        List<TableEntity> tb = tableClient.listEntities().stream().collect(Collectors.toList());
-
-        List<ReceiptEntity> modelList = tableClient.listEntities(new ListEntitiesOptions()
+        return tableClient.listEntities(new ListEntitiesOptions()
                         .setFilter(String.join(" and ", filters)), null, null)
                         .stream()
                         .map(ConvertTableEntityToReceiptEntity::mapTableEntityToReceiptEntity)
                         .collect(Collectors.toList());
-        return modelList;
     }
 
     private static void getStartsWithFilter(List<String> filters, String startsWith) {
