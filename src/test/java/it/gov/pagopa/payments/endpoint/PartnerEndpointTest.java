@@ -46,7 +46,7 @@ class PartnerEndpointTest {
 
   @InjectMocks private PartnerEndpoint partnerEndpoint;
 
-  @Mock private PartnerService partnerServiceCosmos;
+  @Mock private PartnerService partnerService;
 
   @Mock private ObjectFactory factory;
 
@@ -61,7 +61,7 @@ class PartnerEndpointTest {
     JAXBElement<PaVerifyPaymentNoticeReq> request =
         factoryUtil.createPaVerifyPaymentNoticeReq(requestBody);
 
-    when(partnerServiceCosmos.paVerifyPaymentNotice(requestBody)).thenReturn(responseBody);
+    when(partnerService.paVerifyPaymentNotice(requestBody)).thenReturn(responseBody);
     when(factory.createPaVerifyPaymentNoticeRes(responseBody))
         .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes(responseBody));
 
@@ -80,7 +80,7 @@ class PartnerEndpointTest {
     PaGetPaymentRes responseBody = PaGetPaymentResMock.getMock();
     JAXBElement<PaGetPaymentReq> request = factoryUtil.createPaGetPaymentReq(requestBody);
 
-    when(partnerServiceCosmos.paGetPayment(requestBody)).thenReturn(responseBody);
+    when(partnerService.paGetPayment(requestBody)).thenReturn(responseBody);
     when(factory.createPaGetPaymentRes(responseBody))
         .thenReturn(factoryUtil.createPaGetPaymentRes(responseBody));
 
@@ -119,7 +119,7 @@ class PartnerEndpointTest {
     PaSendRTRes responseBody = PaSendRTResMock.getMock();
     JAXBElement<PaSendRTReq> request = factoryUtil.createPaSendRTReq(requestBody);
 
-    when(partnerServiceCosmos.paSendRT(requestBody)).thenReturn(responseBody);
+    when(partnerService.paSendRT(requestBody)).thenReturn(responseBody);
     when(factory.createPaSendRTRes(responseBody))
         .thenReturn(factoryUtil.createPaSendRTRes(responseBody));
 
@@ -142,7 +142,7 @@ class PartnerEndpointTest {
     PaSendRTRes responseBody = PaSendRTResMock.getMock();
     JAXBElement<PaSendRTReq> request = factoryUtil.createPaSendRTReq(requestBody);
 
-    when(partnerServiceCosmos.paSendRT(requestBody)).thenReturn(responseBody);
+    when(partnerService.paSendRT(requestBody)).thenReturn(responseBody);
     when(factory.createPaSendRTRes(responseBody))
         .thenReturn(factoryUtil.createPaSendRTRes(responseBody));
 
@@ -164,7 +164,7 @@ class PartnerEndpointTest {
     JAXBElement<PaDemandPaymentNoticeRequest> request =
         factoryUtil.createPaDemandPaymentNoticeRequest(requestBody);
 
-    when(partnerServiceCosmos.paDemandPaymentNotice(requestBody)).thenReturn(responseBody);
+    when(partnerService.paDemandPaymentNotice(requestBody)).thenReturn(responseBody);
     when(factory.createPaDemandPaymentNoticeResponse(responseBody))
         .thenReturn(factoryUtil.createPaDemandPaymentNoticeResponse(responseBody));
 
