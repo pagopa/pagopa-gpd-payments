@@ -772,6 +772,45 @@ class PartnerServiceTest {
   }
 
   @Test
+  void paDemandPaymentNoticeKoTest()
+          throws
+          IOException,
+          DatatypeConfigurationException,
+          XMLStreamException,
+          ParserConfigurationException,
+          SAXException {
+
+    var pService =
+            spy(
+                    new PartnerService(
+                            resource,
+                            factory,
+                            gpdClient,
+                            gpsClient,
+                            tableClientConfiguration(),
+                            paymentValidator,
+                            customizedModelMapper));
+
+    // Test preconditions
+    var requestBody = PaDemandNoticePaymentReqMock.getMock();
+
+    var e = Mockito.mock(FeignException.NotFound.class);
+    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
+
+    var paymentModel =
+            MockUtil.readModelFromFile(
+                    "gps/createSpontaneousPayments.json", PaymentPositionModel.class);
+    // Test execution
+    try{
+      pService.paDemandPaymentNotice(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+    }
+  }
+
+  @Test
   void paGetPaymentV2Test()
       throws PartnerValidationException, DatatypeConfigurationException, IOException {
 
