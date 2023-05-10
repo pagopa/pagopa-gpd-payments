@@ -83,7 +83,7 @@ public class PartnerService {
 
   @Autowired private CustomizedMapper customizedModelMapper;
 
-  private static final String errorMessage = "Error in organization table connection";
+  private static final String DBERROR = "Error in organization table connection";
 
   @Transactional(readOnly = true)
   public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
@@ -583,7 +583,7 @@ public class PartnerService {
       tableEntity.setProperties(properties);
       tableClient.createEntity(tableEntity);
     } catch (TableServiceException e) {
-      log.error(errorMessage, e);
+      log.error(DBERROR, e);
       if(e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS)
       {
         throw new AppException(AppError.RECEIPT_CONFLICT);
@@ -598,7 +598,7 @@ public class PartnerService {
       TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
-      log.error(errorMessage, e);
+      log.error(DBERROR, e);
       throw new AppException(AppError.DB_ERROR);
     }
   }
@@ -614,7 +614,7 @@ public class PartnerService {
       properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
       tableClient.updateEntity(tableEntity);
     } catch (TableServiceException e) {
-      log.error(errorMessage, e);
+      log.error(DBERROR, e);
       throw new AppException(AppError.DB_ERROR);
     }
   }
