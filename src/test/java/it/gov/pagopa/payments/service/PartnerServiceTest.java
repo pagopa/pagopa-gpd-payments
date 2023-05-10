@@ -772,7 +772,7 @@ class PartnerServiceTest {
   }
 
   @Test
-  void paDemandPaymentNoticeKoTest()
+  void paDemandPaymentNoticeNotFoundTest()
           throws
           IOException,
           DatatypeConfigurationException,
