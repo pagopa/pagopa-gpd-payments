@@ -40,7 +40,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.xml.sax.SAXException;
 
-//TODO change the tests adapting them to the cosmos table
 @ExtendWith(MockitoExtension.class)
 class PartnerEndpointTest {
 

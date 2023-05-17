@@ -82,7 +82,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.xml.sax.SAXException;
 
-//TODO change the tests adapting them to the cosmos table
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
 @Slf4j
