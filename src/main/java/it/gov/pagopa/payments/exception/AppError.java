@@ -37,11 +37,6 @@ public enum AppError {
           "Receipt conflict",
           "The receipt inserted already exists"),
 
-  NOT_ENOUGH_PAGES(
-          HttpStatus.INTERNAL_SERVER_ERROR,
-          "Not enough pages",
-          "There are not enough receipts for the inserted limit and page number"),
-
   UNKNOWN(null, null, null);
 
   public final HttpStatus httpStatus;
