@@ -17,7 +17,6 @@ import it.gov.pagopa.payments.model.PaymentsResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
 import java.util.ArrayList;
@@ -59,7 +58,7 @@ public class PaymentsService {
     }
 
     public ReceiptEntity getReceiptByOrganizationFCAndIUV(
-            @Validated @NotBlank String organizationFiscalCode, @Validated @NotBlank String iuv) {
+            @NotBlank String organizationFiscalCode, @NotBlank String iuv) {
 
         try{
             TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
