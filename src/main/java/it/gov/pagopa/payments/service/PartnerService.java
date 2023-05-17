@@ -807,7 +807,8 @@ public class PartnerService {
             .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
             .orElse("");
     receiptEntity.setDebtor(debtorIdentifier);
-    receiptEntity.setPaymentDateTime(paymentDateTime);
+    String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
+    receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
     return receiptEntity;
   }
 
