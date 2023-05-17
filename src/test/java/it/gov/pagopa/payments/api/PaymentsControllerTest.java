@@ -1,8 +1,7 @@
 package it.gov.pagopa.payments.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
@@ -13,8 +12,10 @@ import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptsInfo;
-import it.gov.pagopa.payments.service.PaymentsService;
+
 import java.util.ArrayList;
+
+import it.gov.pagopa.payments.service.PaymentsService;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -87,12 +88,12 @@ class PaymentsControllerTest {
     PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
     receipts.setResults(new ArrayList<ReceiptEntity>());
     when(paymentsService.getOrganizationReceipts(
-            anyInt(), anyInt(), anyString(), anyString(), anyString()))
+            anyString(), anyString(), anyString(), anyString(), anyString()))
         .thenReturn(receipts);
 
     ResponseEntity<ReceiptsInfo> res =
         paymentsController.getOrganizationReceipts(
-            anyString(), anyInt(), anyInt(), anyString(), anyString());
+            anyString(), anyString(), anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -101,10 +102,10 @@ class PaymentsControllerTest {
     // precondition
     doThrow(new AppException(AppError.RECEIPTS_NOT_FOUND, "111", 0))
         .when(paymentsService)
-        .getOrganizationReceipts(anyInt(), anyInt(), anyString(), anyString(), anyString());
+        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString());
     try {
       paymentsController.getOrganizationReceipts(
-          anyString(), anyInt(), anyInt(), anyString(), anyString());
+          anyString(), anyString(), anyString(), anyString(), anyString());
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }

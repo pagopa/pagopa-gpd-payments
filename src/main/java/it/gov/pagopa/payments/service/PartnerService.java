@@ -1,73 +1,33 @@
 package it.gov.pagopa.payments.service;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableErrorCode;
+import com.azure.data.tables.models.TableServiceException;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableBatchOperation;
-import com.microsoft.azure.storage.table.TableOperation;
-import com.microsoft.azure.storage.table.TableQuery;
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.Status;
-import it.gov.pagopa.payments.model.DebtPositionStatus;
-import it.gov.pagopa.payments.model.PaaErrorEnum;
-import it.gov.pagopa.payments.model.PaymentOptionModel;
-import it.gov.pagopa.payments.model.PaymentOptionModelResponse;
-import it.gov.pagopa.payments.model.PaymentOptionStatus;
-import it.gov.pagopa.payments.model.PaymentsModelResponse;
-import it.gov.pagopa.payments.model.PaymentsTransferModelResponse;
-import it.gov.pagopa.payments.model.Type;
-import it.gov.pagopa.payments.model.partner.CtEntityUniqueIdentifier;
-import it.gov.pagopa.payments.model.partner.CtPaymentOptionDescriptionPA;
-import it.gov.pagopa.payments.model.partner.CtPaymentOptionsDescriptionListPA;
-import it.gov.pagopa.payments.model.partner.CtPaymentPA;
-import it.gov.pagopa.payments.model.partner.CtPaymentPAV2;
-import it.gov.pagopa.payments.model.partner.CtQrCode;
-import it.gov.pagopa.payments.model.partner.CtRichiestaMarcaDaBollo;
-import it.gov.pagopa.payments.model.partner.CtSubject;
-import it.gov.pagopa.payments.model.partner.CtTransferListPA;
-import it.gov.pagopa.payments.model.partner.CtTransferListPAV2;
-import it.gov.pagopa.payments.model.partner.CtTransferPA;
-import it.gov.pagopa.payments.model.partner.CtTransferPAV2;
-import it.gov.pagopa.payments.model.partner.ObjectFactory;
-import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeRequest;
-import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
-import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
-import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
-import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
-import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Response;
-import it.gov.pagopa.payments.model.partner.PaSendRTReq;
-import it.gov.pagopa.payments.model.partner.PaSendRTRes;
-import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
-import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
-import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
-import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
-import it.gov.pagopa.payments.model.partner.StAmountOption;
-import it.gov.pagopa.payments.model.partner.StEntityUniqueIdentifierType;
-import it.gov.pagopa.payments.model.partner.StOutcome;
-import it.gov.pagopa.payments.model.partner.StTransferType;
-import it.gov.pagopa.payments.model.spontaneous.DebtorModel;
-import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
-import it.gov.pagopa.payments.model.spontaneous.ServiceModel;
-import it.gov.pagopa.payments.model.spontaneous.ServicePropertyModel;
-import it.gov.pagopa.payments.model.spontaneous.SpontaneousPaymentModel;
-import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
+import it.gov.pagopa.payments.exception.AppError;
+import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
+import it.gov.pagopa.payments.model.*;
+import it.gov.pagopa.payments.model.partner.*;
+import it.gov.pagopa.payments.model.spontaneous.*;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.xml.sax.SAXException;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -79,15 +39,16 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.xml.sax.SAXException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -99,11 +60,13 @@ public class PartnerService {
       "[Check DP] Debt position status error: ";
   public static final String TEXT_XML_NODE = "#text";
 
-  @Value("${payments.sa.connection}")
-  private String storageConnectionString;
+  public static final String DEBTOR_PROPERTY = "debtor";
 
-  @Value("${receipts.table}")
-  private String receiptsTable;
+  public static final String DOCUMENT_PROPERTY = "document";
+
+  public static final String STATUS_PROPERTY = "status";
+
+  public static final String PAYMENT_DATE_PROPERTY = "paymentDate";
 
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
@@ -114,9 +77,13 @@ public class PartnerService {
 
   @Autowired private GpsClient gpsClient;
 
+  @Autowired private TableClient tableClient;
+
   @Autowired private PaymentValidator paymentValidator;
 
   @Autowired private CustomizedMapper customizedModelMapper;
+
+  private static final String DBERROR = "Error in organization table connection";
 
   @Transactional(readOnly = true)
   public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
@@ -606,51 +573,50 @@ public class PartnerService {
 
   private void saveReceipt(ReceiptEntity receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
-    AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
-    azuriteStorageUtil.createTable(receiptsTable);
-    CloudTable table =
-        CloudStorageAccount.parse(storageConnectionString)
-            .createCloudTableClient()
-            .getTableReference(receiptsTable);
-    TableBatchOperation batchOperation = new TableBatchOperation();
-    batchOperation.insertOrReplace(receiptEntity);
-    table.execute(batchOperation);
+    try {
+      TableEntity tableEntity = new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
+      Map<String, Object> properties = new HashMap<>();
+      properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
+      properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
+      properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
+      properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
+      tableEntity.setProperties(properties);
+      tableClient.createEntity(tableEntity);
+    } catch (TableServiceException e) {
+      log.error(DBERROR, e);
+      if(e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS)
+      {
+        throw new AppException(AppError.RECEIPT_CONFLICT);
+      }
+      throw new AppException(AppError.DB_ERROR);
+    }
   }
 
   private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv)
       throws InvalidKeyException, URISyntaxException, StorageException {
-    AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
-    azuriteStorageUtil.createTable(receiptsTable);
-
-    CloudTable table =
-        CloudStorageAccount.parse(storageConnectionString)
-            .createCloudTableClient()
-            .getTableReference(receiptsTable);
-
-    TableQuery<ReceiptEntity> query =
-        TableQuery.from(ReceiptEntity.class)
-            .where(
-                TableQuery.generateFilterCondition(
-                    "PartitionKey", TableQuery.QueryComparisons.EQUAL, organizationFiscalCode))
-            .where(
-                TableQuery.generateFilterCondition(
-                    "RowKey", TableQuery.QueryComparisons.EQUAL, iuv));
-
-    Iterable<ReceiptEntity> result = table.execute(query);
-
-    return result.iterator().next();
+    try{
+      TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
+      return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
+    } catch (TableServiceException e) {
+      log.error(DBERROR, e);
+      throw new AppException(AppError.DB_ERROR);
+    }
   }
 
   private void updateReceipt(ReceiptEntity receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
-    AzuriteStorageUtil azuriteStorageUtil = new AzuriteStorageUtil(storageConnectionString);
-    azuriteStorageUtil.createTable(receiptsTable);
-    CloudTable table =
-        CloudStorageAccount.parse(storageConnectionString)
-            .createCloudTableClient()
-            .getTableReference(receiptsTable);
-    TableOperation updateOperation = TableOperation.merge(receiptEntity);
-    table.execute(updateOperation);
+    try {
+      TableEntity tableEntity = tableClient.getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
+      Map<String, Object> properties = new HashMap<>();
+      properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
+      properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
+      properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
+      properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
+      tableClient.updateEntity(tableEntity);
+    } catch (TableServiceException e) {
+      log.error(DBERROR, e);
+      throw new AppException(AppError.DB_ERROR);
+    }
   }
 
   private long getFeeInCent(BigDecimal fee) {
@@ -737,12 +703,12 @@ public class PartnerService {
         request.getReceipt().getNoticeNumber());
     paymentValidator.isAuthorize(
         request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
-
     ReceiptEntity receiptEntity =
         this.getReceiptEntity(
             request.getIdPA(),
             request.getReceipt().getCreditorReferenceId(),
-            request.getReceipt().getDebtor());
+            request.getReceipt().getDebtor(),
+            request.getReceipt().getPaymentDateTime().toString());
     // save the receipt info with status CREATED
     try {
       receiptEntity.setDocument(this.marshal(request));
@@ -792,7 +758,8 @@ public class PartnerService {
         this.getReceiptEntity(
             request.getIdPA(),
             request.getReceipt().getCreditorReferenceId(),
-            request.getReceipt().getDebtor());
+            request.getReceipt().getDebtor(),
+            request.getReceipt().getPaymentDateTime().toString());
     // save the receipt info with status CREATED
     try {
       receiptEntity.setDocument(this.marshalV2(request));
@@ -832,7 +799,7 @@ public class PartnerService {
   }
 
   private ReceiptEntity getReceiptEntity(
-      String idPa, String creditorReferenceId, CtSubject debtor) {
+      String idPa, String creditorReferenceId, CtSubject debtor, String paymentDateTime) {
     ReceiptEntity receiptEntity = new ReceiptEntity(idPa, creditorReferenceId);
     String debtorIdentifier =
         Optional.ofNullable(debtor)
@@ -840,6 +807,8 @@ public class PartnerService {
             .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
             .orElse("");
     receiptEntity.setDebtor(debtorIdentifier);
+    String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
+    receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
     return receiptEntity;
   }
 

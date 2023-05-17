@@ -1,23 +1,26 @@
 package it.gov.pagopa.payments.entity;
 
-import com.microsoft.azure.storage.table.TableServiceEntity;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
-public class ReceiptEntity extends TableServiceEntity {
+@AllArgsConstructor
+@Getter
+public class ReceiptEntity {
 
-  private String debtor;
-  private String document;
-  private String status = Status.CREATED.name();
+    private String organizationFiscalCode;
+    private String iuv;
+    private String debtor;
+    private String paymentDateTime;
+    private String status = Status.CREATED.name();
+    private String document;
 
-  public ReceiptEntity(String organizationFiscalCode, String iuv) {
-    this.partitionKey = organizationFiscalCode;
-    this.rowKey = iuv;
-    // https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.cosmos.table.tableentity.etag?view=azure-dotnet#microsoft-azure-cosmos-table-tableentity-etag
-    this.etag = "*";
-  }
+    public ReceiptEntity(String organizationFiscalCode, String iuv){
+        this.organizationFiscalCode = organizationFiscalCode;
+        this.iuv = iuv;
+    }
+
 }

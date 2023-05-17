@@ -69,17 +69,17 @@ microservice-chart:
     LOGGING_LEVEL: "INFO"
     CACHE_SIZE: "1000"
     CACHE_EXPIRATION_TIME: "1s"
-    RECEIPTS_TABLE: "pagopauweugpspaymentssareceiptstable"
+    AZURE_TABLES_TABLENAME: "pagopapagopa-u-weu-gpsweugpdpaymentsreceiptstable"
     API_CONFIG_HOST: "https://api.uat.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.uat.platform.pagopa.it/gps/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.uat.platform.pagopa.it/gpd/api/v1"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-u-connection-string'
-    PAYMENTS_SA_CONNECTION_STRING: "gpd-payments-u-sa-connection-string"
     APICONFIG_SUBSCRIPTION_KEY: "gpd-u-apiconfig-subscription-key"
     GPD_SUBSCRIPTION_KEY: "gpd-u-gpd-subscription-key"
     GPS_SUBSCRIPTION_KEY: "gpd-u-gps-subscription-key"
+    AZURE_TABLES_CONNECTION_STRING: "gpd-payments-u-cosmos-connection-string"
   keyvault:
     name: "pagopa-u-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"

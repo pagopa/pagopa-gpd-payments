@@ -24,6 +24,7 @@ class ConvertReceiptEntityToReceiptModelResponseTest {
 
     ReceiptModelResponse res = modelMapper.map(re, ReceiptModelResponse.class);
     assertNotNull(res);
-    assertEquals(re.getRowKey(), res.getIuv());
+    assertEquals(re.getOrganizationFiscalCode(), res.getOrganizationFiscalCode());
+    assertEquals(re.getIuv(), res.getIuv());
   }
 }

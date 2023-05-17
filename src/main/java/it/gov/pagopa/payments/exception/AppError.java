@@ -26,6 +26,17 @@ public enum AppError {
       "The receipts recovery is failed",
       "The debt position is in an inappropriate state [status= %s] to provide the receipt"
           + " [Organization Fiscal Code= %s, IUV= %s]"),
+
+  DB_ERROR(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          "Internal DB error",
+          "Something went wrong in the DB operation"),
+
+  RECEIPT_CONFLICT(
+          HttpStatus.CONFLICT,
+          "Receipt conflict",
+          "The receipt inserted already exists"),
+
   UNKNOWN(null, null, null);
 
   public final HttpStatus httpStatus;

@@ -49,10 +49,10 @@ public class PaymentsController implements IPaymentsController {
   @Override
   public ResponseEntity<ReceiptsInfo> getOrganizationReceipts(
       String organizationFiscalCode,
-      @Valid @Positive @Max(999) Integer limit,
-      @Valid @Min(0) Integer page,
       String debtor,
-      String service) {
+      String service,
+      String from,
+      String to) {
     log.info(
         String.format(
             LOG_BASE_HEADER_INFO,
@@ -64,8 +64,7 @@ public class PaymentsController implements IPaymentsController {
                 + "; service= "
                 + service));
     PaymentsResult<ReceiptEntity> receipts =
-        paymentsService.getOrganizationReceipts(
-            limit, page, organizationFiscalCode, debtor, service);
+        paymentsService.getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to);
     return new ResponseEntity<>(
         ReceiptsInfo.builder()
             .receiptsList(
@@ -73,7 +72,6 @@ public class PaymentsController implements IPaymentsController {
                     .map(
                         receiptEntity -> modelMapper.map(receiptEntity, ReceiptModelResponse.class))
                     .collect(Collectors.toList()))
-            .pageInfo(CommonUtil.buildPageInfo(receipts))
             .build(),
         HttpStatus.OK);
   }

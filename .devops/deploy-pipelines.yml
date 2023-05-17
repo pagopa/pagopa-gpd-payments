@@ -173,7 +173,7 @@ stages:
               targetType: 'inline'
               script: |
                 cd ./integration-test
-                sh run_integration_test.sh smoke ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
+                sh run_integration_test.sh ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) \
                 $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey)
             env:
               containerRegistry: $(dockerRegistryFqdn)
@@ -251,8 +251,13 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                cd ./integration-test
-                sh run_integration_test.sh integration ${{ parameters.ENV }} $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) \
-                $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(iuvGeneratorSubscriptionKey) $(restPaymentsSubscriptionKey)
+                cd ./integration-test/src
+                export APICONFIG_SUBSCRIPTION_KEY=$(apiConfigSubscriptionKey)  \
+                export GPD_SUBSCRIPTION_KEY=$(gpdSubscriptionKey) \
+                export GPS_SUBSCRIPTION_KEY=$(gpsSubscriptionKey) \
+                export DONATIONS_SUBSCRIPTION_KEY=$(donationsSubscriptionKey) \
+                export IUVGENERATOR_SUBSCRIPTION_KEY=$(iuvGeneratorSubscriptionKey) \
+                export REST_PAYMENTS_SUBSCRIPTION_KEY=$(restPaymentsSubscriptionKey) && \
+                yarn test:${{ parameters.ENV }}
             env:
               containerRegistry: $(dockerRegistryFqdn)

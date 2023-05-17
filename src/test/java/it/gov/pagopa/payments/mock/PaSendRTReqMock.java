@@ -12,14 +12,14 @@ import javax.xml.datatype.DatatypeFactory;
 
 public class PaSendRTReqMock {
 
-  public static PaSendRTReq getMock() throws DatatypeConfigurationException {
+  public static PaSendRTReq getMock(String iuv) throws DatatypeConfigurationException {
 
     CtReceipt receipt = new CtReceipt();
     receipt.setReceiptId("c110729d258c4ab1b765fe902aae41d6");
-    receipt.setNoticeNumber("311111111112222222");
+    receipt.setNoticeNumber("3" + iuv);
     receipt.setFiscalCode("77777777777");
     receipt.setOutcome(StOutcome.OK);
-    receipt.setCreditorReferenceId("11111111112222222");
+    receipt.setCreditorReferenceId(iuv);
     receipt.setPaymentMethod("creditCard");
     receipt.setPSPCompanyName("Intesa San Paolo");
     receipt.setFee(BigDecimal.valueOf(2));
@@ -35,14 +35,14 @@ public class PaSendRTReqMock {
     return mock;
   }
 
-  public static PaSendRTV2Request getMockV2() throws DatatypeConfigurationException {
+  public static PaSendRTV2Request getMockV2(String iuv) throws DatatypeConfigurationException {
 
     CtReceiptV2 receipt = new CtReceiptV2();
     receipt.setReceiptId("c110729d258c4ab1b765fe902aae41d6");
-    receipt.setNoticeNumber("311111111112222222");
+    receipt.setNoticeNumber("3" + iuv);
     receipt.setFiscalCode("77777777777");
     receipt.setOutcome(StOutcome.OK);
-    receipt.setCreditorReferenceId("11111111112222222");
+    receipt.setCreditorReferenceId(iuv);
     receipt.setPaymentMethod("creditCard");
     receipt.setPSPCompanyName("Intesa San Paolo");
     receipt.setFee(BigDecimal.valueOf(2));

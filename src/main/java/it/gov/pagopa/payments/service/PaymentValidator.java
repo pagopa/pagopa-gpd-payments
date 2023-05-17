@@ -32,6 +32,8 @@ public class PaymentValidator {
               + ptIdStazioneReq
               + "; idPA = "
               + ptIdDominioReq
+              + "; idIntermediario = "
+              + ptIdIntermediarioReq
               + "]",
           e);
       if (e instanceof FeignException.FeignClientException) {

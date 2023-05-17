@@ -1,8 +1,5 @@
 package it.gov.pagopa.payments.utils;
 
-import it.gov.pagopa.payments.entity.ReceiptEntity;
-import it.gov.pagopa.payments.model.PageInfo;
-import it.gov.pagopa.payments.model.PaymentsResult;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -13,25 +10,12 @@ import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stax.StAXSource;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
+
 import lombok.experimental.UtilityClass;
 import org.xml.sax.SAXException;
 
 @UtilityClass
 public class CommonUtil {
-
-  /**
-   * @param receipts Page returned from the database
-   * @return return the page info
-   */
-  public PageInfo buildPageInfo(PaymentsResult<ReceiptEntity> receipts) {
-    return PageInfo.builder()
-        .limit(receipts.getPageSize())
-        .morePages(receipts.isHasMoreResults())
-        .itemsFound(receipts.getLength())
-        .page(receipts.getCurrentPageNumber())
-        .build();
-  }
-
   /**
    * @param xml file XML to validate
    * @param xsdUrl url of XSD

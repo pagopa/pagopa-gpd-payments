@@ -153,29 +153,6 @@
             }
           },
           {
-            "name": "limit",
-            "in": "query",
-            "description": "Number of elements on one page",
-            "required": false,
-            "schema": {
-              "maximum": 999,
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Page number. Page value starts from 0",
-            "required": false,
-            "schema": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "int32",
-              "default": 0
-            }
-          },
-          {
             "name": "debtor",
             "in": "query",
             "description": "Filter by debtor",
@@ -188,6 +165,24 @@
             "name": "service",
             "in": "query",
             "description": "Filter by service",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Filter by date, from this date",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Filter by date, to this date",
             "required": false,
             "schema": {
               "type": "string"
@@ -448,35 +443,6 @@
           }
         }
       },
-      "PageInfo": {
-        "required": [
-          "items_found",
-          "more_pages",
-          "page"
-        ],
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "integer",
-            "description": "Page number",
-            "format": "int32"
-          },
-          "limit": {
-            "type": "integer",
-            "description": "Number of items per page",
-            "format": "int32"
-          },
-          "items_found": {
-            "type": "integer",
-            "description": "Number of items found",
-            "format": "int32"
-          },
-          "more_pages": {
-            "type": "boolean",
-            "description": "More elements on the following pages"
-          }
-        }
-      },
       "ReceiptModelResponse": {
         "type": "object",
         "properties": {
@@ -486,14 +452,16 @@
           "iuv": {
             "type": "string"
           },
-          "debtorFiscalCode": {
+          "debtor": {
+            "type": "string"
+          },
+          "paymentDateTime": {
             "type": "string"
           }
         }
       },
       "ReceiptsInfo": {
         "required": [
-          "page_info",
           "receipts_list"
         ],
         "type": "object",
@@ -503,9 +471,6 @@
             "items": {
               "$ref": "#/components/schemas/ReceiptModelResponse"
             }
-          },
-          "page_info": {
-            "$ref": "#/components/schemas/PageInfo"
           }
         }
       },

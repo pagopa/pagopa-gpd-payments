@@ -26,12 +26,13 @@ import it.gov.pagopa.payments.model.partner.PaSendRTReq;
 import it.gov.pagopa.payments.model.partner.PaSendRTRes;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
-import it.gov.pagopa.payments.service.PartnerService;
 import java.io.IOException;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+
+import it.gov.pagopa.payments.service.PartnerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -113,7 +114,7 @@ class PartnerEndpointTest {
   void paSendRTTest() throws DatatypeConfigurationException {
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
     PaSendRTRes responseBody = PaSendRTResMock.getMock();
     JAXBElement<PaSendRTReq> request = factoryUtil.createPaSendRTReq(requestBody);
 
@@ -132,7 +133,7 @@ class PartnerEndpointTest {
   void paSendRTTest_only_with_required_receipt_fields() throws DatatypeConfigurationException {
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222227");
     // set to null paymentMethod, paymentDateTime and Fee
     requestBody.getReceipt().setPaymentDateTime(null);
     requestBody.getReceipt().setPaymentMethod(null);

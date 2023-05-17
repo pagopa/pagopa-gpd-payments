@@ -12,6 +12,8 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableClientBuilder;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.RetryNoRetry;
 import com.microsoft.azure.storage.StorageException;
@@ -63,6 +65,7 @@ import org.junit.ClassRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -450,17 +453,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("34");
 
     doNothing()
         .doThrow(PartnerValidationException.class)
@@ -500,17 +502,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
 
     var e = Mockito.mock(FeignException.Conflict.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -539,23 +540,22 @@ class PartnerServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"PO_UNPAID", "PO_PARTIALLY_REPORTED", "PO_REPORTED"})
-  void paSendRTTestKOStatus(String status) throws DatatypeConfigurationException, IOException {
+  @CsvSource({"PO_UNPAID,11111111112222223", "PO_PARTIALLY_REPORTED,11111111112222227", "PO_REPORTED,11111111112222228"})
+  void paSendRTTestKOStatus(String status, String iuv) throws DatatypeConfigurationException, IOException {
 
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock(iuv);
 
     PaymentOptionModelResponse paymentOption =
         MockUtil.readModelFromFile(
@@ -592,17 +592,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222224");
 
     var e = Mockito.mock(RetryableException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -636,16 +635,15 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -679,17 +677,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMock();
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
 
     var e = Mockito.mock(NullPointerException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -735,12 +732,11 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
@@ -775,18 +771,56 @@ class PartnerServiceTest {
   }
 
   @Test
+  void paDemandPaymentNoticeNotFoundTest()
+          throws
+          IOException,
+          DatatypeConfigurationException,
+          XMLStreamException,
+          ParserConfigurationException,
+          SAXException {
+
+    var pService =
+            spy(
+                    new PartnerService(
+                            resource,
+                            factory,
+                            gpdClient,
+                            gpsClient,
+                            tableClientConfiguration(),
+                            paymentValidator,
+                            customizedModelMapper));
+
+    // Test preconditions
+    var requestBody = PaDemandNoticePaymentReqMock.getMock();
+
+    var e = Mockito.mock(FeignException.NotFound.class);
+    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
+
+    var paymentModel =
+            MockUtil.readModelFromFile(
+                    "gps/createSpontaneousPayments.json", PaymentPositionModel.class);
+    // Test execution
+    try{
+      pService.paDemandPaymentNotice(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+    }
+  }
+
+  @Test
   void paGetPaymentV2Test()
       throws PartnerValidationException, DatatypeConfigurationException, IOException {
 
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
@@ -848,12 +882,11 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
@@ -957,17 +990,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222231");
 
     doNothing()
         .doThrow(PartnerValidationException.class)
@@ -1007,17 +1039,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
 
     var e = Mockito.mock(FeignException.Conflict.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -1046,23 +1077,22 @@ class PartnerServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"PO_UNPAID", "PO_PARTIALLY_REPORTED", "PO_REPORTED"})
-  void paSendRTV2TestKOStatus(String status) throws DatatypeConfigurationException, IOException {
+  @CsvSource({"PO_UNPAID,11111111112222233", "PO_PARTIALLY_REPORTED,11111111112222237", "PO_REPORTED,11111111112222238"})
+  void paSendRTV2TestKOStatus(String status, String iuv) throws DatatypeConfigurationException, IOException {
 
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2(iuv);
 
     PaymentOptionModelResponse paymentOption =
         MockUtil.readModelFromFile(
@@ -1099,17 +1129,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222234");
 
     var e = Mockito.mock(RetryableException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -1143,16 +1172,15 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
     // Test preconditions
-    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
 
     var e = Mockito.mock(FeignException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -1186,17 +1214,16 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                storageConnectionString,
-                "receiptsTable",
                 resource,
                 factory,
                 gpdClient,
                 gpsClient,
+                tableClientConfiguration(),
                 paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
-    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2();
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222236");
 
     var e = Mockito.mock(NullPointerException.class);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
@@ -1223,4 +1250,11 @@ class PartnerServiceTest {
       assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
     }
   }
+
+    private TableClient tableClientConfiguration() {
+        return new TableClientBuilder()
+                .connectionString(storageConnectionString)
+                .tableName("receiptsTable")
+                .buildClient();
+    }
 }
