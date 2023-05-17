@@ -34,8 +34,6 @@ public class PaymentsService {
     @Autowired
     private GpdClient gpdClient;
 
-    public PaymentsService() {}
-
     public PaymentsService(GpdClient gpdClient, TableClient tableClient) {
         this.gpdClient = gpdClient;
         this.tableClient = tableClient;
