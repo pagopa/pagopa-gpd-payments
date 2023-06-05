@@ -69,7 +69,7 @@ microservice-chart:
     LOGGING_LEVEL: "INFO"
     CACHE_SIZE: "1000"
     CACHE_EXPIRATION_TIME: "1d"
-    AZURE_TABLES_TABLENAME: "pagopapagopa-p-weu-gpsweugpdpaymentsreceiptstable"
+    AZURE_TABLES_TABLENAME: "gpdpaymentsreceiptstable"
     API_CONFIG_HOST: "https://api.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.platform.pagopa.it/gps/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.platform.pagopa.it/gpd/api/v1"
