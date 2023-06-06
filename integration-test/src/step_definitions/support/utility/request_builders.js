@@ -249,7 +249,7 @@ function buildSendRTRequest(gpdSessionBundle, fiscalCode) {
     const iuv = gpdSessionBundle.debtPosition.iuv1;
     const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`;
     const iban = gpdSessionBundle.debtPosition.iban;
-    const receiptId = gpdSessionBundle.debtPosition.paymentToken; //gpdSessionBundle.debtPosition.receiptId;
+    const receiptId = gpdSessionBundle.debtPosition.receiptId;
     const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
     const transferAmountRate = gpdSessionBundle.debtPosition.amount / 3;
     const payerFiscalCode = gpdSessionBundle.payer.fiscalCode;
