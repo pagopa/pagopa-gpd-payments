@@ -18,6 +18,10 @@ on:
         required: false
         type: boolean
         default: true
+      notify:
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   id-token: write
@@ -58,7 +62,7 @@ jobs:
     needs: [ integration_test ]
     runs-on: ubuntu-latest
     name: Notify
-    if: always()
+    if: ${{ always() && inputs.notify == 'true' }}
     steps:
       - name: Report Status
         if: always()
