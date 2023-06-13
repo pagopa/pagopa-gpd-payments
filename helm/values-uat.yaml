@@ -3,7 +3,7 @@ microservice-chart:
   nameOverride: ""
   fullnameOverride: ""
   image:
-    repository: pagopaucommonacr.azurecr.io/pagopagpdpayments
+    repository: ghcr.io/pagopa/pagopa-gpd-payments
     tag: "0.3.1"
     pullPolicy: Always
   livenessProbe:
@@ -95,6 +95,22 @@ microservice-chart:
                 values:
                   - user
   canaryDelivery:
+    create: true
+    ingress:
+      create: true
+      canary:
+        type: header
+        headerName: X-Canary
+        headerValue: canary
+        weightPercent: 0
+    service:
+      create: true
     deployment:
+      create: true
       image:
-        tag: 0.3.1
+        repository: ghcr.io/pagopa/pagopa-gpd-payments
+        tag: "0.3.1"
+        pullPolicy: Always
+      envConfig: { }
+      envSecret: { }
+
