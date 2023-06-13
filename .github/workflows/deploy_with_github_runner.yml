@@ -22,12 +22,6 @@ permissions:
   contents: read
 
 jobs:
-  debug:
-    name: Create Runner
-    runs-on: ubuntu-22.04
-    steps:
-      - run: echo "${{ inputs.target }} ${{ inputs.environment }}"
-
   create_runner:
     name: Create Runner
     runs-on: ubuntu-22.04
