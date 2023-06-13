@@ -1,19 +1,17 @@
-name: Open a PR in Infra repository
+name: Update Infra
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types: [ closed ]
     paths:
       - 'openapi/openapi.json'
-
 
   workflow_dispatch:
 
 jobs:
-  pull-request:
-    if: ${{ github.event.pull_request.merged }}
+  update_infra:
+    name: Update Infra
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
