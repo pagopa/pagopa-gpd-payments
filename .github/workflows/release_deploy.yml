@@ -65,7 +65,7 @@ jobs:
         run: echo "SEMVER=skip" >> $GITHUB_ENV
 
       - if: ${{ inputs.skip_release }}
-        run: echo "ENVIRNOMENT=skip" >> $GITHUB_ENV
+        run: echo "SEMVER=skip" >> $GITHUB_ENV
 
       - if: ${{ github.ref_name != 'main' }}
         run: echo "SEMVER=buildNumber" >> $GITHUB_ENV
