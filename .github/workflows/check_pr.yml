@@ -28,43 +28,6 @@ jobs:
         with:
           configuration-path: '.github/auto_assign.yml'
 
-  check_labels:
-    name: Check Required Labels
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      - name: Verify PR Labels
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'breaking-change') && !contains(github.event.pull_request.labels.*.name, 'enhancement') && !contains(github.event.pull_request.labels.*.name, 'bug') && !contains(github.event.pull_request.labels.*.name, 'ignore-for-release') }}
-        uses: actions/github-script@v6.3.3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var comments = await github.rest.issues.listComments({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo
-            });
-            for (const comment of comments.data) {
-              if (comment.body.includes('This pull request does not contain a valid label')){
-                github.rest.issues.deleteComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: comment.id
-                })
-              }
-            }
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'This pull request does not contain a valid label. Please add one of the following labels: `[bug, enhancement, breaking-change, ignore-for-release]`'
-            })
-            core.setFailed('Missing required labels')
-
-
   check_format:
     name: Check Format
     runs-on: ubuntu-latest
@@ -105,7 +68,7 @@ jobs:
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: 'Comment this PR with *update_code* to format the code. Consider to use pre-commit to format the code.'
+                body: 'Comment this PR with *update_code* to update `openapi.json` and format the code. Consider to use pre-commit to format the code.'
             })
             core.setFailed('Format your code.')
 
@@ -223,6 +186,5 @@ jobs:
                 })
               }
             
-              core.setFailed('PR is too large: ' + changes + ' changes.')
             }
 

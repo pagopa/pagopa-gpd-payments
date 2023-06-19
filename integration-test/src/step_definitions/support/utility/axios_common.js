@@ -5,6 +5,21 @@ if (process.env.canary) {
     axios.defaults.headers.common['X-CANARY'] = 'canary' // for all requests
 }
 
+axios.interceptors.request.use(config => {
+  config.timeout = 10000; // Wait for 10 seconds before timing out
+  return config;
+});
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
+      console.log('Request timed out');
+    }
+    return Promise.reject(error);
+  }
+);
+
 function get(url, config) {
     return axios.get(url, config)
          .then(res => {

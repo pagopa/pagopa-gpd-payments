@@ -30,13 +30,16 @@ jobs:
         with:
           java-version: 11
 
-      - name: Update OpenApi/Swagger file
+      - name: Run Service on Docker
+        shell: bash
         run: |
           cd ./docker
           chmod +x ./run_docker.sh
           ./run_docker.sh local
-          
-          cd ../openapi
+
+      - name: Update OpenApi/Swagger file
+        run: |
+          cd ./openapi
           chmod +x ./generate_openapi.sh
           ./generate_openapi.sh
 
@@ -79,4 +82,3 @@ jobs:
               body: 'Update Code is failed. Please retry.'
             })
             core.setFailed('Update Code is failed. Please retry.')
-
