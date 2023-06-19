@@ -1,5 +1,7 @@
 package it.gov.pagopa.payments.service;
 
+import com.azure.core.http.rest.PagedIterable;
+import com.azure.core.http.rest.PagedResponse;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
@@ -19,9 +21,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotBlank;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 @Slf4j
@@ -43,11 +45,13 @@ public class PaymentsService {
             String debtor,
             String service,
             String from,
-            String to) {
+            String to,
+            int pageNum,
+            int pageSize) {
         try {
 
             List<ReceiptEntity> filteredEntities = retrieveEntitiesByFilter(tableClient,
-                    organizationFiscalCode, debtor, service, from, to);
+                    organizationFiscalCode, debtor, service, from, to, pageNum, pageSize);
             return this.setReceiptsOutput(getGPDCheckedReceiptsList(filteredEntities, tableClient));
 
         }
@@ -121,7 +125,7 @@ public class PaymentsService {
     }
 
     public List<ReceiptEntity> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
-                                                        String debtor, String service, String from, String to) {
+                                                        String debtor, String service, String from, String to, int pageNum, int pageSize) {
 
         List<String> filters = new ArrayList<>();
 
@@ -138,11 +142,29 @@ public class PaymentsService {
         if(null != from && null != to){
             filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
         }
-        return tableClient.listEntities(new ListEntitiesOptions()
-                        .setFilter(String.join(" and ", filters)), null, null)
-                        .stream()
-                        .map(ConvertTableEntityToReceiptEntity::mapTableEntityToReceiptEntity)
-                        .collect(Collectors.toList());
+
+        Iterator<PagedResponse<TableEntity>> filteredIterator = tableClient
+                .listEntities(
+                        new ListEntitiesOptions()
+                                .setTop(pageSize)
+                                .setFilter(String.join(" and ", filters)
+                                ), null, null)
+                .iterableByPage()
+                .iterator();
+
+        for(int i = 0; i < pageNum - 1; i++){
+            if(!filteredIterator.hasNext()){
+                throw new AppException(AppError.NOT_ENOUGH_ELEMENTS);
+            } else {
+                filteredIterator.next();
+            }
+        }
+
+        if(!filteredIterator.hasNext()) {
+            throw new AppException(AppError.NOT_ENOUGH_ELEMENTS);
+        }
+
+        return filteredIterator.next().getValue().stream().map(ConvertTableEntityToReceiptEntity::mapTableEntityToReceiptEntity).collect(Collectors.toList());
     }
 
     private static void getStartsWithFilter(List<String> filters, String startsWith) {
