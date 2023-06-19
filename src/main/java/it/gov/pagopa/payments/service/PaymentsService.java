@@ -125,7 +125,8 @@ public class PaymentsService {
     }
 
     public List<ReceiptEntity> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
-                                                        String debtor, String service, String from, String to, int pageNum, int pageSize) {
+                                                        String debtor, String service, String from,
+                                                        String to, int pageNum, int pageSize) {
 
         List<String> filters = new ArrayList<>();
 

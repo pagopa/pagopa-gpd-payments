@@ -192,7 +192,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_PageFilter_NotEnoughElements() throws Exception {
+  void getOrganizationReceipts_PageNumberTooHigh() throws Exception {
 
     var paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
