@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.3.4-2-PAGOPA-960-sviluppo-migrazione-dati-storage-to-cosmos-e-applicazione-in-uat-e-prod"
+    "version": "0.3.5"
   },
   "servers": [
     {
