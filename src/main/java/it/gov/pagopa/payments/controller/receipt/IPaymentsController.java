@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
+
 @Tag(name = "Payments receipts API")
 @RequestMapping
 @Validated
@@ -117,8 +120,11 @@ public interface IPaymentsController {
               required = true)
           @PathVariable("organizationfiscalcode")
           String organizationFiscalCode,
+      @Parameter(description = "Page number") @RequestParam(required = true) @PositiveOrZero int pageNum,
+      @Parameter(description = "Number of elements per page") @RequestParam(required = true) @Positive int pageSize,
       @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
       @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
       @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
       @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to);
+
 }

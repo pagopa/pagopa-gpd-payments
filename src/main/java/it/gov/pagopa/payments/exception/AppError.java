@@ -37,6 +37,11 @@ public enum AppError {
           "Receipt conflict",
           "The receipt inserted already exists"),
 
+  NOT_ENOUGH_ELEMENTS(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          "Not enough elements",
+          "The page number is too big for the filtered elements"),
+
   UNKNOWN(null, null, null);
 
   public final HttpStatus httpStatus;

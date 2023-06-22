@@ -40,7 +40,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-//TODO change the tests adapting them to the cosmos table
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
 class PaymentsServiceTest {
@@ -174,9 +173,35 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, null, null, null);
+        paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 100);
     assertNotNull(res);
     assertEquals(15, res.getResults().size());
+  }
+
+  @Test
+  void getOrganizationReceipts_PageFilter() throws Exception {
+
+    var paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    PaymentsResult<ReceiptEntity> res =
+            paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 4);
+    assertNotNull(res);
+    assertEquals(4, res.getResults().size());
+  }
+
+  @Test
+  void getOrganizationReceipts_PageNumberTooHigh() throws Exception {
+
+    var paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    try {
+      paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 50, 4);
+    } catch (AppException e) {
+      assertEquals("The page number is too big for the filtered elements", e.getMessage());
+      assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getHttpStatus());
+    }
   }
 
   @Test
@@ -186,7 +211,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", "debtor5", null, null, null);
+        paymentsService.getOrganizationReceipts("org123456", "debtor5", null, null, null, 0, 100);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -199,7 +224,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "iuv5", null, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "iuv5", null, null, 0, 100);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -217,7 +242,7 @@ class PaymentsServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "iuv11", null, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "iuv11", null, null, 0, 100);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -236,11 +261,12 @@ class PaymentsServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "iuv13", null, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "iuv13", null, null, 0, 100);
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
+
 
   @Test
   void getOrganizationReceipts_all_filters() throws Exception {
@@ -249,7 +275,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", "debtor5", "iuv5", "2021-09-30", "2023-10-02");
+        paymentsService.getOrganizationReceipts("org123456", "debtor5", "iuv5", "2021-09-30", "2023-10-02", 0, 100);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -262,7 +288,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", "debtor15", null, null, null);
+        paymentsService.getOrganizationReceipts("org123456", "debtor15", null, null, null, 0, 100);
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
   }
@@ -286,7 +312,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClient));
 
     try {
-      paymentsService.getOrganizationReceipts("org123456", null, null, null, null);
+      paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 100);
     } catch (AppException e) {
       assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getHttpStatus());
     }
