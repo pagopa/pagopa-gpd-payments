@@ -49,6 +49,17 @@ function getPayment(body) {
     })
 }
 
+function getPaymentV2(body) {
+    return post(payments_host, body, {
+        timeout: 10000,
+        headers: {
+            'Content-Type': 'text/xml',
+            'SOAPAction': 'paGetPaymentV2',
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
 function sendRT(body) {
     return post(payments_host, body, {
         timeout: 10000,
@@ -95,6 +106,7 @@ module.exports = {
     activatePaymentNotice,
     demandPaymentNotice,
     getPayment,
+    getPaymentV2,
     healthCheck,
     sendPaymentOutcome,
     sendRT,

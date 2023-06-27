@@ -347,9 +347,31 @@ function buildSendRTRequest(gpdSessionBundle, fiscalCode) {
 function buildGetPaymentReq(gpdSessionBundle, fiscalCode) {
 	const brokerCode = gpdSessionBundle.brokerCode;
 	const stationCode = gpdSessionBundle.stationCode;
-	const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`;
+	const noticeNumber = `${gpdSessionBundle.debtPosition.iuv1}`;
 	const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
-	`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+	return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+                        <soapenv:Header />
+                        <soapenv:Body>
+                            <pafn:paGetPaymentReq>
+                                <idPA>${fiscalCode}</idPA>
+                                <idBrokerPA>${brokerCode}</idBrokerPA>
+                                <idStation>${stationCode}</idStation>
+                                <qrCode>
+                                    <fiscalCode>${fiscalCode}</fiscalCode>
+                                    <noticeNumber>3${noticeNumber}</noticeNumber>
+                                </qrCode>
+                                <amount>${amount}</amount>
+                            </pafn:paGetPaymentReq>
+                        </soapenv:Body>
+                    </soapenv:Envelope>`;
+	}
+	
+	function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
+	const brokerCode = gpdSessionBundle.brokerCode;
+	const stationCode = gpdSessionBundle.stationCode;
+	const noticeNumber = `${gpdSessionBundle.debtPosition.iuv1}`;
+	const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
+	return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
                         <soapenv:Header />
                         <soapenv:Body>
                             <pafn:paGetPaymentReq>
@@ -377,5 +399,6 @@ module.exports = {
     buildSendPaymentOutcomeRequest,    
     buildSendRTRequest,
     buildVerifyPaymentNoticeRequest,
-    buildGetPaymentReq
+    buildGetPaymentReq,
+    buildGetPaymentV2Req
 }
