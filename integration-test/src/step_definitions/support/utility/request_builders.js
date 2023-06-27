@@ -347,9 +347,9 @@ function buildSendRTRequest(gpdSessionBundle, fiscalCode) {
 function buildGetPaymentReq(gpdSessionBundle, fiscalCode) {
 	const brokerCode = gpdSessionBundle.brokerCode;
 	const stationCode = gpdSessionBundle.stationCode;
-	const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`;
+	const noticeNumber = `${gpdSessionBundle.debtPosition.iuv1}`;
 	const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
-	`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
+	return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
                         <soapenv:Header />
                         <soapenv:Body>
                             <pafn:paGetPaymentReq>

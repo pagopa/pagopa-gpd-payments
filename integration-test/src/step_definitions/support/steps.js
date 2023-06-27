@@ -21,9 +21,10 @@ const {
     sendSendPaymentOutcomeRequest,
     sendSendRTRequest,
     sendSendRTV2Request,
-    sendVerifyPaymentNoticeRequest
+    sendVerifyPaymentNoticeRequest,
+    sendGetPaymentRequest
 } = require('./logic/gpd_logic');
-const { assertAmount, assertFaultCode, assertOutcome, assertStatusCode, executeAfterAllStep } = require('./logic/common_logic');
+const { assertAmount, assertFaultCode, assertOutcome, assertStatusCode, executeAfterAllStep, assertPaymentAmount, assertIbanInTransferList } = require('./logic/common_logic');
 const { createOrganizationInfo, createServiceInfo, sendInvalidDemandPaymentNoticeRequest, sendValidDemandPaymentNoticeRequest } = require('./logic/gps_logic');
 const { gpdSessionBundle, gpsSessionBundle } = require('./utility/data');
 const { getValidBundle } = require('./utility/helpers');
@@ -76,6 +77,7 @@ When('the client sends the ActivatePaymentNoticeRequest to Nodo', () => sendActi
 When('the client sends the SendPaymentOutcomeRequest to Nodo', () => sendSendPaymentOutcomeRequest(gpdSessionBundle));
 When('the client sends the SendRTRequest', () => sendSendRTRequest(gpdSessionBundle));
 When('the client sends the SendRTV2Request', () => sendSendRTV2Request(gpdSessionBundle));
+When('the client sends the GetPaymentRequest', () => sendGetPaymentRequest(gpdSessionBundle))
 
 
 /* 
@@ -103,6 +105,9 @@ Then('the client receives an OK in the response', () => assertOutcome(getValidBu
 Then('the client receives a KO in the response', () => assertOutcome(getValidBundle(gpdSessionBundle, gpsSessionBundle), "KO"));
 Then('the client receives a KO with the {string} fault code error', (fault) => assertFaultCode(getValidBundle(gpdSessionBundle, gpsSessionBundle), fault));
 Then('the payment token is extracted', () => assertPaymentTokenExistence(getValidBundle(gpdSessionBundle, gpsSessionBundle)));
+Then('the client retrieves the payment amount {string} in the response', (amount) => assertPaymentAmount(getValidBundle(gpdSessionBundle, gpsSessionBundle), amount));
+Then('the client retrieves the IBANs in the response', () => assertIbanInTransferList(getValidBundle(gpdSessionBundle, gpsSessionBundle)));
+
 
 
 Before({tags: '@GPDScenario'}, async function () {

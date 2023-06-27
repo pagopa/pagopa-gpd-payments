@@ -6,6 +6,16 @@ async function assertAmount(bundle, amount) {
     assert.match(bundle.responseToCheck.data, new RegExp(`<amount>${amount}</amount>`, "g"));
 }
 
+async function assertPaymentAmount(bundle, amount) {
+    assertOutcome(bundle, "OK");
+    assert.match(bundle.responseToCheck.data, new RegExp(`<paymentAmount>${amount}</paymentAmount>`, "g"));
+}
+
+async function assertIbanInTransferList(bundle) {
+    assertOutcome(bundle, "OK");
+    assert.match(bundle.responseToCheck.data, new RegExp(`<IBAN>`, "g"));
+}
+
 async function assertFaultCode(bundle, fault) {
     assertOutcome(bundle, "KO");
     assert.match(bundle.responseToCheck.data, new RegExp(`<faultCode>${fault}</faultCode>`, "g"));
@@ -31,4 +41,6 @@ module.exports = {
     assertOutcome,
     assertStatusCode,
     executeAfterAllStep,
+    assertPaymentAmount,
+    assertIbanInTransferList
 }

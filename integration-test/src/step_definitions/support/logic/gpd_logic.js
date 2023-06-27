@@ -15,7 +15,8 @@ const {
     sendPaymentOutcome,
     sendRT,
     sendRTV2,
-    verifyPaymentNotice
+    verifyPaymentNotice,
+    getPayment
 } = require("../clients/payments_client");
 const { 
     buildDebtPositionDynamicData, 
@@ -23,7 +24,8 @@ const {
     buildVerifyPaymentNoticeRequest, 
     buildActivatePaymentNoticeRequest, 
     buildSendPaymentOutcomeRequest, 
-    buildSendRTRequest 
+    buildSendRTRequest,
+    buildGetPaymentReq 
 } = require("../utility/request_builders");
 
 
@@ -134,4 +136,5 @@ module.exports = {
     sendSendRTV2Request,
     sendSendPaymentOutcomeRequest,
     sendVerifyPaymentNoticeRequest,
+    sendGetPaymentRequest
 }
