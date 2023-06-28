@@ -17,7 +17,7 @@ Feature: All about Verify Phase on Debt Position Payments workflow
     And the client receives a KO with the "PAA_ID_DOMINIO_ERRATO" fault code error
 
   @GPDScenario
-  Scenario: Activate phase - Success
+  Scenario: Verify phase - Success
     Given a valid fiscal code
     When the client sends the VerifyPaymentNoticeRequest
     Then the client receives status code 200

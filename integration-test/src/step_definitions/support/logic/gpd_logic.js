@@ -15,7 +15,9 @@ const {
     sendPaymentOutcome,
     sendRT,
     sendRTV2,
-    verifyPaymentNotice
+    verifyPaymentNotice,
+    getPayment,
+    getPaymentV2
 } = require("../clients/payments_client");
 const { 
     buildDebtPositionDynamicData, 
@@ -23,7 +25,9 @@ const {
     buildVerifyPaymentNoticeRequest, 
     buildActivatePaymentNoticeRequest, 
     buildSendPaymentOutcomeRequest, 
-    buildSendRTRequest 
+    buildSendRTRequest,
+    buildGetPaymentReq,
+    buildGetPaymentV2Req 
 } = require("../utility/request_builders");
 
 
@@ -114,6 +118,14 @@ async function sendVerifyPaymentNoticeRequest(bundle) {
     bundle.responseToCheck = await verifyPaymentNotice(buildVerifyPaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode));
 }
 
+async function sendGetPaymentRequest(bundle) {
+    bundle.responseToCheck = await getPayment(buildGetPaymentReq(bundle, bundle.debtPosition.fiscalCode));
+}
+
+async function sendGetPaymentV2Request(bundle) {
+    bundle.responseToCheck = await getPaymentV2(buildGetPaymentV2Req(bundle, bundle.debtPosition.fiscalCode));
+}
+
 
 module.exports = {
     assertPaymentTokenExistence,
@@ -130,4 +142,6 @@ module.exports = {
     sendSendRTV2Request,
     sendSendPaymentOutcomeRequest,
     sendVerifyPaymentNoticeRequest,
+    sendGetPaymentRequest,
+    sendGetPaymentV2Request
 }
