@@ -366,7 +366,7 @@ function buildGetPaymentReq(gpdSessionBundle, fiscalCode) {
                     </soapenv:Envelope>`;
 	}
 	
-	function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
+function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
 	const brokerCode = gpdSessionBundle.brokerCode;
 	const stationCode = gpdSessionBundle.stationCode;
 	const noticeNumber = `${gpdSessionBundle.debtPosition.iuv1}`;
@@ -374,7 +374,7 @@ function buildGetPaymentReq(gpdSessionBundle, fiscalCode) {
 	return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd">
                         <soapenv:Header />
                         <soapenv:Body>
-                            <pafn:paGetPaymentReq>
+                            <pafn:paGetPaymentV2Request>
                                 <idPA>${fiscalCode}</idPA>
                                 <idBrokerPA>${brokerCode}</idBrokerPA>
                                 <idStation>${stationCode}</idStation>
@@ -383,7 +383,7 @@ function buildGetPaymentReq(gpdSessionBundle, fiscalCode) {
                                     <noticeNumber>3${noticeNumber}</noticeNumber>
                                 </qrCode>
                                 <amount>${amount}</amount>
-                            </pafn:paGetPaymentReq>
+                            </pafn:paGetPaymentV2Request>
                         </soapenv:Body>
                     </soapenv:Envelope>`;
 	}
