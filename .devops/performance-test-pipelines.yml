@@ -47,6 +47,7 @@ parameters:
       - payments_workflow.oneshot
       - verify_payment_workflow
       - get_payment_workflow
+      - get_payment_V2_workflow
       - send_rt_workflow
 
 jobs:
