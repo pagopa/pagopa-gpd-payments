@@ -12,7 +12,7 @@
   "stages": [
     {
       "duration": "5s",
-      "target": 100
+      "target": 10
     },
     {
       "duration": "0m",

@@ -24,6 +24,7 @@ const service = `${vars.env}`.toLowerCase() === "local" ? "/partner" : "";
 
 const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`;
 const numberOfPositionsToPreload = __ENV.DEBT_POSITION_NUMBER;
+console.log("HELLO" + numberOfPositionsToPreload)
 const batchSize = 100;
 
 var pdArray = new Array();
@@ -77,6 +78,7 @@ export function setup() {
 
     responses = http.batch(batchArrayVerifyPayment);
     for (let j = 0; j < batchSize; j++) {
+        console.log(responses[j].status);
       check(responses[j], { "VerifyPayment status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, { paymentRequest: "VerifyPayment" });
     }
   }
