@@ -22,6 +22,7 @@ const idStation = `${vars.id_station}`;
 const service = `${vars.env}`.toLowerCase() === "local" ? "/partner" : "";
 
 const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`;
+const soapSubscriptionKey = `${__ENV.SOAP_SUBSCRIPTION_KEY}`;
 
 export default function () {
   // initialize constant values for this execution
@@ -115,6 +116,7 @@ export default function () {
         headers: {
           "Content-Type": "text/xml",
           SOAPAction: "paVerifyPaymentNotice",
+          "Ocp-Apim-Subscription-Key": soapSubscriptionKey
         },
       };
 
@@ -173,6 +175,7 @@ export default function () {
           headers: {
             "Content-Type": "text/xml",
             SOAPAction: "paGetPayment",
+            "Ocp-Apim-Subscription-Key": soapSubscriptionKey
           },
         };
 
@@ -231,6 +234,7 @@ export default function () {
             headers: {
               "Content-Type": "text/xml",
               SOAPAction: "paSendRT",
+              "Ocp-Apim-Subscription-Key": soapSubscriptionKey
             },
           };
           payload = getpaSendRTReqBody(creditorInstitutionCode, idBrokerPA, idStation, receiptId, iuv_1);

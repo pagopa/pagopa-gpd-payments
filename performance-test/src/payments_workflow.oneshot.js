@@ -19,6 +19,7 @@ const urlPaymentsBasePath = `${vars.soap_payments_host}`
 const idBrokerPA = `${vars.id_broker_pa}`
 const idStation = `${vars.id_station}`
 const service = `${vars.env}`.toLowerCase() === "local" ? "partner" : ""
+const soapSubscriptionKey = `${__ENV.SOAP_SUBSCRIPTION_KEY}`;
 
 export function setup() {
     return Papa.parse(data, {header: true});
@@ -60,7 +61,8 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
     let soapParams = {
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'paVerifyPaymentNotice'
+            'SOAPAction': 'paVerifyPaymentNotice',
+            "Ocp-Apim-Subscription-Key": soapSubscriptionKey
         },
     };
     let r = http.post(url, payload, soapParams);
@@ -102,7 +104,8 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
         soapParams = {
             headers: {
                 'Content-Type': 'text/xml',
-                'SOAPAction': 'paGetPayment'
+                'SOAPAction': 'paGetPayment',
+                "Ocp-Apim-Subscription-Key": soapSubscriptionKey
             },
         };
 
@@ -200,7 +203,8 @@ function callPayments(creditor_institution_code, notice_number, amount, receiptI
             soapParams = {
                 headers: {
                     'Content-Type': 'text/xml',
-                    'SOAPAction': 'paSendRT'
+                    'SOAPAction': 'paSendRT',
+                    "Ocp-Apim-Subscription-Key": soapSubscriptionKey
                 },
             };
 
