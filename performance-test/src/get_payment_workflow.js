@@ -79,7 +79,6 @@ export function setup() {
 
     responses = http.batch(batchArrayVerifyPayment);
     for (let j = 0; j < batchSize; j++) {
-        console.log(responses[j].status);
       check(responses[j], { "VerifyPayment status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, { paymentRequest: "VerifyPayment" });
     }
   }

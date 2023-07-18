@@ -96,7 +96,7 @@ export default function (data) {
 
   // Activate Payment.
 
-  // defining URL, body and headers related to the GetPayment call
+  // defining URL, body and headers related to the GetPaymentV2 call
   const url = `${urlPaymentsBasePath}${service}`;
   const soapParams = {
     responseType: "text",
