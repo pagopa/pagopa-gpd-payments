@@ -51,6 +51,7 @@ parameters:
       - get_payment_workflow
       - get_payment_V2_workflow
       - send_rt_workflow
+      - send_rt_V2_workflow
 
 jobs:
   - job: run_performance_test
