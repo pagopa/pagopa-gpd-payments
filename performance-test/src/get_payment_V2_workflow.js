@@ -88,7 +88,7 @@ export function setup() {
 
 export default function (data) {
   const tag = {
-    paymentRequest: "GetPayment",
+    paymentRequest: "GetPaymentV2",
   };
   let idx = exec.instance.vusActive * exec.vu.iterationInScenario + exec.vu.idInInstance;
   let pair = data.pds[idx];
@@ -98,13 +98,13 @@ export default function (data) {
 
   // Activate Payment.
 
-  // defining URL, body and headers related to the GetPayment call
+  // defining URL, body and headers related to the GetPaymentV2 call
   const url = `${urlPaymentsBasePath}${service}`;
   const soapParams = {
     responseType: "text",
     headers: {
       "Content-Type": "text/xml",
-      SOAPAction: "paGetPayment",
+      SOAPAction: "paGetPaymentV2",
       "Ocp-Apim-Subscription-Key": soapSubscriptionKey
     },
   };

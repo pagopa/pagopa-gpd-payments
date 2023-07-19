@@ -8,7 +8,8 @@ APICONFIG_SUBSCRIPTION_KEY=$5
 GPD_SUBSCRIPTION_KEY=$6
 GPS_SUBSCRIPTION_KEY=$7
 DONATIONS_SUBSCRIPTION_KEY=$8
-DEBT_POSITION_NUMBER=$9
+SOAP_SUBSCRIPTION_KEY=$9
+DEBT_POSITION_NUMBER=${10}
 
 if [ -z "$ENVIRONMENT" ]
 then
@@ -35,6 +36,7 @@ export apiconfig_sub_key=${APICONFIG_SUBSCRIPTION_KEY}
 export gpd_sub_key=${GPD_SUBSCRIPTION_KEY}
 export gps_sub_key=${GPS_SUBSCRIPTION_KEY}
 export donations_sub_key=${DONATIONS_SUBSCRIPTION_KEY}
+export soap_sub_key=${SOAP_SUBSCRIPTION_KEY}
 export debt_position_number=${DEBT_POSITION_NUMBER}
 
 stack_name=$(cd .. && basename "$PWD")

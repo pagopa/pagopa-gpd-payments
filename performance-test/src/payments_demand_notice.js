@@ -24,6 +24,7 @@ const idStation = `${vars.id_station}`
 const serviceId = `${vars.service_id}`
 
 const gpsSubscriptionKey = `${__ENV.GPS_SUBSCRIPTION_KEY}`
+const soapSubscriptionKey = `${__ENV.SOAP_SUBSCRIPTION_KEY}`;
 
 export function setup() {
     // 2. setup code (once)
@@ -99,7 +100,8 @@ export default function () {
     let params = {
         headers: {
             'Content-Type': 'text/xml',
-            'SOAPAction': 'paDemandPaymentNotice'
+            'SOAPAction': 'paDemandPaymentNotice',
+            "Ocp-Apim-Subscription-Key": soapSubscriptionKey
         },
     };
     let response = http.post(url, payload, params);

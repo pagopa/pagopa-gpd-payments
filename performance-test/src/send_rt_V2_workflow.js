@@ -4,7 +4,7 @@ import { parseHTML } from "k6/html";
 import { SharedArray } from "k6/data";
 import exec from "k6/execution";
 import { makeidNumber, makeidMix, randomString } from "./modules/helpers.js";
-import { getDebtPosition, getpaVerifyPaymentNoticeReqBody, getpaGetPaymentReqBody } from "./modules/data.js";
+import { getDebtPosition, getpaVerifyPaymentNoticeReqBody, getpaGetPaymentReqBody, getpaSendRTReqBody } from "./modules/data.js";
 
 export let options = JSON.parse(open(__ENV.TEST_TYPE));
 
@@ -36,6 +36,7 @@ export function setup() {
   for (let i = 0; i < numberOfBatch; i++) {
     let batchArrayDebtPosition = new Array();
     let batchArrayVerifyPayment = new Array();
+    let batchArrayGetPayment = new Array();
 
     for (let j = 0; j < batchSize; j++) {
       const iupd = makeidMix(35);
@@ -70,6 +71,18 @@ export function setup() {
       };
       payload = getpaVerifyPaymentNoticeReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
       batchArrayVerifyPayment.push(["POST", url, payload, soapParams]);
+
+      url = `${urlPaymentsBasePath}${service}`;
+      soapParams = {
+        responseType: "text",
+        headers: {
+          "Content-Type": "text/xml",
+          SOAPAction: "paGetPaymentV2",
+          "Ocp-Apim-Subscription-Key": soapSubscriptionKey
+        },
+      };
+      payload = getpaGetPaymentReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
+      batchArrayGetPayment.push(["POST", url, payload, soapParams]);
     }
 
     let responses = http.batch(batchArrayDebtPosition);
@@ -81,44 +94,39 @@ export function setup() {
     for (let j = 0; j < batchSize; j++) {
       check(responses[j], { "VerifyPayment status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, { paymentRequest: "VerifyPayment" });
     }
+
+    responses = http.batch(batchArrayGetPayment);
+    for (let j = 0; j < batchSize; j++) {
+      check(responses[j], { "ActivatePayment status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, { paymentRequest: "GetPayment" });
+    }
   }
 
   return { pds: pdArray };
 }
 
 export default function (data) {
-  const tag = {
-    paymentRequest: "GetPayment",
-  };
+  const tag = { paymentRequest: "SendRTV2" };
+
+  const receiptId = makeidMix(33);
+
   let idx = exec.instance.vusActive * exec.vu.iterationInScenario + exec.vu.idInInstance;
   let pair = data.pds[idx];
 
   const creditorInstitutionCode = pair[0];
   const iuv = pair[1];
 
-  // Activate Payment.
-
-  // defining URL, body and headers related to the GetPayment call
-  const url = `${urlPaymentsBasePath}${service}`;
   const soapParams = {
     responseType: "text",
     headers: {
       "Content-Type": "text/xml",
-      SOAPAction: "paGetPayment",
+      SOAPAction: "paSendRTV2",
       "Ocp-Apim-Subscription-Key": soapSubscriptionKey
     },
   };
+  const payload = getpaSendRTReqBody(creditorInstitutionCode, idBrokerPA, idStation, receiptId, iuv);
+  const url = `${urlPaymentsBasePath}${service}`;
 
-  const payload = getpaGetPaymentReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv);
-
-  // execute the call and check the response
   const response = http.post(url, payload, soapParams);
 
-  check(
-    response,
-    {
-      "ActivatePayment status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK",
-    },
-    tag
-  );
+  check(response, { "SendRTV2 status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, tag);
 }

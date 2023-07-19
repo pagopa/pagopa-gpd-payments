@@ -8,12 +8,14 @@ variables:
     gpdSubscriptionKey: '$(DEV_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(DEV_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(DEV_DONATIONS_SUBSCRIPTION_KEY)'
+    soapSubscriptionKey: '$(DEV_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
   ${{ if eq(parameters['ENVIRONMENT'], 'uat') }}:
     poolImage: 'pagopa-uat-loadtest-linux'
     apiConfigSubscriptionKey: '$(UAT_API_CONFIG_SUBSCRIPTION_KEY)'
     gpdSubscriptionKey: '$(UAT_GPD_SUBSCRIPTION_KEY)'
     gpsSubscriptionKey: '$(UAT_GPS_SUBSCRIPTION_KEY)'
     donationsSubscriptionKey: '$(UAT_DONATIONS_SUBSCRIPTION_KEY)'
+    soapSubscriptionKey: '$(UAT_PAYMENTS_SOAP_SUBSCRIPTION_KEY)'
 
 pool:
   name: $(poolImage)
@@ -47,7 +49,9 @@ parameters:
       - payments_workflow.oneshot
       - verify_payment_workflow
       - get_payment_workflow
+      - get_payment_V2_workflow
       - send_rt_workflow
+      - send_rt_V2_workflow
 
 jobs:
   - job: run_performance_test
@@ -60,5 +64,5 @@ jobs:
         displayName: Pull k6 image
       - script: |
           cd ./performance-test
-          sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} gpdpaymentsk6 $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) ${{ parameters.DEBT_POSITION_NUMBER }}
+          sh ./run_performance_test.sh ${{ parameters.ENVIRONMENT }} ${{ parameters.TEST_TYPE }} ${{ parameters.SCRIPT }} gpdpaymentsk6 $(apiConfigSubscriptionKey) $(gpdSubscriptionKey) $(gpsSubscriptionKey) $(donationsSubscriptionKey) $(soapSubscriptionKey) ${{ parameters.DEBT_POSITION_NUMBER }}
         displayName: Run k6 ${{ parameters.SCRIPT }} on ${{ parameters.ENVIRONMENT }}

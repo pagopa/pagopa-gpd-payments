@@ -23,6 +23,7 @@ const idStation = `${vars.id_station}`;
 const service = `${vars.env}`.toLowerCase() === "local" ? "/partner" : "";
 
 const gpdSubscriptionKey = `${__ENV.GPD_SUBSCRIPTION_KEY}`;
+const soapSubscriptionKey = `${__ENV.SOAP_SUBSCRIPTION_KEY}`;
 const numberOfPositionsToPreload = __ENV.DEBT_POSITION_NUMBER;
 const batchSize = 100;
 
@@ -65,6 +66,7 @@ export function setup() {
         headers: {
           "Content-Type": "text/xml",
           SOAPAction: "paVerifyPaymentNotice",
+          "Ocp-Apim-Subscription-Key": soapSubscriptionKey
         },
       };
       payload = getpaVerifyPaymentNoticeReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
@@ -76,6 +78,7 @@ export function setup() {
         headers: {
           "Content-Type": "text/xml",
           SOAPAction: "paGetPayment",
+          "Ocp-Apim-Subscription-Key": soapSubscriptionKey
         },
       };
       payload = getpaGetPaymentReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv_1);
@@ -117,6 +120,7 @@ export default function (data) {
     headers: {
       "Content-Type": "text/xml",
       SOAPAction: "paSendRT",
+      "Ocp-Apim-Subscription-Key": soapSubscriptionKey
     },
   };
   const payload = getpaSendRTReqBody(creditorInstitutionCode, idBrokerPA, idStation, receiptId, iuv);
