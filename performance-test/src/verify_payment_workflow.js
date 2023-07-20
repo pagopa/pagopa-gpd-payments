@@ -94,6 +94,7 @@ export default function (data) {
   };
   const payload = getpaVerifyPaymentNoticeReqBody(creditorInstitutionCode, idBrokerPA, idStation, iuv);
   const response = http.post(url, payload, soapParams);
+  console.log(response.status)
 
   check(
     response,
