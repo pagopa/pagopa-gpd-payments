@@ -39,6 +39,9 @@ export donations_sub_key=${DONATIONS_SUBSCRIPTION_KEY}
 export soap_sub_key=${SOAP_SUBSCRIPTION_KEY}
 export debt_position_number=${DEBT_POSITION_NUMBER}
 
+docker rm nginx
+docker rm k6
+
 stack_name=$(cd .. && basename "$PWD")
 docker compose -p "${stack_name}" up -d --remove-orphans --force-recreate --build
 docker logs -f k6
