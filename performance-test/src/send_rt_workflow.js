@@ -127,7 +127,7 @@ export default function (data) {
   const url = `${urlPaymentsBasePath}${service}`;
 
   const response = http.post(url, payload, soapParams);
-  console.log(response.status)
+  console.log(response.status + " " + iuv)
 
   check(response, { "SendRT status is 200 and outcome is OK": (response) => response.status === 200 && parseHTML(response.body).find("outcome").get(0).textContent() === "OK" }, tag);
 }
