@@ -10,12 +10,13 @@ Feature: All about Activate Phase on Debt Position Payments workflow
     And a valid debt position
     And a proper verification of debt position
 
-  @GPDScenario
-  Scenario: Activate phase - Fail (no valid station)
-    Given an invalid fiscal code
-    When the client sends the ActivatePaymentNoticeRequest to Nodo
-    Then the client receives status code 200
-    And the client receives a KO with the "PPT_DOMINIO_SCONOSCIUTO" fault code error
+  #[PAGOPA-1120] detach apiconfig validation
+  #@GPDScenario
+  #Scenario: Activate phase - Fail (no valid station)
+  #  Given an invalid fiscal code
+  #  When the client sends the ActivatePaymentNoticeRequest to Nodo
+  #  Then the client receives status code 200
+  #  And the client receives a KO with the "PPT_DOMINIO_SCONOSCIUTO" fault code error
 
   @GPDScenario
   Scenario: Activate phase - Success
