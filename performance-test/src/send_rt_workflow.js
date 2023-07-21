@@ -109,7 +109,8 @@ export default function (data) {
 
   const receiptId = makeidMix(33);
 
-  let idx = exec.instance.vusActive * exec.vu.iterationInScenario + exec.vu.idInInstance;
+  let idx = exec.scenario.iterationInInstance;
+  console.log(idx)
   let pair = data.pds[idx];
 
   const creditorInstitutionCode = pair[0];
