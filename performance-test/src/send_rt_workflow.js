@@ -3,7 +3,7 @@ import { check } from "k6";
 import { parseHTML } from "k6/html";
 import { SharedArray } from "k6/data";
 import exec from "k6/execution";
-import { makeidNumber, makeidMix, randomString } from "./modules/helpers.js";
+import { makeidNumber, makeidMix, makeidMixIuv, randomString } from "./modules/helpers.js";
 import { getDebtPosition, getpaVerifyPaymentNoticeReqBody, getpaGetPaymentReqBody, getpaSendRTReqBody } from "./modules/data.js";
 
 export let options = JSON.parse(open(__ENV.TEST_TYPE));
@@ -40,9 +40,9 @@ export function setup() {
 
     for (let j = 0; j < batchSize; j++) {
       const iupd = makeidMix(35);
-      const iuv_1 = makeidMix(17);
-      const iuv_2 = makeidMix(17);
-      const iuv_3 = makeidMix(17);
+      const iuv_1 = makeidMixIuv(17);
+      const iuv_2 = makeidMixIuv(17);
+      const iuv_3 = makeidMixIuv(17);
       const due_date = new Date().addDays(30);
       const retention_date = new Date().addDays(90);
       const transfer_id_1 = "1";
