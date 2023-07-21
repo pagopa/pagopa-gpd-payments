@@ -32,16 +32,6 @@ export function makeidMix(length) {
   return result;
 }
 
-export function makeidMixIuv(length) {
-  var result = "";
-  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
-    result += "47" + characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
-
 export function makeidNumber(length) {
   var result = "";
   var characters = "0123456789";
