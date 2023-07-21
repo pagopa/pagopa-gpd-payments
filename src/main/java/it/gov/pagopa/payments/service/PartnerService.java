@@ -79,8 +79,6 @@ public class PartnerService {
 
   @Autowired private TableClient tableClient;
 
-  @Autowired private PaymentValidator paymentValidator;
-
   @Autowired private CustomizedMapper customizedModelMapper;
 
   private static final String DBERROR = "Error in organization table connection";
@@ -88,12 +86,6 @@ public class PartnerService {
   @Transactional(readOnly = true)
   public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
       throws DatatypeConfigurationException, PartnerValidationException {
-
-    log.debug(
-        "[paVerifyPaymentNotice] isAuthorize check [noticeNumber={}]",
-        request.getQrCode().getNoticeNumber());
-    paymentValidator.isAuthorize(
-        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
 
     log.debug(
         "[paVerifyPaymentNotice] get payment option [noticeNumber={}]",
@@ -210,10 +202,7 @@ public class PartnerService {
           IOException,
           SAXException,
           XMLStreamException {
-    log.debug("[paDemandPaymentNotice] isAuthorize check");
-    paymentValidator.isAuthorize(
-        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
-
+    
     List<ServicePropertyModel> attributes = mapDatiSpecificiServizio(request);
 
     SpontaneousPaymentModel spontaneousPayment =
@@ -666,9 +655,6 @@ public class PartnerService {
 
   private PaymentsModelResponse manageGetPaymentRequest(
       String idPa, String idBrokerPa, String idStation, CtQrCode qrCode) {
-    log.debug(
-        "[manageGetPaymentRequest] isAuthorize check [noticeNumber={}]", qrCode.getNoticeNumber());
-    paymentValidator.isAuthorize(idPa, idBrokerPa, idStation);
 
     log.debug(
         "[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
@@ -699,10 +685,9 @@ public class PartnerService {
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTReq request) {
     log.debug(
-        "[managePaSendRtRequest] isAuthorize check [noticeNumber={}]",
+        "[managePaSendRtRequest] save receipt [noticeNumber={}]",
         request.getReceipt().getNoticeNumber());
-    paymentValidator.isAuthorize(
-        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
+  
     ReceiptEntity receiptEntity =
         this.getReceiptEntity(
             request.getIdPA(),
@@ -749,10 +734,8 @@ public class PartnerService {
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTV2Request request) {
     log.debug(
-        "[managePaSendRtRequest] isAuthorize check [noticeNumber={}]",
+        "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
         request.getReceipt().getNoticeNumber());
-    paymentValidator.isAuthorize(
-        request.getIdPA(), request.getIdBrokerPA(), request.getIdStation());
 
     ReceiptEntity receiptEntity =
         this.getReceiptEntity(
