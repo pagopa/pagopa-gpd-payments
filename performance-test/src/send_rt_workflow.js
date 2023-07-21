@@ -3,7 +3,7 @@ import { check } from "k6";
 import { parseHTML } from "k6/html";
 import { SharedArray } from "k6/data";
 import exec from "k6/execution";
-import { makeidNumber, makeidMix, makeidMixIuv, randomString } from "./modules/helpers.js";
+import { makeidNumber, makeidMix, randomString } from "./modules/helpers.js";
 import { getDebtPosition, getpaVerifyPaymentNoticeReqBody, getpaGetPaymentReqBody, getpaSendRTReqBody } from "./modules/data.js";
 
 export let options = JSON.parse(open(__ENV.TEST_TYPE));
