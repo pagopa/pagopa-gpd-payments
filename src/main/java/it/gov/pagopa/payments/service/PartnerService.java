@@ -131,8 +131,6 @@ public class PartnerService {
     PaymentsModelResponse paymentOption =
         this.manageGetPaymentRequest(
             request.getIdPA(),
-            request.getIdBrokerPA(),
-            request.getIdStation(),
             request.getQrCode());
     log.info(
         "[paGetPayment] Response OK generation [noticeNumber={}]",
@@ -148,8 +146,6 @@ public class PartnerService {
     PaymentsModelResponse paymentOption =
         this.manageGetPaymentRequest(
             request.getIdPA(),
-            request.getIdBrokerPA(),
-            request.getIdStation(),
             request.getQrCode());
     log.info(
         "[paGetPaymentV2] Response OK generation [noticeNumber={}]",
@@ -654,7 +650,7 @@ public class PartnerService {
   }
 
   private PaymentsModelResponse manageGetPaymentRequest(
-      String idPa, String idBrokerPa, String idStation, CtQrCode qrCode) {
+      String idPa, CtQrCode qrCode) {
 
     log.debug(
         "[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
