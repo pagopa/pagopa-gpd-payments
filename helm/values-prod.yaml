@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.5.1"
+    tag: "0.6.0"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -109,7 +109,7 @@ microservice-chart:
       create: true
       image:
         repository: ghcr.io/pagopa/pagopa-gpd-payments
-        tag: "0.5.1"
+        tag: "0.6.0"
         pullPolicy: Always
       envConfig: {}
       envSecret: {}
