@@ -238,6 +238,7 @@ than indicated.
   <xsd:simpleType name="stTransferType">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="POSTAL"></xsd:enumeration>
+      <xsd:enumeration value="PAGOPA"></xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
   <!--Complex type-->
