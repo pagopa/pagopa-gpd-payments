@@ -11,7 +11,7 @@ Feature: All about Activate Phase on Debt Position Payments workflow
     And a proper verification of debt position
 
   @GPDScenario
-  Scenario: Activate phase - Fail (no valid station)
+  Scenario: Activate phase - Fail (no valid fiscal code)
     Given an invalid fiscal code
     When the client sends the ActivatePaymentNoticeRequest to Nodo
     Then the client receives status code 200

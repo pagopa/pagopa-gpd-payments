@@ -1,15 +1,7 @@
 package it.gov.pagopa.payments.endpoint;
 
-import it.gov.pagopa.payments.PaymentsApplication;
-import it.gov.pagopa.payments.config.WebServicesConfiguration;
-import it.gov.pagopa.payments.service.PaymentValidator;
-import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
-import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeResMock;
-import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
-
 import javax.xml.datatype.DatatypeConfigurationException;
 
-import it.gov.pagopa.payments.service.PartnerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -21,10 +13,17 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import it.gov.pagopa.payments.PaymentsApplication;
+import it.gov.pagopa.payments.config.WebServicesConfiguration;
+import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
+import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeResMock;
+import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
+import it.gov.pagopa.payments.service.PartnerService;
+
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(
-    classes = {WebServicesConfiguration.class, PaymentsApplication.class, PaymentValidator.class})
+    classes = {WebServicesConfiguration.class, PaymentsApplication.class})
 class PartnerXsdValidationTest {
 
   @Autowired private WebTestClient webClient;

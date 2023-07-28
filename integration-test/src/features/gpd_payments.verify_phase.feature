@@ -10,11 +10,11 @@ Feature: All about Verify Phase on Debt Position Payments workflow
     And a valid debt position
 
   @GPDScenario
-  Scenario: Verify phase - Fail (no valid station)
+  Scenario: Verify phase - Fail (no valid fiscal code)
     Given an invalid fiscal code
     When the client sends the VerifyPaymentNoticeRequest
     Then the client receives status code 200
-    And the client receives a KO with the "PAA_ID_DOMINIO_ERRATO" fault code error
+    And the client receives a KO with the "PAA_PAGAMENTO_SCONOSCIUTO" fault code error
 
   @GPDScenario
   Scenario: Verify phase - Success

@@ -7,10 +7,39 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
+
+import org.junit.ClassRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+import org.xml.sax.SAXException;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
@@ -20,6 +49,7 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.CloudTableClient;
 import com.microsoft.azure.storage.table.TableRequestOptions;
+
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
@@ -52,35 +82,7 @@ import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.ClassRule;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-import org.xml.sax.SAXException;
 
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
@@ -89,8 +91,6 @@ import org.xml.sax.SAXException;
 class PartnerServiceTest {
 
   @InjectMocks private PartnerService partnerService;
-
-  @Mock PaymentValidator paymentValidator;
 
   @Mock private ObjectFactory factory;
 
@@ -151,32 +151,6 @@ class PartnerServiceTest {
         .isEqualTo(StAmountOption.EQ); // de-scoping
     assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
     assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
-  }
-
-  @Test
-  void paVerifyPaymentNoticeTestKOConfig() throws DatatypeConfigurationException {
-
-    // Test preconditions
-    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
-
-    doThrow(new PartnerValidationException(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO))
-        .when(paymentValidator)
-        .isAuthorize(anyString(), anyString(), anyString());
-
-    // Test execution
-    try {
-
-      partnerService.paVerifyPaymentNotice(requestBody);
-
-    } catch (PartnerValidationException e) {
-      // Test post condition
-      assertThat(e.getError().getFaultCode())
-          .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultCode());
-      assertThat(e.getError().getDescription())
-          .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getDescription());
-      assertThat(e.getError().getFaultString())
-          .isEqualTo(PaaErrorEnum.PAA_ID_INTERMEDIARIO_ERRATO.getFaultString());
-    }
   }
 
   @Test
@@ -458,16 +432,10 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("34");
-
-    doNothing()
-        .doThrow(PartnerValidationException.class)
-        .when(paymentValidator)
-        .isAuthorize(anyString(), anyString(), anyString());
 
     when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
 
@@ -507,7 +475,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -551,7 +518,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -597,7 +563,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -640,7 +605,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
@@ -682,7 +646,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -737,7 +700,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -787,7 +749,6 @@ class PartnerServiceTest {
                             gpdClient,
                             gpsClient,
                             tableClientConfiguration(),
-                            paymentValidator,
                             customizedModelMapper));
 
     // Test preconditions
@@ -821,7 +782,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -887,7 +847,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -995,16 +954,10 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222231");
-
-    doNothing()
-        .doThrow(PartnerValidationException.class)
-        .when(paymentValidator)
-        .isAuthorize(anyString(), anyString(), anyString());
 
     when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
 
@@ -1044,7 +997,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1088,7 +1040,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1134,7 +1085,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1177,7 +1127,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
@@ -1219,7 +1168,6 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                paymentValidator,
                 customizedModelMapper));
 
     // Test preconditions

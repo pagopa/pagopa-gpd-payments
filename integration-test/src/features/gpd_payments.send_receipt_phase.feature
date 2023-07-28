@@ -11,13 +11,14 @@ Feature: All about Send Receipt Phase on Debt Position Payments workflow
     And a proper verification of debt position
     And a proper activation of debt position
 
+  
   @GPDScenario
-  Scenario: Activate phase - Fail (no valid station)
+  Scenario: Activate phase - Fail (no valid fiscal code)
     Given an invalid fiscal code
     When the client sends the SendPaymentOutcomeRequest to Nodo
     And the client sends the SendRTRequest
     Then the client receives status code 200
-    And the client receives a KO with the "PAA_ID_DOMINIO_ERRATO" fault code error
+    And the client receives a KO with the "PAA_PAGAMENTO_SCONOSCIUTO" fault code error
 
   @GPDScenario
   Scenario: Activate phase - Success
