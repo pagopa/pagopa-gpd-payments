@@ -61,10 +61,10 @@ class PaymentsControllerTest {
     // precondition
     ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
     receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString()))
+    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), null))
         .thenReturn(receipt);
 
-    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString());
+    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), null);
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -73,9 +73,9 @@ class PaymentsControllerTest {
     // precondition
     doThrow(new AppException(AppError.RECEIPT_NOT_FOUND, "111", "222"))
         .when(paymentsService)
-        .getReceiptByOrganizationFCAndIUV(anyString(), anyString());
+        .getReceiptByOrganizationFCAndIUV(anyString(), anyString(), null);
     try {
-      paymentsController.getReceiptByIUV(anyString(), anyString());
+      paymentsController.getReceiptByIUV(anyString(), anyString(), null);
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
@@ -93,7 +93,7 @@ class PaymentsControllerTest {
 
     ResponseEntity<ReceiptsInfo> res =
         paymentsController.getOrganizationReceipts(
-            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString());
+            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), null);
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -105,7 +105,7 @@ class PaymentsControllerTest {
         .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt());
     try {
       paymentsController.getOrganizationReceipts(
-          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString());
+          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), null);
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }

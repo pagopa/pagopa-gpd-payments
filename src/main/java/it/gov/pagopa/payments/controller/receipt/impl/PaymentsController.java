@@ -7,6 +7,7 @@ import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.model.ReceiptsInfo;
 import it.gov.pagopa.payments.service.PaymentsService;
 
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,7 @@ public class PaymentsController implements IPaymentsController {
   @Autowired private PaymentsService paymentsService;
 
   @Override
-  public ResponseEntity<String> getReceiptByIUV(String organizationFiscalCode, String iuv) {
+  public ResponseEntity<String> getReceiptByIUV(String organizationFiscalCode, String iuv, ArrayList<String> segregationCodes) {
     log.info(
         String.format(
             LOG_BASE_HEADER_INFO,
@@ -39,7 +40,7 @@ public class PaymentsController implements IPaymentsController {
             "getReceiptByIUV",
             String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode) + "; iuv= " + iuv));
     ReceiptEntity receipt =
-        paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv);
+        paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv, null);
     return new ResponseEntity<>(receipt.getDocument(), HttpStatus.OK);
   }
 
@@ -51,7 +52,8 @@ public class PaymentsController implements IPaymentsController {
           String debtor,
           String service,
           String from,
-          String to) {
+          String to,
+          ArrayList<String> segregationCodes) {
     log.info(
         String.format(
             LOG_BASE_HEADER_INFO,

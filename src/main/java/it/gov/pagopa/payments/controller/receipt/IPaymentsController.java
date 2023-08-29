@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
+import java.util.ArrayList;
 
 @Tag(name = "Payments receipts API")
 @RequestMapping
@@ -77,7 +78,10 @@ public interface IPaymentsController {
                                     + " and identifies three key elements of a payment: reason, payer, amount",
                     required = true, example = "ABC123")
             @PathVariable("iuv")
-            String iuv);
+            String iuv,
+            @Parameter(
+                    description = "Segregation codes for which broker is authorized")
+            @RequestParam(required = false) ArrayList<String> segregationCodes);
 
   @Operation(
       summary = "Return the list of the organization receipts.",
@@ -125,6 +129,6 @@ public interface IPaymentsController {
       @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
       @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
       @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
-      @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to);
-
+      @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to,
+      @Parameter(description = "Segregation codes for which broker is authorized") @RequestParam(required = false) ArrayList<String> segregationCodes);
 }

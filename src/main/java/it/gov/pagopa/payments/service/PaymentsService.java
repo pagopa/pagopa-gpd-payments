@@ -1,6 +1,5 @@
 package it.gov.pagopa.payments.service;
 
-import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.http.rest.PagedResponse;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
@@ -62,9 +61,11 @@ public class PaymentsService {
     }
 
     public ReceiptEntity getReceiptByOrganizationFCAndIUV(
-            @NotBlank String organizationFiscalCode, @NotBlank String iuv) {
+            @NotBlank String organizationFiscalCode, @NotBlank String iuv, ArrayList<String> segregationCodes) {
 
-        try{
+        try {
+            if(segregationCodes != null)
+                isBrokerAuthorized(iuv, segregationCodes);
             TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
             this.checkGPDDebtPosStatus(tableEntity, tableClient);
             return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
@@ -75,6 +76,18 @@ public class PaymentsService {
             log.error("Error in organization table connection", e);
             throw new AppException(AppError.DB_ERROR);
         }
+    }
+
+    private boolean isBrokerAuthorized(String iuv, ArrayList<String> brokerSegregationCodes) {
+        // verify that IUV is linked with one of segregation code for which the broker is authorized
+        String iuvSegregationCode = iuv.substring(1,3);
+
+        for(String segCode: brokerSegregationCodes) {
+            if(segCode.equals(iuvSegregationCode))
+                return true;
+        }
+
+        return false;
     }
 
     public void checkGPDDebtPosStatus(TableEntity receipt, TableClient tableClient) {

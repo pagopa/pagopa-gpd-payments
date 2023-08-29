@@ -121,7 +121,7 @@ class PaymentsServiceTest {
     var paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    ReceiptEntity re = paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0");
+    ReceiptEntity re = paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0", null);
     assertEquals("org123456", re.getOrganizationFiscalCode());
     assertEquals("iuv0", re.getIuv());
     assertEquals("debtor0", re.getDebtor());
@@ -134,7 +134,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     try {
-      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuvx");
+      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuvx", null);
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
@@ -159,7 +159,7 @@ class PaymentsServiceTest {
     var paymentsService =
         spy(new PaymentsService(gpdClient, tableClient));
 
-      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0");
+      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0", null);
     } catch (AppException e) {
       assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getHttpStatus());
     }
