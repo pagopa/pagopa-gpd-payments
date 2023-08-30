@@ -88,7 +88,7 @@ class PaymentsControllerTest {
     PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
     receipts.setResults(new ArrayList<ReceiptEntity>());
     when(paymentsService.getOrganizationReceipts(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), null))
         .thenReturn(receipts);
 
     ResponseEntity<ReceiptsInfo> res =
@@ -102,7 +102,7 @@ class PaymentsControllerTest {
     // precondition
     doThrow(new AppException(AppError.RECEIPTS_NOT_FOUND, "111", 0))
         .when(paymentsService)
-        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt());
+        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), null);
     try {
       paymentsController.getOrganizationReceipts(
           anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), null);
