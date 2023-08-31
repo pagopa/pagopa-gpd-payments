@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import javax.validation.constraints.NotBlank;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 @Slf4j
@@ -61,11 +60,15 @@ public class PaymentsService {
     }
 
     public ReceiptEntity getReceiptByOrganizationFCAndIUV(
-            @NotBlank String organizationFiscalCode, @NotBlank String iuv, ArrayList<String> segregationCodes) {
+            @NotBlank String organizationFiscalCode, @NotBlank String iuv, ArrayList<String> validSegregationCodes) {
 
         try {
-            if(segregationCodes != null)
-                isBrokerAuthorized(iuv, segregationCodes);
+            if(validSegregationCodes != null) {
+                String iuvSegregationCode = iuv.substring(1,3);
+                if(!isBrokerAuthorized(iuvSegregationCode, validSegregationCodes))
+                    throw new AppException(AppError.FORBIDDEN_SEGREGATION_CODE, iuvSegregationCode, organizationFiscalCode, iuv);
+            }
+
             TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
             this.checkGPDDebtPosStatus(tableEntity, tableClient);
             return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
@@ -78,12 +81,10 @@ public class PaymentsService {
         }
     }
 
-    private boolean isBrokerAuthorized(String iuv, ArrayList<String> brokerSegregationCodes) {
+    private boolean isBrokerAuthorized(String iuvSegregationCode, ArrayList<String> brokerSegregationCodes) {
         // verify that IUV is linked with one of segregation code for which the broker is authorized
-        String iuvSegregationCode = iuv.substring(1,3);
-
-        for(String segCode: brokerSegregationCodes) {
-            if(segCode.equals(iuvSegregationCode))
+        for(String code: brokerSegregationCodes) {
+            if(code.equals(iuvSegregationCode))
                 return true;
         }
 

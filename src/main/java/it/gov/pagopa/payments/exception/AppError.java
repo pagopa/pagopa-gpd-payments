@@ -26,22 +26,24 @@ public enum AppError {
       "The receipts recovery is failed",
       "The debt position is in an inappropriate state [status= %s] to provide the receipt"
           + " [Organization Fiscal Code= %s, IUV= %s]"),
-
+  FORBIDDEN_SEGREGATION_CODE(
+        HttpStatus.FORBIDDEN,
+        "The receipt retrieve is forbidden",
+        "The caller does not have proper authorization to access IUV with the following segregation code %s"
+                + " [Organization Fiscal Code=%s, IUV=%s]"
+  ),
   DB_ERROR(
           HttpStatus.SERVICE_UNAVAILABLE,
           "Internal DB error",
           "Something went wrong in the DB operation"),
-
   RECEIPT_CONFLICT(
           HttpStatus.CONFLICT,
           "Receipt conflict",
           "The receipt inserted already exists"),
-
   NOT_ENOUGH_ELEMENTS(
           HttpStatus.INTERNAL_SERVER_ERROR,
           "Not enough elements",
           "The page number is too big for the filtered elements"),
-
   UNKNOWN(null, null, null);
 
   public final HttpStatus httpStatus;

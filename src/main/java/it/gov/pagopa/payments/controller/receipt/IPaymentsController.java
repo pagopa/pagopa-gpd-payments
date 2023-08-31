@@ -81,7 +81,8 @@ public interface IPaymentsController {
                     required = true, example = "ABC123")
             @PathVariable("iuv")
             String iuv,
-            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*") String segregationCodes);
+            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
+            @RequestParam(required = false) String segregationCodes);
 
     @Operation(
             summary = "Return the list of the organization receipts.",
@@ -130,5 +131,6 @@ public interface IPaymentsController {
             @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
             @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
             @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to,
-            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*") @RequestParam(required = false) String segregationCodes);
+            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
+            @RequestParam(required = false) String segregationCodes);
 }
