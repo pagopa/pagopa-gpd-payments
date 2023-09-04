@@ -22,10 +22,8 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mock.MockUtil;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
 import it.gov.pagopa.payments.model.PaymentsResult;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterEach;
@@ -86,7 +84,7 @@ class PaymentsServiceTest {
       e.printStackTrace();
     }
     for (int i = 0; i < 10; i++) {
-      TableEntity tableEntity = new TableEntity("org123456", "iuv" + i);
+      TableEntity tableEntity = new TableEntity("org123456", "30" + i + "1234567891011");
       Map<String, Object> properties = new HashMap<>();
       properties.put(DEBTOR_PROPERTY, "debtor" + i);
       properties.put(DOCUMENT_PROPERTY, "XML" + i);
@@ -97,7 +95,7 @@ class PaymentsServiceTest {
 
     }
     for (int i = 10; i < 15; i++) {
-        TableEntity tableEntity = new TableEntity("org123456", "iuv" + i);
+        TableEntity tableEntity = new TableEntity("org123456", "3" + i + "1234567891011");
         Map<String, Object> properties = new HashMap<>();
         properties.put(DEBTOR_PROPERTY, "debtor" + i);
         properties.put(DOCUMENT_PROPERTY, "XML" + i);
@@ -118,23 +116,38 @@ class PaymentsServiceTest {
   @Test
   void getReceiptByOrganizationFCAndIUV() throws Exception {
 
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    ReceiptEntity re = paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0", null);
+    ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("00","89","90"));
+    ReceiptEntity re = paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "3001234567891011", validSegregationCodes);
     assertEquals("org123456", re.getOrganizationFiscalCode());
-    assertEquals("iuv0", re.getIuv());
+    assertEquals("3001234567891011", re.getIuv());
     assertEquals("debtor0", re.getDebtor());
+  }
+
+  @Test
+  void getReceiptByOrganizationFCAndIUV_403() throws Exception {
+
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    try {
+      ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("47","89","90"));
+      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "3001234567891011", validSegregationCodes);
+    } catch (AppException e) {
+      assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
+    }
   }
 
   @Test
   void getReceiptByOrganizationFCAndIUV_404() throws Exception {
 
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     try {
-      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuvx", null);
+      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "3000000000000013", null);
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
@@ -156,10 +169,10 @@ class PaymentsServiceTest {
             .connectionString(wrongStorageConnectionString)
             .tableName("receiptsTable")
             .buildClient();
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClient));
 
-      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "iuv0", null);
+      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "3001234567891011", null);
     } catch (AppException e) {
       assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getHttpStatus());
     }
@@ -168,8 +181,7 @@ class PaymentsServiceTest {
   /** GET RECEIPTS */
   @Test
   void getOrganizationReceipts_noFilter() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
@@ -179,9 +191,20 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_PageFilter() throws Exception {
+  void getOrganizationReceipts_segregationCodesFilter() throws Exception {
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    var paymentsService =
+    ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("11"));
+    PaymentsResult<ReceiptEntity> res =
+            paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 100, validSegregationCodes);
+    assertNotNull(res);
+    assertEquals(1, res.getResults().size());
+  }
+
+  @Test
+  void getOrganizationReceipts_PageFilter() throws Exception {
+    PaymentsService paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
@@ -192,8 +215,7 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_PageNumberTooHigh() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     try {
@@ -206,8 +228,7 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_debtor_filter() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
@@ -219,12 +240,11 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_PAID_service_filter() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "iuv5", null, null, 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "3051234567891011", null, null, 0, 100, null);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -232,8 +252,7 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_CREATED_PO_PAID_service_filter() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     // precondition
@@ -242,7 +261,7 @@ class PaymentsServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "iuv11", null, null, 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "3111234567891011", null, null, 0, 100, null);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -250,8 +269,7 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_CREATED_PO_UNPAID_service_filter() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     // precondition
@@ -261,7 +279,7 @@ class PaymentsServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "iuv13", null, null, 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "3131234567891011", null, null, 0, 100, null);
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -270,12 +288,11 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_all_filters() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", "debtor5", "iuv5", "2021-09-30", "2023-10-02", 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", "debtor5", "3051234567891011", "2021-09-30", "2023-10-02", 0, 100, null);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -283,8 +300,7 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_debtor_not_exist() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
@@ -295,7 +311,6 @@ class PaymentsServiceTest {
 
   @Test
   void getOrganizationReceipts_500() throws Exception {
-
     String wrongStorageConnectionString = String.format(
             "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://%s:%s/devstoreaccount1;QueueEndpoint=http://%s:%s/devstoreaccount1;BlobEndpoint=http://%s:%s/devstoreaccount1",
             azurite.getContainerIpAddress(),
@@ -308,7 +323,7 @@ class PaymentsServiceTest {
             .connectionString(wrongStorageConnectionString)
             .tableName("receiptsTable")
             .buildClient();
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClient));
 
     try {
@@ -321,8 +336,7 @@ class PaymentsServiceTest {
   /** GPD CHECK */
   @Test
   void getGPDCheckedReceiptsList() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     Map<String, Object> properties = new HashMap<>();
@@ -360,8 +374,7 @@ class PaymentsServiceTest {
 
   @Test
   void getGPDCheckedReceiptsList_GPDCheckFail() throws Exception {
-
-    var paymentsService =
+    PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     Map<String, Object> properties = new HashMap<>();

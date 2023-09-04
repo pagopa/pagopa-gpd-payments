@@ -49,7 +49,6 @@ public class PaymentsController implements IPaymentsController {
     log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getOrganizationReceipts", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode)
                 + "; debtor= " + debtor + "; service= "+ service));
 
-
     ArrayList<String> segCodesList = segregationCodes != null ? new ArrayList<>(Arrays.asList(segregationCodes.split(","))) : null;
     PaymentsResult<ReceiptEntity> receipts = paymentsService
                                                      .getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodesList);

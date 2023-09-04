@@ -68,6 +68,20 @@ class PaymentsControllerTest {
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
+  /** GET RECEIPT BY IUV with segregation codes */
+  @Test
+  void getReceiptByIUV_200_SegregationCodes() throws Exception {
+    // precondition
+    ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
+    receipt.setDebtor("XML");
+    String segregationCodes = "47,11,55";
+    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any()))
+            .thenReturn(receipt);
+
+    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), segregationCodes);
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+  }
+
   @Test
   void getReceiptByIUV_404() throws Exception {
     // precondition
@@ -94,6 +108,23 @@ class PaymentsControllerTest {
     ResponseEntity<ReceiptsInfo> res =
         paymentsController.getOrganizationReceipts(
             anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), null);
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+  }
+
+  /** GET RECEIPTS with segration codes */
+  @Test
+  void getOrganizationReceipts_200_SegregationCodes() throws Exception {
+    // precondition
+    PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
+    receipts.setResults(new ArrayList<ReceiptEntity>());
+    String segregationCodes = "47,11,55";
+    when(paymentsService.getOrganizationReceipts(
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any()))
+            .thenReturn(receipts);
+
+    ResponseEntity<ReceiptsInfo> res =
+            paymentsController.getOrganizationReceipts(
+                    anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), segregationCodes);
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
