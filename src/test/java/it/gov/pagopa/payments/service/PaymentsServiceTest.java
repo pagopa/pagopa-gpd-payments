@@ -195,7 +195,7 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("11"));
+    ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("02"));
     PaymentsResult<ReceiptEntity> res =
             paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 100, validSegregationCodes);
     assertNotNull(res);
@@ -244,7 +244,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "3051234567891011", null, null, 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "305", null, null, 0, 100, null);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -261,7 +261,7 @@ class PaymentsServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "3111234567891011", null, null, 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "311", null, null, 0, 100, null);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -276,7 +276,6 @@ class PaymentsServiceTest {
     PaymentsModelResponse paymentModel =
         MockUtil.readModelFromFile(
             "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
-    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts("org123456", null, "3131234567891011", null, null, 0, 100, null);
@@ -292,7 +291,7 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", "debtor5", "3051234567891011", "2021-09-30", "2023-10-02", 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", "debtor5", "305", "2021-09-30", "2023-10-02", 0, 100, null);
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
