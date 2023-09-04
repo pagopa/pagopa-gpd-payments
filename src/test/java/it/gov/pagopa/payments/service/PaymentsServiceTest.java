@@ -92,7 +92,6 @@ class PaymentsServiceTest {
       properties.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
       tableEntity.setProperties(properties);
       tableClientConfiguration().createEntity(tableEntity);
-
     }
     for (int i = 10; i < 15; i++) {
         TableEntity tableEntity = new TableEntity("org123456", "3" + i + "1234567891011");
