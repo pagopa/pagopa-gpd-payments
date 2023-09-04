@@ -136,7 +136,7 @@ class PaymentsServiceTest {
       ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("47","89","90"));
       paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "3001234567891011", validSegregationCodes);
     } catch (AppException e) {
-      assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
+      assertEquals(HttpStatus.FORBIDDEN, e.getHttpStatus());
     }
   }
 
