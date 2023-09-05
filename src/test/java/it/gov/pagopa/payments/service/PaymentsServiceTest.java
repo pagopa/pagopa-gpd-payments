@@ -202,6 +202,18 @@ class PaymentsServiceTest {
   }
 
   @Test
+  void getOrganizationReceipts_segregationCodesFilter2() throws Exception {
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("02", "03"));
+    PaymentsResult<ReceiptEntity> res =
+            paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 100, validSegregationCodes);
+    assertNotNull(res);
+    assertEquals(2, res.getResults().size());
+  }
+
+  @Test
   void getOrganizationReceipts_PageFilter() throws Exception {
     PaymentsService paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
@@ -254,11 +266,6 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    // precondition
-    PaymentsModelResponse paymentModel =
-        MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
-    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
-
     PaymentsResult<ReceiptEntity> res =
         paymentsService.getOrganizationReceipts("org123456", null, "311", null, null, 0, 100, null);
     assertNotNull(res);
@@ -275,9 +282,10 @@ class PaymentsServiceTest {
     PaymentsModelResponse paymentModel =
         MockUtil.readModelFromFile(
             "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "3131234567891011", null, null, 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "311", null, null, 0, 100, null);
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());

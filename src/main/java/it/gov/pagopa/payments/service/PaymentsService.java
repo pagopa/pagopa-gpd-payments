@@ -199,7 +199,7 @@ public class PaymentsService {
 
         String startWithEnd = startsWith.substring(0, length) + (char) nextChar;
 
-        return String.format("'%s' ge '%s' and '%s' lt '%s'", field, startsWith, field, startWithEnd);
+        return String.format("%s ge '%s' and %s lt '%s'", field, startsWith, field, startWithEnd);
     }
 
     private PaymentsResult<ReceiptEntity> setReceiptsOutput(List<ReceiptEntity> listOfEntity) {
