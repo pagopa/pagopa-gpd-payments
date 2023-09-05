@@ -34,7 +34,8 @@ public class PaymentsController implements IPaymentsController {
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(String organizationFiscalCode, String iuv, String segregationCodes) {
-    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getReceiptByIUV", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode) + "; iuv= " + iuv));
+    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getReceiptByIUV", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode) + "; iuv= " + iuv
+                + "; validSegregationCodes= " + segregationCodes));
 
     ArrayList<String> segCodesList = segregationCodes != null ? new ArrayList<>(Arrays.asList(segregationCodes.split(","))) : null;
     ReceiptEntity receipt = paymentsService
@@ -47,7 +48,7 @@ public class PaymentsController implements IPaymentsController {
                                                               String service, String from, String to, String segregationCodes) {
 
     log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getOrganizationReceipts", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode)
-                + "; debtor= " + debtor + "; service= "+ service));
+                + "; debtor= " + debtor + "; service= " + service + "; validSegregationCodes= " + segregationCodes));
 
     ArrayList<String> segCodesList = segregationCodes != null ? new ArrayList<>(Arrays.asList(segregationCodes.split(","))) : null;
     PaymentsResult<ReceiptEntity> receipts = paymentsService
