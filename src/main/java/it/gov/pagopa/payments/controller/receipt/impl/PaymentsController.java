@@ -7,6 +7,8 @@ import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.model.ReceiptsInfo;
 import it.gov.pagopa.payments.service.PaymentsService;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,47 +33,29 @@ public class PaymentsController implements IPaymentsController {
   @Autowired private PaymentsService paymentsService;
 
   @Override
-  public ResponseEntity<String> getReceiptByIUV(String organizationFiscalCode, String iuv) {
-    log.info(
-        String.format(
-            LOG_BASE_HEADER_INFO,
-            "GET",
-            "getReceiptByIUV",
-            String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode) + "; iuv= " + iuv));
-    ReceiptEntity receipt =
-        paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv);
+  public ResponseEntity<String> getReceiptByIUV(String organizationFiscalCode, String iuv, String segregationCodes) {
+    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getReceiptByIUV", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode) + "; iuv= " + iuv
+                + "; validSegregationCodes= " + segregationCodes));
+
+    ArrayList<String> segCodesList = segregationCodes != null ? new ArrayList<>(Arrays.asList(segregationCodes.split(","))) : null;
+    ReceiptEntity receipt = paymentsService
+                                    .getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv, segCodesList);
     return new ResponseEntity<>(receipt.getDocument(), HttpStatus.OK);
   }
 
   @Override
-  public ResponseEntity<ReceiptsInfo> getOrganizationReceipts(
-          String organizationFiscalCode,
-          int pageNum,
-          int pageSize,
-          String debtor,
-          String service,
-          String from,
-          String to) {
-    log.info(
-        String.format(
-            LOG_BASE_HEADER_INFO,
-            "GET",
-            "getOrganizationReceipts",
-            String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode)
-                + "; debtor= "
-                + debtor
-                + "; service= "
-                + service));
-    PaymentsResult<ReceiptEntity> receipts =
-        paymentsService.getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to, pageNum, pageSize);
+  public ResponseEntity<ReceiptsInfo> getOrganizationReceipts(String organizationFiscalCode, int pageNum, int pageSize, String debtor,
+                                                              String service, String from, String to, String segregationCodes) {
+
+    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getOrganizationReceipts", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode)
+                + "; debtor= " + debtor + "; service= " + service + "; validSegregationCodes= " + segregationCodes));
+
+    ArrayList<String> segCodesList = segregationCodes != null ? new ArrayList<>(Arrays.asList(segregationCodes.split(","))) : null;
+    PaymentsResult<ReceiptEntity> receipts = paymentsService
+                                                     .getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodesList);
     return new ResponseEntity<>(
-        ReceiptsInfo.builder()
-            .receiptsList(
-                receipts.getResults().stream()
-                    .map(
-                        receiptEntity -> modelMapper.map(receiptEntity, ReceiptModelResponse.class))
-                    .collect(Collectors.toList()))
-            .build(),
-        HttpStatus.OK);
+        ReceiptsInfo.builder().receiptsList(receipts.getResults().stream()
+                    .map(receiptEntity -> modelMapper.map(receiptEntity, ReceiptModelResponse.class))
+                    .collect(Collectors.toList())).build(), HttpStatus.OK);
   }
 }

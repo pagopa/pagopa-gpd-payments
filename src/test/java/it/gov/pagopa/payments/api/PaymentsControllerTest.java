@@ -61,10 +61,23 @@ class PaymentsControllerTest {
     // precondition
     ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
     receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString()))
+    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
         .thenReturn(receipt);
 
-    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString());
+    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+  }
+
+  /** GET RECEIPT BY IUV with segregation codes */
+  @Test
+  void getReceiptByIUV_200_SegregationCodes() throws Exception {
+    // precondition
+    ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
+    receipt.setDebtor("XML");
+    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
+            .thenReturn(receipt);
+
+    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -73,9 +86,9 @@ class PaymentsControllerTest {
     // precondition
     doThrow(new AppException(AppError.RECEIPT_NOT_FOUND, "111", "222"))
         .when(paymentsService)
-        .getReceiptByOrganizationFCAndIUV(anyString(), anyString());
+        .getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class));
     try {
-      paymentsController.getReceiptByIUV(anyString(), anyString());
+      paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
@@ -88,12 +101,28 @@ class PaymentsControllerTest {
     PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
     receipts.setResults(new ArrayList<ReceiptEntity>());
     when(paymentsService.getOrganizationReceipts(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt()))
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class)))
         .thenReturn(receipts);
 
     ResponseEntity<ReceiptsInfo> res =
         paymentsController.getOrganizationReceipts(
-            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString());
+            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString());
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+  }
+
+  /** GET RECEIPTS with segration codes */
+  @Test
+  void getOrganizationReceipts_200_SegregationCodes() throws Exception {
+    // precondition
+    PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
+    receipts.setResults(new ArrayList<ReceiptEntity>());
+    when(paymentsService.getOrganizationReceipts(
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class)))
+            .thenReturn(receipts);
+
+    ResponseEntity<ReceiptsInfo> res =
+            paymentsController.getOrganizationReceipts(
+                    anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -102,10 +131,10 @@ class PaymentsControllerTest {
     // precondition
     doThrow(new AppException(AppError.RECEIPTS_NOT_FOUND, "111", 0))
         .when(paymentsService)
-        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt());
+        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class));
     try {
       paymentsController.getOrganizationReceipts(
-          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString());
+          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString());
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }

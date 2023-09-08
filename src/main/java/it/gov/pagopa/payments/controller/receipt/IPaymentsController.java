@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
@@ -77,54 +80,57 @@ public interface IPaymentsController {
                                     + " and identifies three key elements of a payment: reason, payer, amount",
                     required = true, example = "ABC123")
             @PathVariable("iuv")
-            String iuv);
+            String iuv,
+            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
+            @RequestParam(required = false) String segregationCodes);
 
-  @Operation(
-      summary = "Return the list of the organization receipts.",
-      security = {
-        @SecurityRequirement(name = "ApiKey"),
-        @SecurityRequirement(name = "Authorization")
-      },
-      operationId = "getOrganizationReceipts")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Obtained all organization payment positions.",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = ReceiptsInfo.class))),
-        @ApiResponse(
-            responseCode = "401",
-            description = "Wrong or missing function key.",
-            content = @Content(schema = @Schema())),
-        @ApiResponse(
-            responseCode = "404",
-            description = "No receipts found.",
-            content = @Content(schema = @Schema(implementation = ProblemJson.class))),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Service unavailable.",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = ProblemJson.class)))
-      })
-  @GetMapping(
-      value = "/payments/{organizationfiscalcode}/receipts",
-      produces = {MediaType.APPLICATION_JSON_VALUE})
-  ResponseEntity<ReceiptsInfo> getOrganizationReceipts(
-      @Parameter(
-              description = "Organization fiscal code, the fiscal code of the Organization.",
-              required = true)
-          @PathVariable("organizationfiscalcode")
-          String organizationFiscalCode,
-      @Parameter(description = "Page number") @RequestParam(required = true) @PositiveOrZero int pageNum,
-      @Parameter(description = "Number of elements per page") @RequestParam(required = true) @Positive int pageSize,
-      @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
-      @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
-      @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
-      @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to);
-
+    @Operation(
+            summary = "Return the list of the organization receipts.",
+            security = {
+                    @SecurityRequirement(name = "ApiKey"),
+                    @SecurityRequirement(name = "Authorization")
+            },
+            operationId = "getOrganizationReceipts")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Obtained all organization payment positions.",
+                            content =
+                            @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ReceiptsInfo.class))),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "Wrong or missing function key.",
+                            content = @Content(schema = @Schema())),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "No receipts found.",
+                            content = @Content(schema = @Schema(implementation = ProblemJson.class))),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "Service unavailable.",
+                            content =
+                            @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ProblemJson.class)))
+            })
+    @GetMapping(
+            value = "/payments/{organizationfiscalcode}/receipts",
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    ResponseEntity<ReceiptsInfo> getOrganizationReceipts(
+            @Parameter(
+                    description = "Organization fiscal code, the fiscal code of the Organization.",
+                    required = true)
+            @PathVariable("organizationfiscalcode")
+            String organizationFiscalCode,
+            @Parameter(description = "Page number") @RequestParam(required = true) @PositiveOrZero int pageNum,
+            @Valid @Parameter(description = "Number of elements per page. Default = 50") @RequestParam(required = true, defaultValue = "50") @Max(100) @Positive int pageSize,
+            @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
+            @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
+            @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
+            @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to,
+            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
+            @RequestParam(required = false) String segregationCodes);
 }

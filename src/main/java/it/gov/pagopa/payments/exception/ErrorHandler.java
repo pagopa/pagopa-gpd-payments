@@ -191,6 +191,11 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
     return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
+  @ExceptionHandler(ConstraintViolationException.class)
+  protected ResponseEntity<String> handleConstraintViolationError(final ConstraintViolationException exception) {
+    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+  }
+
   private ResponseEntity<Object> generateErrorResponse(String errorMsg) {
     var errorResponse =
         ProblemJson.builder()

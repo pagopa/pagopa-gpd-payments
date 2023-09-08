@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# install api-spec-converter if not present
-if [ $(npm list -g | grep -c api-spec-converter) -eq 0 ]; then
-  npm install -g api-spec-converter
+if [[ "$(pwd)" =~ .*"openapi".* ]]; then
+    cd ..
 fi
 
-# save openapi
-curl http://localhost:8080/v3/api-docs | python3 -m json.tool > ./openapi.json
+# save openapi through test case
+mvn test -Dtest=OpenApiGenerationTest
+
+# save openapi stale mode
+# curl http://localhost:8080/v3/api-docs | python3 -m json.tool > ./openapi.json
 
 # UI mode http://localhost:8080/swagger-ui/index.html

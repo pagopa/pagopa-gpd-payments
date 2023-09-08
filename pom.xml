@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.8.0</version>
+    <version>0.8.0-1-PAGOPA-1140-sviluppo-gpd-payments-gestione-enti-pluri-intermediati</version>
     <name>Payments</name>
     <description>Payments</description>
 
@@ -252,6 +252,13 @@
     </dependencyManagement>
 
     <build>
+        <!-- to resolve test/resources/application.properties values -->
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

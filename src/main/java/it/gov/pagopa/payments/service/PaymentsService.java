@@ -1,6 +1,5 @@
 package it.gov.pagopa.payments.service;
 
-import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.http.rest.PagedResponse;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Service;
 import javax.validation.constraints.NotBlank;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 @Slf4j
@@ -47,11 +45,11 @@ public class PaymentsService {
             String from,
             String to,
             int pageNum,
-            int pageSize) {
+            int pageSize,
+            ArrayList<String> segCodes) {
         try {
-
             List<ReceiptEntity> filteredEntities = retrieveEntitiesByFilter(tableClient,
-                    organizationFiscalCode, debtor, service, from, to, pageNum, pageSize);
+                    organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodes);
             return this.setReceiptsOutput(getGPDCheckedReceiptsList(filteredEntities, tableClient));
 
         }
@@ -62,9 +60,15 @@ public class PaymentsService {
     }
 
     public ReceiptEntity getReceiptByOrganizationFCAndIUV(
-            @NotBlank String organizationFiscalCode, @NotBlank String iuv) {
+            @NotBlank String organizationFiscalCode, @NotBlank String iuv, ArrayList<String> validSegregationCodes) {
 
-        try{
+        try {
+            if(validSegregationCodes != null && iuv.length() > 3) {
+                String iuvSegregationCode = iuv.substring(1,3);
+                if(!isBrokerAuthorized(iuvSegregationCode, validSegregationCodes))
+                    throw new AppException(AppError.FORBIDDEN_SEGREGATION_CODE, iuvSegregationCode, organizationFiscalCode, iuv);
+            }
+
             TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
             this.checkGPDDebtPosStatus(tableEntity, tableClient);
             return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
@@ -75,6 +79,16 @@ public class PaymentsService {
             log.error("Error in organization table connection", e);
             throw new AppException(AppError.DB_ERROR);
         }
+    }
+
+    private boolean isBrokerAuthorized(String iuvSegregationCode, ArrayList<String> brokerSegregationCodes) {
+        // verify that IUV is linked with one of segregation code for which the broker is authorized
+        for(String code: brokerSegregationCodes) {
+            if(code.equals(iuvSegregationCode))
+                return true;
+        }
+
+        return false;
     }
 
     public void checkGPDDebtPosStatus(TableEntity receipt, TableClient tableClient) {
@@ -126,7 +140,7 @@ public class PaymentsService {
 
     public List<ReceiptEntity> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
                                                         String debtor, String service, String from,
-                                                        String to, int pageNum, int pageSize) {
+                                                        String to, int pageNum, int pageSize, ArrayList<String> segCodes) {
 
         List<String> filters = new ArrayList<>();
 
@@ -137,19 +151,30 @@ public class PaymentsService {
         }
 
         if(null != service){
-            PaymentsService.getStartsWithFilter(filters, service);
+            filters.add(this.getStartsWithFilter("RowKey", service));
         }
 
         if(null != from && null != to){
             filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
         }
 
+        String filter = String.join(" and ", filters);
+
+        if(segCodes != null && !segCodes.isEmpty()) {
+            ArrayList<String> segCodesFilters = new ArrayList<>();
+            for(String segCode: segCodes) {
+                segCodesFilters.add(this.getStartsWithFilter("RowKey", "3" + segCode) + " and " + filter);
+            }
+            filter = String.join(" or ", segCodesFilters);
+        }
+
         Iterator<PagedResponse<TableEntity>> filteredIterator = tableClient
                 .listEntities(
                         new ListEntitiesOptions()
                                 .setTop(pageSize)
-                                .setFilter(String.join(" and ", filters)
-                                ), null, null)
+                                .setFilter(filter),
+                        null,
+                        null)
                 .iterableByPage()
                 .iterator();
 
@@ -168,14 +193,13 @@ public class PaymentsService {
         return filteredIterator.next().getValue().stream().map(ConvertTableEntityToReceiptEntity::mapTableEntityToReceiptEntity).collect(Collectors.toList());
     }
 
-    private static void getStartsWithFilter(List<String> filters, String startsWith) {
-        var length = startsWith.length() - 1;
-        var nextChar = startsWith.toCharArray()[length] + 1;
+    private static String getStartsWithFilter(String field, String startsWith) {
+        int length = startsWith.length() - 1;
+        int nextChar = startsWith.toCharArray()[length] + 1;
 
-        var startWithEnd = startsWith.substring(0, length) + (char) nextChar;
+        String startWithEnd = startsWith.substring(0, length) + (char) nextChar;
 
-        filters.add(String.format("RowKey ge '%s'", startsWith));
-        filters.add(String.format("RowKey lt '%s'", startWithEnd));
+        return String.format("%s ge '%s' and %s lt '%s'", field, startsWith, field, startWithEnd);
     }
 
     private PaymentsResult<ReceiptEntity> setReceiptsOutput(List<ReceiptEntity> listOfEntity) {
