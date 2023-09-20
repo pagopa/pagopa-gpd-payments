@@ -98,7 +98,7 @@ public class PaymentsService {
             if (!tableEntity.getProperty(STATUS_PROPERTY).toString().trim().equalsIgnoreCase(Status.PAID.name())) {
                 PaymentsModelResponse paymentOption =
                         gpdClient.getPaymentOption(tableEntity.getPartitionKey(), tableEntity.getRowKey());
-                if (null != paymentOption && !PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
+                if (paymentOption != null && paymentOption.getStatus().equals(PaymentOptionStatus.PO_UNPAID)) {
                     throw new AppException(
                             AppError.UNPROCESSABLE_RECEIPT,
                             paymentOption.getStatus(),
