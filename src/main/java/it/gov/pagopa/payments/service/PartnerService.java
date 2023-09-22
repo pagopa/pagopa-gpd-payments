@@ -449,7 +449,10 @@ public class PartnerService {
     paymentOption.setAmount(BigDecimal.valueOf(source.getAmount()));
     paymentOption.setOptions(StAmountOption.EQ); // de-scoping
     paymentOption.setDueDate(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar(
+                    CommonUtil.convertToGregorianCalendar(
+                            source.getDueDate()
+                    )));
     paymentOption.setDetailDescription(source.getDescription());
     var cpp =
         source.getTransfer().stream()

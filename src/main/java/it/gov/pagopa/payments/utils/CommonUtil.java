@@ -3,6 +3,10 @@ package it.gov.pagopa.payments.utils;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -41,5 +45,13 @@ public class CommonUtil {
         xmlInputFactory.createXMLStreamReader(new ByteArrayInputStream(xml));
     StAXSource source = new StAXSource(xmlStreamReader);
     validator.validate(source);
+  }
+
+  public static GregorianCalendar convertToGregorianCalendar(LocalDateTime dateToConvert) {
+    Date date = Date.from(dateToConvert.atZone(ZoneId.systemDefault()).toInstant());
+    GregorianCalendar gregorianCalendar = new GregorianCalendar();
+    gregorianCalendar.setTime(date);
+
+    return gregorianCalendar;
   }
 }
