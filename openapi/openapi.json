@@ -4,8 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.9.1"
-  },
+    "version": "0.9.1"  },
   "servers": [
     {
       "url": "http://localhost",
