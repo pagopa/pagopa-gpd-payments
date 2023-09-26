@@ -1214,7 +1214,7 @@ class PartnerServiceTest {
                             customizedModelMapper));
 
     // Test preconditions
-    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222231");
+    PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222239");
 
     when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
 
