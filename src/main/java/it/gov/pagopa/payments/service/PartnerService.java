@@ -574,7 +574,7 @@ public class PartnerService {
       log.error(DBERROR, e);
       if(e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS)
       {
-        throw new AppException(AppError.RECEIPT_CONFLICT);
+        throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
       }
       throw new AppException(AppError.DB_ERROR);
     }

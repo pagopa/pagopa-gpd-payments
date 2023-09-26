@@ -36,12 +36,8 @@ public enum AppError {
           HttpStatus.SERVICE_UNAVAILABLE,
           "Internal DB error",
           "Something went wrong in the DB operation"),
-  RECEIPT_CONFLICT(
-          HttpStatus.CONFLICT,
-          "Receipt conflict",
-          "The receipt inserted already exists"),
   NOT_ENOUGH_ELEMENTS(
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.BAD_REQUEST,
           "Not enough elements",
           "The page number is too big for the filtered elements"),
   UNKNOWN(null, null, null);
