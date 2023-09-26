@@ -233,7 +233,7 @@ class PaymentsServiceTest {
       paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 50, 4, null);
     } catch (AppException e) {
       assertEquals("The page number is too big for the filtered elements", e.getMessage());
-      assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getHttpStatus());
+      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
     }
   }
 
