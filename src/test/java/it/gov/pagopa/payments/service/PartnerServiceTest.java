@@ -1243,6 +1243,49 @@ class PartnerServiceTest {
     assertEquals("L'id del pagamento ricevuto  e' duplicato", e.getMessage());
   }
 
+  @Test
+  void paSendRTReceiptConflict() throws DatatypeConfigurationException, IOException {
+
+    var pService =
+            spy(
+                    new PartnerService(
+                            resource,
+                            factory,
+                            gpdClient,
+                            gpsClient,
+                            tableClientConfiguration(),
+                            customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222240");
+
+    when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
+
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+            .thenReturn(
+                    MockUtil.readModelFromFile(
+                            "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception e) {
+      log.info("Error during table creation", e);
+    }
+
+    // Test execution
+    pService.paSendRT(requestBody);
+    PartnerValidationException e = Assertions.assertThrows(PartnerValidationException.class, () -> pService.paSendRT(requestBody));
+
+    // Test post condition
+    assertEquals("L'id del pagamento ricevuto  e' duplicato", e.getMessage());
+  }
+
     private TableClient tableClientConfiguration() {
         return new TableClientBuilder()
                 .connectionString(storageConnectionString)
