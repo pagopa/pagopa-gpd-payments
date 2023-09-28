@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "26a1ea59-2204-42e9-8ee0-44dd36bdc636",
+		"_postman_id": "61a305ab-c5e1-40eb-87cc-2d3b5858f5f1",
 		"name": "Payments",
 		"description": "Payments",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "205220"
+		"_exporter_id": "29833084"
 	},
 	"item": [
 		{
@@ -132,6 +132,38 @@
 						"body": {
 							"mode": "raw",
 							"raw": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:pafn=\"http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd\">\n    <soapenv:Header />\n    <soapenv:Body>\n        <pafn:paGetPaymentV2Request>\n            <idPA>00168480242</idPA>\n            <idBrokerPA>80007580279</idBrokerPA>\n            <idStation>80007580279_01</idStation>\n            <qrCode>\n                <fiscalCode>00856930102</fiscalCode>\n                <noticeNumber>363155551414999718</noticeNumber>\n            </qrCode>\n            <amount>10.00</amount>\n        </pafn:paGetPaymentV2Request>\n    </soapenv:Body>\n</soapenv:Envelope>"
+						},
+						"url": {
+							"raw": "{{host}}/partner",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"partner"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "paSendRTV2",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "SOAPAction",
+								"value": "paSendRTV2",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "text/xml",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "<soapenv:Envelope xmlns:pafn=\"http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd\"\n    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n    xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n    <soapenv:Body>\n        <pafn:paSendRTReq>\n            <idPA>77777777777</idPA>\n            <idBrokerPA>15376371009</idBrokerPA>\n            <idStation>15376371009_01</idStation>            \n            <receipt>\n                <receiptId>725d128ec27911edafa10242ac120002</receiptId>\n                <noticeNumber>363155551414999718</noticeNumber>\n                <fiscalCode>00856930102</fiscalCode>\n                <outcome>OK</outcome>\n                <creditorReferenceId>63155551414999718</creditorReferenceId>\n                <paymentAmount>30.00</paymentAmount>\n                <description>test</description>\n                <companyName>company EC</companyName>\n                <officeName>office EC</officeName>\n                <debtor>\n                    <uniqueIdentifier>\n                        <entityUniqueIdentifierType>F</entityUniqueIdentifierType>\n                        <entityUniqueIdentifierValue>JHNDOE00A01F205N</entityUniqueIdentifierValue>\n                    </uniqueIdentifier>\n                    <fullName>John Doe</fullName>\n                    <streetName>street</streetName>\n                    <civicNumber>12</civicNumber>\n                    <postalCode>89020</postalCode>\n                    <city>city</city>\n                    <stateProvinceRegion>MI</stateProvinceRegion>\n                    <country>IT</country>\n                    <e-mail>john.doe@test.it</e-mail>\n                </debtor>\n                <transferList>\n                    <transfer>\n                        <idTransfer>1</idTransfer>\n                        <transferAmount>20.00</transferAmount>\n                        <fiscalCodePA>00856930102</fiscalCodePA>\n                        <IBAN>IT0000000000000000000000000</IBAN>\n                        <remittanceInformation>remittanceInformation1</remittanceInformation>\n                        <transferCategory>G</transferCategory>\n                    </transfer>\n                    <transfer>\n                        <idTransfer>2</idTransfer>\n                        <transferAmount>10.00</transferAmount>\n                        <fiscalCodePA>00856930102</fiscalCodePA>\n                        <IBAN>IT0000000000000000000000001</IBAN>\n                        <remittanceInformation>remittanceInformation2</remittanceInformation>\n                        <transferCategory>G</transferCategory>\n                    </transfer>\n                </transferList>\n                <idPSP>88888888888</idPSP>\n                <pspFiscalCode>88888888888</pspFiscalCode>\n                <pspPartitaIVA>88888888888</pspPartitaIVA>\n                <PSPCompanyName>PSP name</PSPCompanyName>\n                <idChannel>88888888888_01</idChannel>\n                <channelDescription>app</channelDescription>\n                <payer>\n                    <uniqueIdentifier>\n                        <entityUniqueIdentifierType>F</entityUniqueIdentifierType>\n                        <entityUniqueIdentifierValue>JHNDOE00A01F205N</entityUniqueIdentifierValue>\n                    </uniqueIdentifier>\n                    <fullName>John Doe</fullName>\n                    <streetName>street</streetName>\n                    <civicNumber>12</civicNumber>\n                    <postalCode>89020</postalCode>\n                    <city>city</city>\n                    <stateProvinceRegion>MI</stateProvinceRegion>\n                    <country>IT</country>\n                    <e-mail>john.doe@test.it</e-mail>\n                </payer>\n                <paymentMethod>creditCard</paymentMethod>\n                <fee>2.00</fee>\n                <paymentDateTime>2021-10-01T17:48:22</paymentDateTime>\n                <applicationDate>2021-10-01</applicationDate>\n                <transferDate>2021-10-02</transferDate>\n                <metadata>\n                    <mapEntry>\n                        <key>keytest</key>\n                        <value>1</value>\n                    </mapEntry>\n                </metadata>\n            </receipt>\n        </pafn:paSendRTReq>\n    </soapenv:Body>\n</soapenv:Envelope>\n\n\n\n\n\n"
 						},
 						"url": {
 							"raw": "{{host}}/partner",
