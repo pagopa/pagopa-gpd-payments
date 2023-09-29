@@ -163,7 +163,7 @@ public class PaymentsService {
         if(segCodes != null && !segCodes.isEmpty()) {
             ArrayList<String> segCodesFilters = new ArrayList<>();
             for(String segCode: segCodes) {
-                segCodesFilters.add(this.getStartsWithFilter("RowKey", "3" + segCode) + " and " + filter);
+                segCodesFilters.add(this.getStartsWithFilter("RowKey", segCode) + " and " + filter);
             }
             filter = String.join(" or ", segCodesFilters);
         }
