@@ -63,8 +63,8 @@ public class PaymentsService {
             @NotBlank String organizationFiscalCode, @NotBlank String iuv, ArrayList<String> validSegregationCodes) {
 
         try {
-            if(validSegregationCodes != null && iuv.length() > 3) {
-                String iuvSegregationCode = iuv.substring(1,3);
+            if(validSegregationCodes != null && !validSegregationCodes.isEmpty() && iuv.length() > 1) {
+                String iuvSegregationCode = iuv.substring(0,2);
                 if(!isBrokerAuthorized(iuvSegregationCode, validSegregationCodes))
                     throw new AppException(AppError.FORBIDDEN_SEGREGATION_CODE, iuvSegregationCode, organizationFiscalCode, iuv);
             }
