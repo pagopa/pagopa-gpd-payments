@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.9.4-1-PAGOPA-1260-bug-fix-gpd-payments-segregation-code-uat</version>
+    <version>0.9.4-2-PAGOPA-1260-bug-fix-gpd-payments-segregation-code-uat</version>
     <name>Payments</name>
     <description>Payments</description>
 
