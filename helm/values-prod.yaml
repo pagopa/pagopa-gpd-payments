@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.9.4-2-PAGOPA-1260-bug-fix-gpd-payments-segregation-code-uat"
+    tag: "0.10.0"
     pullPolicy: Always
   livenessProbe:
     httpGet:

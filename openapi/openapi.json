@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.9.4-2-PAGOPA-1260-bug-fix-gpd-payments-segregation-code-uat"
+    "version": "0.10.0"
   },
   "servers": [
     {
