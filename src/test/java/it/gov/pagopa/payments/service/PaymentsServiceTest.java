@@ -284,12 +284,11 @@ class PaymentsServiceTest {
 
     // precondition
     PaymentsModelResponse paymentModel =
-        MockUtil.readModelFromFile(
-            "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+        MockUtil.readModelFromFile("gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     PaymentsResult<ReceiptEntity> res =
-        paymentsService.getOrganizationReceipts("org123456", null, "311", null, null, 0, 100, null);
+        paymentsService.getOrganizationReceipts("org123456", null, "11", null, null, 0, 100, null);
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
