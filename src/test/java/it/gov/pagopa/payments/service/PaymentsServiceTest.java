@@ -322,6 +322,25 @@ class PaymentsServiceTest {
   }
 
   @Test
+  void getOrganizationReceiptsByPaymentDate() throws Exception {
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    PaymentsResult<ReceiptEntity> res =
+            paymentsService.getOrganizationReceipts(
+                    "org123456", "debtor5", "05", "2021-09-30", null, 0, 100, null);
+    assertNotNull(res);
+    assertEquals(1, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+
+    res = paymentsService.getOrganizationReceipts(
+                    "org123456", "debtor5", "05", null, "2023-10-02", 0, 100, null);
+    assertNotNull(res);
+    assertEquals(1, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+
+  @Test
   void getOrganizationReceipts_debtor_not_exist() throws Exception {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
