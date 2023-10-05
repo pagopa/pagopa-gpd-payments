@@ -217,6 +217,20 @@ class PaymentsServiceTest {
   }
 
   @Test
+  void getOrganizationReceipts_segregationCodesFilterEmpty() throws Exception {
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    ArrayList<String> validSegregationCodes = new ArrayList<>();
+    PaymentsResult<ReceiptEntity> res =
+            paymentsService.getOrganizationReceipts(
+                    "org123456", null, null, null, null, 0, 100, validSegregationCodes);
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+  }
+
+
+  @Test
   void getOrganizationReceipts_PageFilter() throws Exception {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
