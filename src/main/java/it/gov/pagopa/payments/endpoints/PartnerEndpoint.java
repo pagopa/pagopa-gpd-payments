@@ -77,7 +77,7 @@ public class PartnerEndpoint {
   @ResponsePayload
   public JAXBElement<PaSendRTRes> paSendRT(@RequestPayload JAXBElement<PaSendRTReq> request) {
 
-    log.info(" paSendRT START ");
+    log.info("paSendRT START [noticeNumber={}]", request.getValue().getReceipt().getNoticeNumber());
     return factory.createPaSendRTRes(partnerService.paSendRT(request.getValue()));
   }
 
