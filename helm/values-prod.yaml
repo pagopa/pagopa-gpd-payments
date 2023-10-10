@@ -25,11 +25,13 @@ microservice-chart:
   service:
     create: true
     type: ClusterIP
-    port: 8080
+    ports:
+      - 8080
   ingress:
     create: true
     host: "weuprod.gps.internal.platform.pagopa.it"
     path: /pagopa-gpd-payments/(.*)
+    servicePort: 8080
   serviceAccount:
     create: false
     annotations: {}
