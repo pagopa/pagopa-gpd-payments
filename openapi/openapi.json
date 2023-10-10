@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.11.0"
+    "version": "0.11.0-1-PAGOPA-1288-gpd-payments-helm-upgrade"
   },
   "servers": [
     {
