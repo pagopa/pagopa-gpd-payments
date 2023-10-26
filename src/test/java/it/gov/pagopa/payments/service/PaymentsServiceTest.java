@@ -353,6 +353,17 @@ class PaymentsServiceTest {
   }
 
   @Test
+  void getOrganizationReceipts_too_many_elements() throws Exception {
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+    try {
+      paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 150, null);
+    } catch (AppException e) {
+      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
+    }
+  }
+
+  @Test
   void getOrganizationReceipts_500() throws Exception {
     String wrongStorageConnectionString =
         String.format(
