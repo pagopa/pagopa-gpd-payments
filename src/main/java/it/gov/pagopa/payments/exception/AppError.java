@@ -48,7 +48,6 @@ public enum AppError {
 
   UNKNOWN(null, null, null);
 
-
   public final HttpStatus httpStatus;
   public final String title;
   public final String details;
