@@ -18,16 +18,16 @@ import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.model.spontaneous.*;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.xml.sax.SAXException;
-
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -39,16 +39,15 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.math.BigDecimal;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.xml.sax.SAXException;
 
 @Service
 @Slf4j
@@ -129,9 +128,7 @@ public class PartnerService {
     log.debug(
         "[paGetPayment] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
     PaymentsModelResponse paymentOption =
-        this.manageGetPaymentRequest(
-            request.getIdPA(),
-            request.getQrCode());
+        this.manageGetPaymentRequest(request.getIdPA(), request.getQrCode());
     log.info(
         "[paGetPayment] Response OK generation [noticeNumber={}]",
         request.getQrCode().getNoticeNumber());
@@ -144,9 +141,7 @@ public class PartnerService {
     log.debug(
         "[paGetPaymentV2] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
     PaymentsModelResponse paymentOption =
-        this.manageGetPaymentRequest(
-            request.getIdPA(),
-            request.getQrCode());
+        this.manageGetPaymentRequest(request.getIdPA(), request.getQrCode());
     log.info(
         "[paGetPaymentV2] Response OK generation [noticeNumber={}]",
         request.getQrCode().getNoticeNumber());
@@ -193,12 +188,9 @@ public class PartnerService {
 
   @Transactional
   public PaDemandPaymentNoticeResponse paDemandPaymentNotice(PaDemandPaymentNoticeRequest request)
-      throws DatatypeConfigurationException,
-          ParserConfigurationException,
-          IOException,
-          SAXException,
-          XMLStreamException {
-    
+      throws DatatypeConfigurationException, ParserConfigurationException, IOException,
+          SAXException, XMLStreamException {
+
     List<ServicePropertyModel> attributes = mapDatiSpecificiServizio(request);
 
     SpontaneousPaymentModel spontaneousPayment =
@@ -274,7 +266,11 @@ public class PartnerService {
         factory.createCtPaymentOptionDescriptionPA();
 
     var ccp =
-        gpsResponse.getPaymentOption().get(0).getTransfer().stream()
+        gpsResponse
+            .getPaymentOption()
+            .get(0)
+            .getTransfer()
+            .stream()
             .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
     ctPaymentOptionDescriptionPA.setAllCCP(ccp);
 
@@ -358,7 +354,9 @@ public class PartnerService {
     transferList
         .getTransfer()
         .addAll(
-            source.getTransfer().stream()
+            source
+                .getTransfer()
+                .stream()
                 .map(
                     paymentsTransferModelResponse ->
                         getTransferResponse(
@@ -414,7 +412,9 @@ public class PartnerService {
     transferList
         .getTransfer()
         .addAll(
-            source.getTransfer().stream()
+            source
+                .getTransfer()
+                .stream()
                 .map(
                     paymentsTransferModelResponse ->
                         getTransferResponseV2(
@@ -449,13 +449,13 @@ public class PartnerService {
     paymentOption.setAmount(BigDecimal.valueOf(source.getAmount()));
     paymentOption.setOptions(StAmountOption.EQ); // de-scoping
     paymentOption.setDueDate(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar(
-                    CommonUtil.convertToGregorianCalendar(
-                            source.getDueDate()
-                    )));
+        DatatypeFactory.newInstance()
+            .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
     paymentOption.setDetailDescription(source.getDescription());
     var cpp =
-        source.getTransfer().stream()
+        source
+            .getTransfer()
+            .stream()
             .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
     paymentOption.setAllCCP(cpp); // allCPP fa parte del modello del option
     paymentList.setPaymentOptionDescription(paymentOption);
@@ -482,7 +482,7 @@ public class PartnerService {
     transferPa.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
     transferPa.setRemittanceInformation(transfer.getRemittanceInformation());
     transferPa.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
-    transferPa.setTransferCategory(transfer.getCategory().replace("/", ""));
+    transferPa.setTransferCategory(transfer.getCategory());
     return transferPa;
   }
 
@@ -562,7 +562,8 @@ public class PartnerService {
   private void saveReceipt(ReceiptEntity receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
     try {
-      TableEntity tableEntity = new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
+      TableEntity tableEntity =
+          new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
       Map<String, Object> properties = new HashMap<>();
       properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
       properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
@@ -572,8 +573,7 @@ public class PartnerService {
       tableClient.createEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error(DBERROR, e);
-      if(e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS)
-      {
+      if (e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
         throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
       }
       throw new AppException(AppError.DB_ERROR);
@@ -582,7 +582,7 @@ public class PartnerService {
 
   private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv)
       throws InvalidKeyException, URISyntaxException, StorageException {
-    try{
+    try {
       TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
@@ -594,7 +594,8 @@ public class PartnerService {
   private void updateReceipt(ReceiptEntity receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
     try {
-      TableEntity tableEntity = tableClient.getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
+      TableEntity tableEntity =
+          tableClient.getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
       Map<String, Object> properties = new HashMap<>();
       properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
       properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
@@ -652,8 +653,7 @@ public class PartnerService {
     return debtor;
   }
 
-  private PaymentsModelResponse manageGetPaymentRequest(
-      String idPa, CtQrCode qrCode) {
+  private PaymentsModelResponse manageGetPaymentRequest(String idPa, CtQrCode qrCode) {
 
     log.debug(
         "[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
@@ -686,7 +686,7 @@ public class PartnerService {
     log.debug(
         "[managePaSendRtRequest] save receipt [noticeNumber={}]",
         request.getReceipt().getNoticeNumber());
-  
+
     ReceiptEntity receiptEntity =
         this.getReceiptEntity(
             request.getIdPA(),
