@@ -51,8 +51,8 @@ microservice-chart:
       cpu: "3.0" # high limit used only in startup phase
   autoscaling:
     enable: true
-    minReplica: 3
-    maxReplica: 10
+    minReplica: 1
+    maxReplica: 3
     pollingInterval: 10 # seconds
     cooldownPeriod: 50 # seconds
     triggers:
