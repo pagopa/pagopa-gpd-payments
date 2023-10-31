@@ -502,7 +502,7 @@ public class PartnerService {
     transferPa.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
     transferPa.setRemittanceInformation(transfer.getRemittanceInformation());
     transferPa.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
-    transferPa.setTransferCategory(transfer.getCategory().replace("/", ""));
+    transferPa.setTransferCategory(transfer.getCategory());
     return transferPa;
   }
 

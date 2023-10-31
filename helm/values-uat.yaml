@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.11.4"
+    tag: "0.11.4-1-PAGOPA-1328-fix-transfer-category-replace-V2"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -51,8 +51,8 @@ microservice-chart:
       cpu: "3.0" # high limit used only in startup phase
   autoscaling:
     enable: true
-    minReplica: 3
-    maxReplica: 10
+    minReplica: 1
+    maxReplica: 3
     pollingInterval: 10 # seconds
     cooldownPeriod: 50 # seconds
     triggers:
