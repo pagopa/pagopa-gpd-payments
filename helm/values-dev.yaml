@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.11.2"
+    tag: "0.11.2-1-PAGOPA-1328-fix-transfer-category-replace"
     pullPolicy: Always
   livenessProbe:
     httpGet:
