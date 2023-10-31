@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.11.2-1-PAGOPA-1328-fix-transfer-category-replace</version>
+    <version>0.11.3</version>
     <name>Payments</name>
     <description>Payments</description>
 
