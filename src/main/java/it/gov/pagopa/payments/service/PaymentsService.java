@@ -29,8 +29,6 @@ public class PaymentsService {
 
     public static final String STATUS_PROPERTY = "status";
 
-    public static final int MAX_ELEMENT_PER_PAGE = 100;
-
     @Autowired private TableClient tableClient;
     @Autowired
     private GpdClient gpdClient;
@@ -143,10 +141,6 @@ public class PaymentsService {
     public List<ReceiptEntity> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
                                                         String debtor, String service, String from,
                                                         String to, int pageNum, int pageSize, ArrayList<String> segCodes) {
-
-        if(pageSize > MAX_ELEMENT_PER_PAGE) {
-            throw new AppException(AppError.TOO_MANY_ELEMENTS);
-        }
 
         List<String> filters = new ArrayList<>();
 
