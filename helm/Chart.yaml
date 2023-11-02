@@ -2,8 +2,8 @@ apiVersion: v2
 name: pagopa-gpd-payments
 description: Microservice that exposes API for payment receipts retrieving and other operations
 type: application
-version: 0.41.0
-appVersion: 0.11.5
+version: 0.42.0
+appVersion: 0.11.6
 dependencies:
   - name: microservice-chart
     version: 2.4.0
