@@ -40,6 +40,7 @@ public enum AppError {
           HttpStatus.BAD_REQUEST,
           "Not enough elements",
           "The page number is too big for the filtered elements"),
+
   UNKNOWN(null, null, null);
 
   public final HttpStatus httpStatus;
