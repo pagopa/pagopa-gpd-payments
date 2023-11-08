@@ -5,9 +5,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @NoArgsConstructor
+@ToString
 public class PaymentsModelResponse implements Serializable {
 
   private static final long serialVersionUID = -4897632346879847721L;

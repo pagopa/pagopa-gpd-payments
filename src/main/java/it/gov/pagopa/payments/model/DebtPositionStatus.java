@@ -1,5 +1,8 @@
 package it.gov.pagopa.payments.model;
 
+import lombok.ToString;
+
+@ToString
 public enum DebtPositionStatus {
   DRAFT,
   PUBLISHED,
