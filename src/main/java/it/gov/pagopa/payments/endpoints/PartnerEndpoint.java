@@ -45,11 +45,8 @@ public class PartnerEndpoint {
       throws DatatypeConfigurationException, PartnerValidationException {
 
     log.info(" paVerifyPaymentNotice START ");
-    var result =
-        factory.createPaVerifyPaymentNoticeRes(
-            partnerService.paVerifyPaymentNotice(request.getValue()));
-    log.info(" paVerifyPaymentNotice END {}", result);
-    return result;
+    return factory.createPaVerifyPaymentNoticeRes(
+        partnerService.paVerifyPaymentNotice(request.getValue()));
   }
 
   @SoapAction("paGetPayment")

@@ -140,14 +140,19 @@ public class PartnerService {
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
 
-    log.info("[paVerifyPaymentNotice] paymentOption {}", paymentOption);
     checkDebtPositionStatus(paymentOption);
 
+    PaVerifyPaymentNoticeRes result;
     log.info(
         "[paVerifyPaymentNotice] Response OK generation [noticeNumber={}]",
         request.getQrCode().getNoticeNumber());
-    var result = this.generatePaVerifyPaymentNoticeResponse(paymentOption);
-    log.info("PaVerifyPaymentNoticeResponse {}", result);
+    try {
+      result = this.generatePaVerifyPaymentNoticeResponse(paymentOption);
+    }
+    catch (Exception e){
+      log.error("[paVerifyPaymentNotice] paymentOption {}", paymentOption, e);
+      throw e;
+    }
     return result;
   }
 
