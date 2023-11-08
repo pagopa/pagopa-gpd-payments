@@ -15,6 +15,33 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
+import it.gov.pagopa.payments.model.partner.CtEntityUniqueIdentifier;
+import it.gov.pagopa.payments.model.partner.CtPaymentOptionDescriptionPA;
+import it.gov.pagopa.payments.model.partner.CtPaymentOptionsDescriptionListPA;
+import it.gov.pagopa.payments.model.partner.CtPaymentPA;
+import it.gov.pagopa.payments.model.partner.CtPaymentPAV2;
+import it.gov.pagopa.payments.model.partner.CtQrCode;
+import it.gov.pagopa.payments.model.partner.CtRichiestaMarcaDaBollo;
+import it.gov.pagopa.payments.model.partner.CtSubject;
+import it.gov.pagopa.payments.model.partner.CtTransferListPA;
+import it.gov.pagopa.payments.model.partner.CtTransferListPAV2;
+import it.gov.pagopa.payments.model.partner.CtTransferPA;
+import it.gov.pagopa.payments.model.partner.CtTransferPAV2;
+import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeRequest;
+import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
+import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Response;
+import it.gov.pagopa.payments.model.partner.PaSendRTReq;
+import it.gov.pagopa.payments.model.partner.PaSendRTRes;
+import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
+import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
+import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
+import it.gov.pagopa.payments.model.partner.StAmountOption;
+import it.gov.pagopa.payments.model.partner.StEntityUniqueIdentifierType;
+import it.gov.pagopa.payments.model.partner.StOutcome;
+import it.gov.pagopa.payments.model.partner.StTransferType;
 import it.gov.pagopa.payments.model.spontaneous.*;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
@@ -113,13 +140,15 @@ public class PartnerService {
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
 
+    log.info("[paVerifyPaymentNotice] paymentOption {}", paymentOption);
     checkDebtPositionStatus(paymentOption);
 
     log.info(
         "[paVerifyPaymentNotice] Response OK generation [noticeNumber={}]",
         request.getQrCode().getNoticeNumber());
-
-    return this.generatePaVerifyPaymentNoticeResponse(paymentOption);
+    var result = this.generatePaVerifyPaymentNoticeResponse(paymentOption);
+    log.info("PaVerifyPaymentNoticeResponse {}", result);
+    return result;
   }
 
   @Transactional(readOnly = true)

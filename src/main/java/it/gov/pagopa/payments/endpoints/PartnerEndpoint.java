@@ -14,13 +14,12 @@ import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
 import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
+import it.gov.pagopa.payments.service.PartnerService;
 import java.io.IOException;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
-
-import it.gov.pagopa.payments.service.PartnerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
@@ -46,8 +45,11 @@ public class PartnerEndpoint {
       throws DatatypeConfigurationException, PartnerValidationException {
 
     log.info(" paVerifyPaymentNotice START ");
-    return factory.createPaVerifyPaymentNoticeRes(
-        partnerService.paVerifyPaymentNotice(request.getValue()));
+    var result =
+        factory.createPaVerifyPaymentNoticeRes(
+            partnerService.paVerifyPaymentNotice(request.getValue()));
+    log.info(" paVerifyPaymentNotice END {}", result);
+    return result;
   }
 
   @SoapAction("paGetPayment")
@@ -96,11 +98,8 @@ public class PartnerEndpoint {
   @ResponsePayload
   public JAXBElement<PaDemandPaymentNoticeResponse> paDemandPaymentNotice(
       @RequestPayload JAXBElement<PaDemandPaymentNoticeRequest> request)
-      throws DatatypeConfigurationException,
-          ParserConfigurationException,
-          IOException,
-          SAXException,
-          XMLStreamException {
+      throws DatatypeConfigurationException, ParserConfigurationException, IOException,
+          SAXException, XMLStreamException {
 
     log.info(" paDemandPaymentNotice START ");
     return factory.createPaDemandPaymentNoticeResponse(
