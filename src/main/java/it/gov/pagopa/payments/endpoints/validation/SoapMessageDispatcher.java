@@ -74,7 +74,8 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
         try {
             callService(httpServletRequest, httpServletResponse);
-        } catch (PartnerValidationException e) {
+        }
+        catch (PartnerValidationException e) {
 
             log.error("Processing resulted in exception: " + e.getMessage());
             faultCode = e.getError().getFaultCode();

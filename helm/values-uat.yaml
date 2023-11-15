@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.10.1"
+    tag: "0.11.7"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -25,11 +25,13 @@ microservice-chart:
   service:
     create: true
     type: ClusterIP
-    port: 8080
+    ports:
+      - 8080
   ingress:
     create: true
     host: "weuuat.gps.internal.uat.platform.pagopa.it"
     path: /pagopa-gpd-payments/(.*)
+    servicePort: 8080
   serviceAccount:
     create: false
     annotations: {}
@@ -49,8 +51,8 @@ microservice-chart:
       cpu: "3.0" # high limit used only in startup phase
   autoscaling:
     enable: true
-    minReplica: 3
-    maxReplica: 10
+    minReplica: 1
+    maxReplica: 3
     pollingInterval: 10 # seconds
     cooldownPeriod: 50 # seconds
     triggers:
