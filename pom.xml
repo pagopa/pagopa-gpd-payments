@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.11.7</version>
+    <version>0.11.7-1-XSD-update</version>
     <name>Payments</name>
     <description>Payments</description>
 
