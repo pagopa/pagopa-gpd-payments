@@ -69,7 +69,7 @@ public class LoggingAspect {
 
     @AfterReturning(value = "execution(* it.gov.pagopa.payments.controller..*.*(..)) || execution(* it.gov.pagopa.payments.endpoints..*.*(..))", returning = "result")
     public void returnApiInvocation(JoinPoint joinPoint, Object result) {
-        log.info("Successful API operation {} - result: {}", joinPoint.getSignature().getName(), result);
+        log.debug("Successful API operation {} - result: {}", joinPoint.getSignature().getName(), result);
     }
 
     @AfterReturning(
