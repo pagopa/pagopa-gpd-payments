@@ -40,7 +40,7 @@ public class AzuriteStorageUtil {
       try {
         table.create();
       } catch (Exception e) {
-        Logger.info(new OperationContext(), "Table already exist:" + tableName);
+        Logger.error(new OperationContext(), "Table already exist:" + tableName);
       }
     }
   }

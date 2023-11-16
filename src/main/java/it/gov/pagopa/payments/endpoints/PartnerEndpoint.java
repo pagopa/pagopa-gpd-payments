@@ -44,7 +44,7 @@ public class PartnerEndpoint {
       @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request)
       throws DatatypeConfigurationException, PartnerValidationException {
 
-    log.info(" paVerifyPaymentNotice START ");
+    log.debug(" paVerifyPaymentNotice START ");
     return factory.createPaVerifyPaymentNoticeRes(
         partnerService.paVerifyPaymentNotice(request.getValue()));
   }
@@ -56,7 +56,7 @@ public class PartnerEndpoint {
       @RequestPayload JAXBElement<PaGetPaymentReq> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
-    log.info(" paGetPayment START ");
+    log.debug(" paGetPayment START ");
     return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue()));
   }
 
@@ -67,7 +67,7 @@ public class PartnerEndpoint {
       @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
-    log.info(" paGetPaymentV2 START ");
+    log.debug(" paGetPaymentV2 START ");
     return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue()));
   }
 
@@ -76,7 +76,7 @@ public class PartnerEndpoint {
   @ResponsePayload
   public JAXBElement<PaSendRTRes> paSendRT(@RequestPayload JAXBElement<PaSendRTReq> request) {
 
-    log.info("paSendRT START [noticeNumber={}]", request.getValue().getReceipt().getNoticeNumber());
+    log.debug("paSendRT START [noticeNumber={}]", request.getValue().getReceipt().getNoticeNumber());
     return factory.createPaSendRTRes(partnerService.paSendRT(request.getValue()));
   }
 
@@ -86,7 +86,7 @@ public class PartnerEndpoint {
   public JAXBElement<PaSendRTV2Response> paSendRTV2(
       @RequestPayload JAXBElement<PaSendRTV2Request> request) {
 
-    log.info(" paSendRTV2 START ");
+    log.debug(" paSendRTV2 START ");
     return factory.createPaSendRTV2Response(partnerService.paSendRTV2(request.getValue()));
   }
 
@@ -98,7 +98,7 @@ public class PartnerEndpoint {
       throws DatatypeConfigurationException, ParserConfigurationException, IOException,
           SAXException, XMLStreamException {
 
-    log.info(" paDemandPaymentNotice START ");
+    log.debug(" paDemandPaymentNotice START ");
     return factory.createPaDemandPaymentNoticeResponse(
         partnerService.paDemandPaymentNotice(request.getValue()));
   }
