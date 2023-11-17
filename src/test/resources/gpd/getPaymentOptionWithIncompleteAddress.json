@@ -15,6 +15,12 @@
   "idReceipt": "725d128ec27911edafa10242ac120002",
   "idFlowReporting": null,
   "status": "PO_PAID",
+  "paymentOptionMetadata": [
+    {
+      "key": "string",
+      "value": "string"
+    }
+  ],
   "type": "F",
   "fiscalCode": "JHNDOE00A01F205N",
   "fullName": "John Doe",
@@ -42,7 +48,13 @@
       "postalIban": null,
       "insertedDate": "2022-03-21T13:15:48.03354",
       "status": "T_UNREPORTED",
-      "lastUpdatedDate": "2022-03-21T13:15:48.03354"
+      "lastUpdatedDate": "2022-03-21T13:15:48.03354",
+      "transferMetadata": [
+        {
+          "key": "string",
+          "value": "string"
+        }
+      ]
     },
     {
       "organizationFiscalCode": "45953146017",
@@ -59,7 +71,13 @@
       "postalIban": null,
       "insertedDate": "2022-03-21T13:15:48.03354",
       "status": "T_UNREPORTED",
-      "lastUpdatedDate": "2022-03-21T13:15:48.03354"
+      "lastUpdatedDate": "2022-03-21T13:15:48.03354",
+      "transferMetadata": [
+        {
+          "key": "string",
+          "value": "string"
+        }
+      ]
     }
   ]
 }
