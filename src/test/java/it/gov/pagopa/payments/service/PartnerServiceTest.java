@@ -294,6 +294,7 @@ class PartnerServiceTest {
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
         .thenReturn(
@@ -342,6 +343,7 @@ class PartnerServiceTest {
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
         .thenReturn(
@@ -795,6 +797,7 @@ class PartnerServiceTest {
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPAV2()).thenReturn(factoryUtil.createCtTransferListPAV2());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
         .thenReturn(
@@ -860,6 +863,7 @@ class PartnerServiceTest {
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPAV2()).thenReturn(factoryUtil.createCtTransferListPAV2());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
         .thenReturn(
