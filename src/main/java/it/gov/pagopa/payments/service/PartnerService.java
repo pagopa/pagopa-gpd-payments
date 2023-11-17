@@ -363,6 +363,7 @@ public class PartnerService {
     PaGetPaymentRes response = factory.createPaGetPaymentRes();
     CtPaymentPA responseData = factory.createCtPaymentPA();
     CtTransferListPA transferList = factory.createCtTransferListPA();
+    CtMetadata paymentOptionMetadata = factory.createCtMetadata();
 
     response.setOutcome(StOutcome.OK);
 
@@ -381,8 +382,14 @@ public class PartnerService {
     responseData.setDescription(source.getDescription());
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
     responseData.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
-
     CtSubject debtor = this.getDebtor(source);
+    responseData.setDebtor(debtor);
+
+    List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
+    for (PaymentOptionMetadataModel po : source.getPaymentOptionMetadata()) {
+      poMapEntry.add(getPaymentOptionMetadata(po));
+    }
+    responseData.setMetadata(paymentOptionMetadata);
 
     // Transfer list
     transferList
@@ -398,7 +405,6 @@ public class PartnerService {
                 .collect(Collectors.toList()));
 
     responseData.setTransferList(transferList);
-    responseData.setDebtor(debtor);
     response.setData(responseData);
 
     return response;
@@ -420,6 +426,7 @@ public class PartnerService {
     PaGetPaymentV2Response response = factory.createPaGetPaymentV2Response();
     CtPaymentPAV2 responseData = factory.createCtPaymentPAV2();
     CtTransferListPAV2 transferList = factory.createCtTransferListPAV2();
+    CtMetadata paymentOptionMetadata = factory.createCtMetadata();
 
     response.setOutcome(StOutcome.OK);
 
@@ -438,6 +445,12 @@ public class PartnerService {
     responseData.setDescription(source.getDescription());
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
     responseData.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
+
+    List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
+    for (PaymentOptionMetadataModel po : source.getPaymentOptionMetadata()) {
+      poMapEntry.add(getPaymentOptionMetadata(po));
+    }
+    responseData.setMetadata(paymentOptionMetadata);
 
     // debtor data
     CtSubject debtor = this.getDebtor(source);
@@ -510,14 +523,22 @@ public class PartnerService {
    */
   private CtTransferPA getTransferResponse(
       PaymentsTransferModelResponse transfer, StTransferType transferType) {
-    CtTransferPA transferPa = new CtTransferPA();
-    transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
-    transferPa.setIBAN(getIbanByTransferType(transferType, transfer));
-    transferPa.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
-    transferPa.setRemittanceInformation(transfer.getRemittanceInformation());
-    transferPa.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
-    transferPa.setTransferCategory(transfer.getCategory());
-    return transferPa;
+    CtTransferPA transferPA = new CtTransferPA();
+    transferPA.setFiscalCodePA(transfer.getOrganizationFiscalCode());
+    transferPA.setIBAN(getIbanByTransferType(transferType, transfer));
+    transferPA.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
+    transferPA.setRemittanceInformation(transfer.getRemittanceInformation());
+    transferPA.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
+    transferPA.setTransferCategory(transfer.getCategory());
+
+    CtMetadata ctMetadata = new CtMetadata();
+    List<CtMapEntry> transferMapEntry = ctMetadata.getMapEntry();
+    for (TransferMetadataModel transferMetadataModel : transfer.getTransferMetadata()) {
+      transferMapEntry.add(getTransferMetadata(transferMetadataModel));
+    }
+    transferPA.setMetadata(ctMetadata);
+
+    return transferPA;
   }
 
   /**
@@ -529,16 +550,41 @@ public class PartnerService {
       PaymentsTransferModelResponse transfer, StTransferType transferType) {
     CtRichiestaMarcaDaBollo richiestaMarcaDaBollo =
         customizedModelMapper.map(transfer.getStamp(), CtRichiestaMarcaDaBollo.class);
-    CtTransferPAV2 transferPa = new CtTransferPAV2();
-    transferPa.setFiscalCodePA(transfer.getOrganizationFiscalCode());
-    transferPa.setIBAN(getIbanByTransferType(transferType, transfer));
-    transferPa.setRichiestaMarcaDaBollo(richiestaMarcaDaBollo);
-    transferPa.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
-    transferPa.setRemittanceInformation(transfer.getRemittanceInformation());
-    transferPa.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
-    transferPa.setTransferCategory(transfer.getCategory());
-    return transferPa;
+    CtTransferPAV2 transferPA = new CtTransferPAV2();
+    transferPA.setFiscalCodePA(transfer.getOrganizationFiscalCode());
+    transferPA.setIBAN(getIbanByTransferType(transferType, transfer));
+    transferPA.setRichiestaMarcaDaBollo(richiestaMarcaDaBollo);
+    transferPA.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
+    transferPA.setRemittanceInformation(transfer.getRemittanceInformation());
+    transferPA.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
+    transferPA.setTransferCategory(transfer.getCategory());
+
+    CtMetadata ctMetadata = new CtMetadata();
+    List<CtMapEntry> transferMapEntry = ctMetadata.getMapEntry();
+    for (TransferMetadataModel transferMetadataModel : transfer.getTransferMetadata()) {
+      transferMapEntry.add(getTransferMetadata(transferMetadataModel));
+    }
+    transferPA.setMetadata(ctMetadata);
+
+    return transferPA;
   }
+
+  private CtMapEntry getPaymentOptionMetadata(
+          PaymentOptionMetadataModel metadataModel) {
+    CtMapEntry ctMapEntry = new CtMapEntry();
+    ctMapEntry.setKey(metadataModel.getKey());
+    ctMapEntry.setValue(metadataModel.getValue());
+    return ctMapEntry;
+  }
+
+  private CtMapEntry getTransferMetadata(
+          TransferMetadataModel metadataModel) {
+    CtMapEntry ctMapEntry = new CtMapEntry();
+    ctMapEntry.setKey(metadataModel.getKey());
+    ctMapEntry.setValue(metadataModel.getValue());
+    return ctMapEntry;
+  }
+
 
   /**
    * The method return iban given transferType and transfer, according to

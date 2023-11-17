@@ -15,6 +15,12 @@
   "idReceipt": "string",
   "idFlowReporting": "string",
   "status": "PO_UNPAID",
+  "paymentOptionMetadata": [
+    {
+      "key": "string",
+      "value": "string"
+    }
+  ],
   "type": "G",
   "fiscalCode": "string",
   "fullName": "string",
@@ -41,7 +47,13 @@
       "postalIban": "string",
       "insertedDate": "2022-02-24T17:03:59.408Z",
       "status": "T_UNREPORTED",
-      "lastUpdatedDate": "2022-02-24T17:03:59.408Z"
+      "lastUpdatedDate": "2022-02-24T17:03:59.408Z",
+      "transferMetadata": [
+        {
+          "key": "string",
+          "value": "string"
+        }
+      ]
     },
     {
       "organizationFiscalCode": "77777777777",
@@ -53,7 +65,13 @@
       "postalIban": null,
       "insertedDate": "2022-02-24T17:03:59.408Z",
       "status": "T_UNREPORTED",
-      "lastUpdatedDate": "2022-02-24T17:03:59.408Z"
+      "lastUpdatedDate": "2022-02-24T17:03:59.408Z",
+      "transferMetadata": [
+        {
+          "key": "string",
+          "value": "string"
+        }
+      ]
     }
   ]
 }

@@ -2,6 +2,8 @@ package it.gov.pagopa.payments.model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -22,4 +24,5 @@ public class PaymentsTransferModelResponse implements Serializable {
   private LocalDateTime insertedDate;
   private TransferStatus status;
   private LocalDateTime lastUpdatedDate;
+  private List<TransferMetadataModel> transferMetadata;
 }
