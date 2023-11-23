@@ -6,7 +6,7 @@
   "isPartialPayment": true,
   "dueDate": "2122-02-24T17:03:59.408Z",
   "retentionDate": "2022-02-25T17:03:59.408Z",
-  "paymentDate": "2022-02-24T17:03:59.408Z",
+  "paymentDate": null,
   "reportingDate": "2022-02-24T17:03:59.408Z",
   "insertedDate": "2022-02-24T17:03:59.408Z",
   "paymentMethod": "string",
