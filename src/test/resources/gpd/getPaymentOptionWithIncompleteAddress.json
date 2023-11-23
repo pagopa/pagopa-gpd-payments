@@ -4,9 +4,9 @@
   "amount": 10000,
   "description": "Canone Unico Patrimoniale - CORPORATE",
   "isPartialPayment": false,
-  "dueDate": "2022-04-20T12:15:38.927",
-  "retentionDate": "2022-06-19T12:15:38.927",
-  "paymentDate": "2021-10-01T17:48:22",
+  "dueDate": "2125-04-20T12:15:38.927",
+  "retentionDate": "2125-06-19T12:15:38.927",
+  "paymentDate": null,
   "reportingDate": null,
   "insertedDate": null,
   "paymentMethod": "creditCard",
@@ -14,7 +14,7 @@
   "pspCompany": "PSP name",
   "idReceipt": "725d128ec27911edafa10242ac120002",
   "idFlowReporting": null,
-  "status": "PO_PAID",
+  "status": "PO_UNPAID",
   "paymentOptionMetadata": [
     {
       "key": "string",

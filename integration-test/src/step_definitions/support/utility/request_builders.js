@@ -108,6 +108,12 @@ function buildCreateDebtPositionRequest(debtPosition, payer) {
                 dueDate: debtPosition.dueDate,
                 retentionDate: debtPosition.retentionDate,
                 fee: 0,
+                paymentOptionMetadata: [
+                    {
+                      "key": "po-metadata-key",
+                      "value": "po-metadata-value"
+                    }
+                ],
                 transfer: [
                     {
                         idTransfer: debtPosition.transferId1,
@@ -115,6 +121,12 @@ function buildCreateDebtPositionRequest(debtPosition, payer) {
                         remittanceInformation: "Rata 1",
                         category: "9/0101108TS/",
                         iban: debtPosition.iban,
+                        transferMetadata: [
+                            {
+                              "key": "key",
+                              "value": "string"
+                            }
+                        ]
                     },
                     {
                         idTransfer: debtPosition.transferId2,

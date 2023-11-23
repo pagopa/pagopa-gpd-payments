@@ -148,8 +148,7 @@ public class PartnerService {
         request.getQrCode().getNoticeNumber());
     try {
       result = this.generatePaVerifyPaymentNoticeResponse(paymentOption);
-    }
-    catch (Exception e){
+    } catch (Exception e) {
       log.error("[paVerifyPaymentNotice] paymentOption {}", paymentOption, e);
       throw e;
     }
@@ -330,7 +329,8 @@ public class PartnerService {
    */
   private void checkDebtPositionStatus(PaymentsModelResponse paymentOption) {
     String iuvLog = " [iuv=" + paymentOption.getIuv() + "]";
-    if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.EXPIRED)) {
+    if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.EXPIRED)
+        || paymentOption.getDueDate().isBefore(LocalDateTime.now())) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCADUTO);
     } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.INVALID)) {
@@ -340,8 +340,8 @@ public class PartnerService {
         || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PUBLISHED)) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
-    } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PARTIALLY_PAID)
-        || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PAID)
+    } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PAID)
+        || paymentOption.getStatus().equals(PaymentOptionStatus.PO_PAID)
         || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.REPORTED)) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_DUPLICATO);
@@ -569,22 +569,19 @@ public class PartnerService {
     return transferPA;
   }
 
-  private CtMapEntry getPaymentOptionMetadata(
-          PaymentOptionMetadataModel metadataModel) {
+  private CtMapEntry getPaymentOptionMetadata(PaymentOptionMetadataModel metadataModel) {
     CtMapEntry ctMapEntry = new CtMapEntry();
     ctMapEntry.setKey(metadataModel.getKey());
     ctMapEntry.setValue(metadataModel.getValue());
     return ctMapEntry;
   }
 
-  private CtMapEntry getTransferMetadata(
-          TransferMetadataModel metadataModel) {
+  private CtMapEntry getTransferMetadata(TransferMetadataModel metadataModel) {
     CtMapEntry ctMapEntry = new CtMapEntry();
     ctMapEntry.setKey(metadataModel.getKey());
     ctMapEntry.setValue(metadataModel.getValue());
     return ctMapEntry;
   }
-
 
   /**
    * The method return iban given transferType and transfer, according to

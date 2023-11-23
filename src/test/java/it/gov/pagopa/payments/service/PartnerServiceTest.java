@@ -137,7 +137,7 @@ class PartnerServiceTest {
         .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
 
     PaymentsModelResponse paymentModel =
-        MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class);
+        MockUtil.readModelFromFile("gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     // Test execution
@@ -298,7 +298,7 @@ class PartnerServiceTest {
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
         .thenReturn(
-            MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
+            MockUtil.readModelFromFile("gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
     PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
@@ -313,7 +313,7 @@ class PartnerServiceTest {
         .isEqualTo(
             DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
-    assertEquals(3, responseBody.getData().getTransferList().getTransfer().size());
+    assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v1 the 'richiestaMarcaDaBollo' does not exist
     org.hamcrest.MatcherAssert.assertThat(
@@ -324,10 +324,7 @@ class PartnerServiceTest {
                     "IBAN", org.hamcrest.Matchers.is("string"))),
             org.hamcrest.Matchers.allOf(
                 org.hamcrest.Matchers.<CtTransferPA>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("ABC"))),
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPA>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.nullValue()))));
+                    "IBAN", org.hamcrest.Matchers.is("ABC")))));
   }
 
   @Test
@@ -359,10 +356,10 @@ class PartnerServiceTest {
         .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
     assertThat(responseBody.getData().getDueDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-06-19T12:15:38.927"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
 
     assertEquals("city", responseBody.getData().getDebtor().getCity());
@@ -801,7 +798,7 @@ class PartnerServiceTest {
 
     when(gpdClient.getPaymentOption(anyString(), anyString()))
         .thenReturn(
-            MockUtil.readModelFromFile("gpd/getPaymentOption.json", PaymentsModelResponse.class));
+            MockUtil.readModelFromFile("gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
     PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
@@ -816,7 +813,7 @@ class PartnerServiceTest {
         .isEqualTo(
             DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
-    assertEquals(3, responseBody.getData().getTransferList().getTransfer().size());
+    assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued
     org.hamcrest.MatcherAssert.assertThat(
@@ -831,12 +828,7 @@ class PartnerServiceTest {
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
                     "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("ABC"))),
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.nullValue()))));
+                    "IBAN", org.hamcrest.Matchers.is("ABC")))));
   }
 
   @Test
@@ -879,10 +871,10 @@ class PartnerServiceTest {
         .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
     assertThat(responseBody.getData().getDueDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-06-19T12:15:38.927"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
 
     assertEquals("city", responseBody.getData().getDebtor().getCity());
