@@ -329,8 +329,7 @@ public class PartnerService {
    */
   private void checkDebtPositionStatus(PaymentsModelResponse paymentOption) {
     String iuvLog = " [iuv=" + paymentOption.getIuv() + "]";
-    if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.EXPIRED)
-        || paymentOption.getDueDate().isBefore(LocalDateTime.now())) {
+    if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.EXPIRED)) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCADUTO);
     } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.INVALID)) {
