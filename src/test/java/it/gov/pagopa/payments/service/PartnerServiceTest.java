@@ -356,10 +356,10 @@ class PartnerServiceTest {
         .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
     assertThat(responseBody.getData().getDueDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-06-19T12:15:38.927"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
 
     assertEquals("city", responseBody.getData().getDebtor().getCity());
@@ -871,10 +871,10 @@ class PartnerServiceTest {
         .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
     assertThat(responseBody.getData().getDueDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-04-20T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
         .isEqualTo(
-            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-06-19T12:15:38.927"));
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-06-19T12:15:38.927"));
     assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
 
     assertEquals("city", responseBody.getData().getDebtor().getCity());
