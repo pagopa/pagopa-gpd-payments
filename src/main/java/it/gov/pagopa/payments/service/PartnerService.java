@@ -384,11 +384,13 @@ public class PartnerService {
     CtSubject debtor = this.getDebtor(source);
     responseData.setDebtor(debtor);
 
-    List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
-    for (PaymentOptionMetadataModel po : source.getPaymentOptionMetadata()) {
-      poMapEntry.add(getPaymentOptionMetadata(po));
+    if (source.getPaymentOptionMetadata() != null) {
+      List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
+      for (PaymentOptionMetadataModel po : source.getPaymentOptionMetadata()) {
+        poMapEntry.add(getPaymentOptionMetadata(po));
+      }
+      responseData.setMetadata(paymentOptionMetadata);
     }
-    responseData.setMetadata(paymentOptionMetadata);
 
     // Transfer list
     transferList
