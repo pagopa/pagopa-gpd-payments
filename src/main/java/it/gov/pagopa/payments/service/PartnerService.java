@@ -362,7 +362,6 @@ public class PartnerService {
     PaGetPaymentRes response = factory.createPaGetPaymentRes();
     CtPaymentPA responseData = factory.createCtPaymentPA();
     CtTransferListPA transferList = factory.createCtTransferListPA();
-    CtMetadata paymentOptionMetadata = factory.createCtMetadata();
 
     response.setOutcome(StOutcome.OK);
 
@@ -384,9 +383,11 @@ public class PartnerService {
     CtSubject debtor = this.getDebtor(source);
     responseData.setDebtor(debtor);
 
-    if (source.getPaymentOptionMetadata() != null) {
+    List<PaymentOptionMetadataModel> paymentOptionMetadataModels = source.getPaymentOptionMetadata();
+    if (paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
+      CtMetadata paymentOptionMetadata = factory.createCtMetadata();
       List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
-      for (PaymentOptionMetadataModel po : source.getPaymentOptionMetadata()) {
+      for (PaymentOptionMetadataModel po : paymentOptionMetadataModels) {
         poMapEntry.add(getPaymentOptionMetadata(po));
       }
       responseData.setMetadata(paymentOptionMetadata);
@@ -427,7 +428,6 @@ public class PartnerService {
     PaGetPaymentV2Response response = factory.createPaGetPaymentV2Response();
     CtPaymentPAV2 responseData = factory.createCtPaymentPAV2();
     CtTransferListPAV2 transferList = factory.createCtTransferListPAV2();
-    CtMetadata paymentOptionMetadata = factory.createCtMetadata();
 
     response.setOutcome(StOutcome.OK);
 
@@ -447,11 +447,15 @@ public class PartnerService {
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
     responseData.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
 
-    List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
-    for (PaymentOptionMetadataModel po : source.getPaymentOptionMetadata()) {
-      poMapEntry.add(getPaymentOptionMetadata(po));
+    List<PaymentOptionMetadataModel> paymentOptionMetadataModels = source.getPaymentOptionMetadata();
+    if(paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
+      CtMetadata paymentOptionMetadata = factory.createCtMetadata();
+      List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
+      for (PaymentOptionMetadataModel po : paymentOptionMetadataModels) {
+        poMapEntry.add(getPaymentOptionMetadata(po));
+      }
+      responseData.setMetadata(paymentOptionMetadata);
     }
-    responseData.setMetadata(paymentOptionMetadata);
 
     // debtor data
     CtSubject debtor = this.getDebtor(source);
@@ -532,12 +536,15 @@ public class PartnerService {
     transferPA.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
     transferPA.setTransferCategory(transfer.getCategory());
 
-    CtMetadata ctMetadata = new CtMetadata();
-    List<CtMapEntry> transferMapEntry = ctMetadata.getMapEntry();
-    for (TransferMetadataModel transferMetadataModel : transfer.getTransferMetadata()) {
-      transferMapEntry.add(getTransferMetadata(transferMetadataModel));
+    List<TransferMetadataModel> transferMetadataModels = transfer.getTransferMetadata();
+    if(transferMetadataModels != null && !transferMetadataModels.isEmpty()) {
+      CtMetadata ctMetadata = new CtMetadata();
+      List<CtMapEntry> transferMapEntry = ctMetadata.getMapEntry();
+      for (TransferMetadataModel transferMetadataModel : transferMetadataModels) {
+        transferMapEntry.add(getTransferMetadata(transferMetadataModel));
+      }
+      transferPA.setMetadata(ctMetadata);
     }
-    transferPA.setMetadata(ctMetadata);
 
     return transferPA;
   }
@@ -560,12 +567,15 @@ public class PartnerService {
     transferPA.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
     transferPA.setTransferCategory(transfer.getCategory());
 
-    CtMetadata ctMetadata = new CtMetadata();
-    List<CtMapEntry> transferMapEntry = ctMetadata.getMapEntry();
-    for (TransferMetadataModel transferMetadataModel : transfer.getTransferMetadata()) {
-      transferMapEntry.add(getTransferMetadata(transferMetadataModel));
+    List<TransferMetadataModel> transferMetadataModels = transfer.getTransferMetadata();
+    if(transferMetadataModels != null && !transferMetadataModels.isEmpty()) {
+      CtMetadata ctMetadata = new CtMetadata();
+      List<CtMapEntry> transferMapEntry = ctMetadata.getMapEntry();
+      for (TransferMetadataModel transferMetadataModel : transferMetadataModels) {
+        transferMapEntry.add(getTransferMetadata(transferMetadataModel));
+      }
+      transferPA.setMetadata(ctMetadata);
     }
-    transferPA.setMetadata(ctMetadata);
 
     return transferPA;
   }
