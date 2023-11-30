@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.0-3-PAGOPA-1384-fix-date-format-exception</version>
+    <version>0.12.0-4-PAGOPA-1384-fix-date-format-exception</version>
     <name>Payments</name>
     <description>Payments</description>
 
