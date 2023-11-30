@@ -16,7 +16,9 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 
 import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
@@ -306,7 +308,9 @@ class PartnerServiceTest {
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
     assertThat(responseBody.getData().getDescription()).isEqualTo("string");
-    assertThat(responseBody.getData().getDueDate())
+    XMLGregorianCalendar dueDate = responseBody.getData().getDueDate();
+    dueDate.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    assertThat(dueDate)
         .isEqualTo(
             DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
     assertThat(responseBody.getData().getRetentionDate())
@@ -354,7 +358,9 @@ class PartnerServiceTest {
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
     assertThat(responseBody.getData().getDescription())
         .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
-    assertThat(responseBody.getData().getDueDate())
+    XMLGregorianCalendar dueDate = responseBody.getData().getDueDate();
+    dueDate.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    assertThat(dueDate)
         .isEqualTo(
             DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
@@ -806,7 +812,9 @@ class PartnerServiceTest {
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
     assertThat(responseBody.getData().getDescription()).isEqualTo("string");
-    assertThat(responseBody.getData().getDueDate())
+    XMLGregorianCalendar dueDate = responseBody.getData().getDueDate();
+    dueDate.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    assertThat(dueDate)
         .isEqualTo(
             DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
     assertThat(responseBody.getData().getRetentionDate())
@@ -869,7 +877,9 @@ class PartnerServiceTest {
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
     assertThat(responseBody.getData().getDescription())
         .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
-    assertThat(responseBody.getData().getDueDate())
+    XMLGregorianCalendar dueDate = responseBody.getData().getDueDate();
+    dueDate.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    assertThat(dueDate)
         .isEqualTo(
             DatatypeFactory.newInstance().newXMLGregorianCalendar("2125-04-20T12:15:38.927"));
     assertThat(responseBody.getData().getRetentionDate())
