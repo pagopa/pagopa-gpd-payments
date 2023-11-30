@@ -864,7 +864,7 @@ class PartnerServiceTest {
 
     // Test execution
     PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
-
+    System.out.println(responseBody.getData().getDueDate());
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
     assertThat(responseBody.getData().getDescription())

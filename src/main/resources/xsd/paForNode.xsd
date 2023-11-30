@@ -189,7 +189,7 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 		<xsd:sequence>
 			<xsd:element name="creditorReferenceId" type="common:stText35" />
 			<xsd:element name="paymentAmount" type="tns:stAmountNotZero" />
-			<xsd:element name="dueDate" type="common:stISODate" />
+			<xsd:element name="dueDate" type="common:stISODateTime" />
 			<xsd:element name="retentionDate" type="xsd:dateTime" minOccurs="0" />
 			<xsd:element name="lastPayment" type="xsd:boolean" minOccurs="0" />
 			<xsd:element name="description" type="common:stText140" />
@@ -407,7 +407,7 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 		<xsd:sequence>
 			<xsd:element name="creditorReferenceId" type="common:stText35" />
 			<xsd:element name="paymentAmount" type="tns:stAmountNotZero" />
-			<xsd:element name="dueDate" type="common:stISODate" />
+			<xsd:element name="dueDate" type="common:stISODateTime" />
 			<xsd:element name="retentionDate" type="xsd:dateTime" minOccurs="0" />
 			<xsd:element name="lastPayment" type="xsd:boolean" minOccurs="0" />
 			<xsd:element name="description" type="common:stText140" />

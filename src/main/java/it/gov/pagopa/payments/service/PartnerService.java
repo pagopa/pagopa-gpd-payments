@@ -60,7 +60,9 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -369,14 +371,15 @@ public class PartnerService {
     responseData.setCreditorReferenceId(
         request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
-    responseData.setDueDate(
-            DatatypeFactory.newInstance()
-                    .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
-    responseData.setRetentionDate(
-         source.getRetentionDate() != null
-            ?  DatatypeFactory.newInstance()
-                       .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()))
-            : null);
+
+    DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
+    XMLGregorianCalendar dueDateXMLGregorian = datatypeFactory.newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate()));
+    XMLGregorianCalendar retentionDateXMLGregorian = datatypeFactory.newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()));
+    dueDateXMLGregorian.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    retentionDateXMLGregorian.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+
+    responseData.setDueDate(dueDateXMLGregorian);
+    responseData.setRetentionDate(source.getRetentionDate() != null ? retentionDateXMLGregorian : null);
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(source.getDescription());
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
@@ -436,14 +439,15 @@ public class PartnerService {
     responseData.setCreditorReferenceId(
         request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
-    responseData.setDueDate(
-            DatatypeFactory.newInstance()
-                    .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
-    responseData.setRetentionDate(
-            source.getRetentionDate() != null
-                    ?  DatatypeFactory.newInstance()
-                               .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()))
-                    : null);
+
+    DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
+    XMLGregorianCalendar dueDateXMLGregorian = datatypeFactory.newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate()));
+    XMLGregorianCalendar retentionDateXMLGregorian = datatypeFactory.newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()));
+    dueDateXMLGregorian.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    retentionDateXMLGregorian.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+
+    responseData.setDueDate(dueDateXMLGregorian);
+    responseData.setRetentionDate(source.getRetentionDate() != null ? retentionDateXMLGregorian : null);
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(source.getDescription());
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
