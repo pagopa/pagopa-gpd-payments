@@ -370,11 +370,12 @@ public class PartnerService {
         request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
     responseData.setDueDate(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
+            DatatypeFactory.newInstance()
+                    .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
     responseData.setRetentionDate(
-        source.getRetentionDate() != null
-            ? DatatypeFactory.newInstance()
-                .newXMLGregorianCalendar(source.getRetentionDate().toString())
+         source.getRetentionDate() != null
+            ?  DatatypeFactory.newInstance()
+                       .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()))
             : null);
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(source.getDescription());
@@ -436,12 +437,13 @@ public class PartnerService {
         request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
     responseData.setDueDate(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar(source.getDueDate().toString()));
+            DatatypeFactory.newInstance()
+                    .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
     responseData.setRetentionDate(
-        source.getRetentionDate() != null
-            ? DatatypeFactory.newInstance()
-                .newXMLGregorianCalendar(source.getRetentionDate().toString())
-            : null);
+            source.getRetentionDate() != null
+                    ?  DatatypeFactory.newInstance()
+                               .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()))
+                    : null);
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(source.getDescription());
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
