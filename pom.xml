@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.0-9-PAGOPA-1390-gpd-payments-align-sanp-v-3-5-0</version>
+    <version>0.12.0-10-PAGOPA-1390-gpd-payments-align-sanp-v-3-5-0</version>
     <name>Payments</name>
     <description>Payments</description>
 
