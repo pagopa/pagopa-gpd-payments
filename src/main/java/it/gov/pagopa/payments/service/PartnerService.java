@@ -374,12 +374,14 @@ public class PartnerService {
 
     DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
     XMLGregorianCalendar dueDateXMLGregorian = datatypeFactory.newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate()));
-    XMLGregorianCalendar retentionDateXMLGregorian = datatypeFactory.newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()));
-    //dueDateXMLGregorian.setTimezone(DatatypeConstants.FIELD_UNDEFINED); TODO after update xsd to common:stISODateTime
-    retentionDateXMLGregorian.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
-
     responseData.setDueDate(dueDateXMLGregorian);
-    responseData.setRetentionDate(source.getRetentionDate() != null ? retentionDateXMLGregorian : null);
+
+    if(source.getRetentionDate() != null) {
+      XMLGregorianCalendar retentionDateXMLGregorian = datatypeFactory.newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getRetentionDate()));
+      retentionDateXMLGregorian.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+      responseData.setRetentionDate(retentionDateXMLGregorian);
+    }
+
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(source.getDescription());
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
