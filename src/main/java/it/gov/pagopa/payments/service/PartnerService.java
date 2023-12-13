@@ -387,16 +387,6 @@ public class PartnerService {
     CtSubject debtor = this.getDebtor(source);
     responseData.setDebtor(debtor);
 
-    List<PaymentOptionMetadataModel> paymentOptionMetadataModels = source.getPaymentOptionMetadata();
-    if (paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
-      CtMetadata paymentOptionMetadata = factory.createCtMetadata();
-      List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
-      for (PaymentOptionMetadataModel po : paymentOptionMetadataModels) {
-        poMapEntry.add(getPaymentOptionMetadata(po));
-      }
-      responseData.setMetadata(paymentOptionMetadata);
-    }
-
     // Transfer list
     transferList
         .getTransfer()
@@ -541,16 +531,6 @@ public class PartnerService {
     transferPA.setRemittanceInformation(transfer.getRemittanceInformation());
     transferPA.setTransferAmount(BigDecimal.valueOf(transfer.getAmount()));
     transferPA.setTransferCategory(transfer.getCategory());
-
-    List<TransferMetadataModel> transferMetadataModels = transfer.getTransferMetadata();
-    if(transferMetadataModels != null && !transferMetadataModels.isEmpty()) {
-      CtMetadata ctMetadata = new CtMetadata();
-      List<CtMapEntry> transferMapEntry = ctMetadata.getMapEntry();
-      for (TransferMetadataModel transferMetadataModel : transferMetadataModels) {
-        transferMapEntry.add(getTransferMetadata(transferMetadataModel));
-      }
-      transferPA.setMetadata(ctMetadata);
-    }
 
     return transferPA;
   }
