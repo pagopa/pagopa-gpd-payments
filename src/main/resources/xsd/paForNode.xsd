@@ -1,3 +1,4 @@
+<!-- compliant to SANPv3.5.0 -->
 <xsd:schema version="1.0.0"
 			xmlns="http://www.w3.org/2001/XMLSchema"
 			xmlns:xsd="http://www.w3.org/2001/XMLSchema"
