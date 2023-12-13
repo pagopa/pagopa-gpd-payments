@@ -1,22 +1,11 @@
-<!-- new xsd schema 
 <xsd:schema version="1.0.0"
-	xmlns="http://www.w3.org/2001/XMLSchema"
-	xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-	targetNamespace="http://pagopa-api.pagopa.gov.it/paForNode"
-	xmlns:tns="http://pagopa-api.pagopa.gov.it/paForNode"
-	xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
--->
-<!-- xsd schema with old tns for backwards compatibility -->
-<xsd:schema version="1.0.0" 
-xmlns="http://www.w3.org/2001/XMLSchema"
-xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-targetNamespace="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd"
-xmlns:tns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" 
-xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
-
-	<xs:import namespace="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/" schemaLocation="../xsd-common/sac-common-types-1.0.xsd"
-		xmlns:xs="http://www.w3.org/2001/XMLSchema" />
-
+			xmlns="http://www.w3.org/2001/XMLSchema"
+			xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+			targetNamespace="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd"
+			xmlns:tns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd"
+			xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
+	<xs:import namespace="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/" schemaLocation="../../xsd-common/sac-common-types-1.0.xsd"
+			   xmlns:xs="http://www.w3.org/2001/XMLSchema" />
 	<xsd:simpleType name="stText20">
 		<xsd:restriction base="xsd:string">
 			<xsd:minLength value="1" />
@@ -36,7 +25,11 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 			<xsd:length value="5" />
 		</xsd:restriction>
 	</xsd:simpleType>
-
+	<xsd:simpleType name="stIdentificativoSoggettoServizio">
+		<xsd:restriction base="xsd:string">
+			<xsd:length value="5" />
+		</xsd:restriction>
+	</xsd:simpleType>
 	<xsd:simpleType name="stAmountNotZero">
 		<xsd:restriction base="xsd:decimal">
 			<xsd:pattern value="\d+\.\d{2}" />
@@ -112,7 +105,7 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 	<xsd:simpleType name="stTransferType">
 		<xsd:restriction base="xsd:string">
 			<xsd:enumeration value="POSTAL"/>
-      		<xsd:enumeration value="PAGOPA"></xsd:enumeration>
+			<xsd:enumeration value="PAGOPA"/>
 		</xsd:restriction>
 	</xsd:simpleType>
 	<!--Complex type -->
@@ -127,7 +120,7 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 	<!-- Payment List : verify response -->
 	<xsd:complexType name="ctPaymentOptionDescriptionPA">
 		<xsd:sequence>
-			<xsd:element name="amount" type="common:stAmount" />
+			<xsd:element name="amount" type="tns:stAmountNotZero" />
 			<xsd:element name="options" type="tns:stAmountOption" />
 			<xsd:element name="dueDate" type="common:stISODate" minOccurs="0" />
 			<xsd:element name="detailDescription" type="common:stText140" minOccurs="0" />
@@ -151,7 +144,6 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 			<xsd:element name="IBAN" type="tns:stIBAN" />
 			<xsd:element name="remittanceInformation" type="common:stText140" />
 			<xsd:element name="transferCategory" type="common:stText140" />
-			<xsd:element name="metadata" type="common:ctMetadata" minOccurs="0" />
 		</xsd:sequence>
 	</xsd:complexType>
 
@@ -342,6 +334,7 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 			<xsd:element name="idBrokerPA" type="common:stText35" />
 			<xsd:element name="idStation" type="common:stText35" />
 			<xsd:element name="idServizio" type="tns:stIdentificativoServizio" maxOccurs="1" />
+			<xsd:element name="idSoggettoServizio" type="tns:stIdentificativoSoggettoServizio" maxOccurs="1" />
 			<xsd:element name="datiSpecificiServizioRequest" type="xsd:base64Binary" maxOccurs="1" />
 		</xsd:sequence>
 	</xsd:complexType>
@@ -366,6 +359,7 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 			<xsd:element name="idTransfer" type="tns:stIdTransfer" />
 			<xsd:element name="transferAmount" type="tns:stAmountNotZero" />
 			<xsd:element name="fiscalCodePA" type="common:stFiscalCodePA" />
+			<xsd:element name="companyName" type="common:stText140" />
 			<xsd:choice>
 				<xsd:element name="IBAN" type="tns:stIBAN" />
 				<xsd:element name="richiestaMarcaDaBollo" type="common:ctRichiestaMarcaDaBollo" />
@@ -411,7 +405,7 @@ xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 			<xsd:element name="retentionDate" type="xsd:dateTime" minOccurs="0" />
 			<xsd:element name="lastPayment" type="xsd:boolean" minOccurs="0" />
 			<xsd:element name="description" type="common:stText140" />
-			<xsd:element name="companyName" type="common:stText140" minOccurs="0" />
+			<xsd:element name="companyName" type="common:stText140" />
 			<xsd:element name="officeName" type="common:stText140" minOccurs="0" />
 			<xsd:element name="debtor" type="tns:ctSubject" />
 			<xsd:element name="transferList" type="tns:ctTransferListPAV2" />
