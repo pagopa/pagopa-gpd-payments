@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.4"
+    tag: "0.12.5"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -98,13 +98,13 @@ microservice-chart:
                   - user
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/instance: pagopagpdpayments
-              namespaces: [ "gps" ]
-              topologyKey: topology.kubernetes.io/zone
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: pagopagpdpayments
+            namespaces: ["gps"]
+            topologyKey: topology.kubernetes.io/zone
   canaryDelivery:
     create: false
     ingress:
