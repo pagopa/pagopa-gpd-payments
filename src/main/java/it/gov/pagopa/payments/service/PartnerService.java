@@ -73,7 +73,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xml.sax.SAXException;
@@ -883,7 +882,6 @@ public class PartnerService {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.receiptPaymentOption(idPa, creditorReferenceId, body);
-      paymentOption.setHttpStatus(HttpStatus.OK);
       // creates the PAID receipt
       if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
         this.saveReceipt(receiptEntity);
@@ -895,8 +893,8 @@ public class PartnerService {
             "[getReceiptPaymentOption] GPD Conflict Error Response [noticeNumber={}]",
             noticeNumber,
             e);
-        ReceiptEntity receiptEntityToUpdate = this.getReceipt(idPa, creditorReferenceId);
-        if (null == receiptEntityToUpdate){
+        ReceiptEntity receiptEntityToCreate = this.getReceipt(idPa, creditorReferenceId);
+        if (null == receiptEntityToCreate){
         	// if no receipt found --> save the with PAID receipt
         	this.saveReceipt(receiptEntity);
         } 
