@@ -874,8 +874,8 @@ public class PartnerService {
             "[getReceiptPaymentOption] GPD Conflict Error Response [noticeNumber={}]",
             noticeNumber,
             e);
-        ReceiptEntity receiptEntityToUpdate = this.getReceipt(idPa, creditorReferenceId);
-        if (null == receiptEntityToUpdate){
+        ReceiptEntity receiptEntityToCreate = this.getReceipt(idPa, creditorReferenceId);
+        if (null == receiptEntityToCreate){
         	// if no receipt found --> save the with PAID receipt
         	this.saveReceipt(receiptEntity);
         } 
