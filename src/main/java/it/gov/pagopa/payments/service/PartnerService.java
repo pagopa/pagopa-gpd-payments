@@ -73,7 +73,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xml.sax.SAXException;
@@ -669,25 +668,6 @@ public class PartnerService {
     }
   }
 
-  /* TODO: remove
-  private void updateReceipt(ReceiptEntity receiptEntity)
-      throws InvalidKeyException, URISyntaxException, StorageException {
-    try {
-      TableEntity tableEntity =
-          tableClient.getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
-      Map<String, Object> properties = new HashMap<>();
-      properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
-      properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
-      properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
-      properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
-      tableClient.updateEntity(tableEntity);
-    } catch (TableServiceException e) {
-      log.error(DBERROR, e);
-      throw new AppException(AppError.DB_ERROR);
-    }
-  }
-  */
-
   private long getFeeInCent(BigDecimal fee) {
     long feeInCent = 0;
     if (null != fee) {
@@ -883,7 +863,6 @@ public class PartnerService {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.receiptPaymentOption(idPa, creditorReferenceId, body);
-      paymentOption.setHttpStatus(HttpStatus.OK);
       // creates the PAID receipt
       if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
         this.saveReceipt(receiptEntity);
