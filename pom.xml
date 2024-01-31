@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.5-1-PAGOPA-1476-unknown-payment-management</version>
+    <version>0.12.6</version>
     <name>Payments</name>
     <description>Payments</description>
 

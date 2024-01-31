@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.5-1-PAGOPA-1476-unknown-payment-management"
+    tag: "0.12.6"
     pullPolicy: Always
   livenessProbe:
     httpGet:
