@@ -509,6 +509,48 @@ class PartnerServiceTest {
       assertEquals(PaaErrorEnum.PAA_RECEIPT_DUPLICATA, ex.getError());
     }
   }
+  
+  @Test
+  void paSendRTTestKOUnknown() throws DatatypeConfigurationException, IOException {
+
+    var pService =
+        spy(
+            new PartnerService(
+                resource,
+                factory,
+                gpdClient,
+                gpsClient,
+                tableClientConfiguration(),
+                customizedModelMapper));
+
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
+
+    var e = Mockito.mock(FeignException.NotFound.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+        .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
+    }
+
+    try {
+      // Test execution
+      pService.paSendRT(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+    }
+  }
 
   @ParameterizedTest
   @CsvSource({"PO_UNPAID,11111111112222223", "PO_PARTIALLY_REPORTED,11111111112222227", "PO_REPORTED,11111111112222228"})
@@ -1031,6 +1073,48 @@ class PartnerServiceTest {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_RECEIPT_DUPLICATA, ex.getError());
     }
+  }
+  
+  @Test
+  void paSendRTV2TestKOUnknown() throws DatatypeConfigurationException, IOException {
+
+	  var pService =
+			  spy(
+					  new PartnerService(
+							  resource,
+							  factory,
+							  gpdClient,
+							  gpsClient,
+							  tableClientConfiguration(),
+							  customizedModelMapper));
+
+	  // Test preconditions
+	  PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
+
+	  var e = Mockito.mock(FeignException.NotFound.class);
+	  when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+	  .thenThrow(e);
+
+	  try {
+		  CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+		  CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+		  TableRequestOptions tableRequestOptions = new TableRequestOptions();
+		  tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+		  cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+		  CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+		  table.createIfNotExists();
+	  } catch (Exception ex) {
+		  log.info("Error during table creation", e);
+	  }
+
+	  try {
+		  // Test execution
+		  pService.paSendRTV2(requestBody);
+		  fail();
+	  } catch (PartnerValidationException ex) {
+		  // Test post condition
+		  assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+	  }
   }
 
   @ParameterizedTest

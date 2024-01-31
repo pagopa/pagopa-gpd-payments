@@ -9,7 +9,6 @@ import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
-import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
@@ -665,24 +664,7 @@ public class PartnerService {
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
       log.error(DBERROR, e);
-      throw new AppException(AppError.DB_ERROR);
-    }
-  }
-
-  private void updateReceipt(ReceiptEntity receiptEntity)
-      throws InvalidKeyException, URISyntaxException, StorageException {
-    try {
-      TableEntity tableEntity =
-          tableClient.getEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
-      Map<String, Object> properties = new HashMap<>();
-      properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
-      properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
-      properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
-      properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
-      tableClient.updateEntity(tableEntity);
-    } catch (TableServiceException e) {
-      log.error(DBERROR, e);
-      throw new AppException(AppError.DB_ERROR);
+      if (e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) return null; else throw new AppException(AppError.DB_ERROR);
     }
   }
 
@@ -761,101 +743,102 @@ public class PartnerService {
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTReq request) {
-    log.debug(
-        "[managePaSendRtRequest] save receipt [noticeNumber={}]",
-        request.getReceipt().getNoticeNumber());
+	  log.debug(
+			  "[managePaSendRtRequest] save receipt [noticeNumber={}]",
+			  request.getReceipt().getNoticeNumber());
 
-    ReceiptEntity receiptEntity =
-        this.getReceiptEntity(
-            request.getIdPA(),
-            request.getReceipt().getCreditorReferenceId(),
-            request.getReceipt().getDebtor(),
-            request.getReceipt().getPaymentDateTime().toString());
-    // save the receipt info with status CREATED
-    try {
-      receiptEntity.setDocument(this.marshal(request));
-      this.saveReceipt(receiptEntity);
-    } catch (InvalidKeyException | URISyntaxException | StorageException | JAXBException e) {
-      log.error(
-          "[managePaSendRtRequest] Generic Error in receipt saving [noticeNumber={}]",
-          request.getReceipt().getNoticeNumber(),
-          e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    }
+	  ReceiptEntity receiptEntity =
+			  this.getReceiptEntity(
+					  request.getIdPA(),
+					  request.getReceipt().getCreditorReferenceId(),
+					  request.getReceipt().getDebtor(),
+					  request.getReceipt().getPaymentDateTime().toString());
 
-    // GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
-    LocalDateTime paymentDateTime =
-        request.getReceipt().getPaymentDateTime() != null
-            ? request
-                .getReceipt()
-                .getPaymentDateTime()
-                .toGregorianCalendar()
-                .toZonedDateTime()
-                .toLocalDateTime()
-            : null;
-    PaymentOptionModel body =
-        PaymentOptionModel.builder()
-            .idReceipt(request.getReceipt().getReceiptId())
-            .paymentDate(paymentDateTime)
-            .pspCompany(request.getReceipt().getPSPCompanyName())
-            .paymentMethod(request.getReceipt().getPaymentMethod())
-            .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-            .build();
-    return this.getReceiptPaymentOption(
-        request.getReceipt().getNoticeNumber(),
-        request.getIdPA(),
-        request.getReceipt().getCreditorReferenceId(),
-        body,
-        receiptEntity);
+	  try {
+		  receiptEntity.setDocument(this.marshal(request));
+	  } catch (JAXBException e) {
+		  log.error(
+				  "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
+				  request.getReceipt().getNoticeNumber(),
+				  e);
+		  throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+	  }
+
+	  LocalDateTime paymentDateTime =
+			  request.getReceipt().getPaymentDateTime() != null
+			  ? request
+					  .getReceipt()
+					  .getPaymentDateTime()
+					  .toGregorianCalendar()
+					  .toZonedDateTime()
+					  .toLocalDateTime()
+					  : null;
+	  PaymentOptionModel body =
+			  PaymentOptionModel.builder()
+			  .idReceipt(request.getReceipt().getReceiptId())
+			  .paymentDate(paymentDateTime)
+			  .pspCompany(request.getReceipt().getPSPCompanyName())
+			  .paymentMethod(request.getReceipt().getPaymentMethod())
+			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+			  .build();
+
+	  // call to gpd: GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
+	  return this.getReceiptPaymentOption(
+			  request.getReceipt().getNoticeNumber(),
+			  request.getIdPA(),
+			  request.getReceipt().getCreditorReferenceId(),
+			  body,
+			  receiptEntity);
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTV2Request request) {
-    log.debug(
-        "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
-        request.getReceipt().getNoticeNumber());
+	  log.debug(
+			  "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
+			  request.getReceipt().getNoticeNumber());
 
-    ReceiptEntity receiptEntity =
-        this.getReceiptEntity(
-            request.getIdPA(),
-            request.getReceipt().getCreditorReferenceId(),
-            request.getReceipt().getDebtor(),
-            request.getReceipt().getPaymentDateTime().toString());
-    // save the receipt info with status CREATED
-    try {
-      receiptEntity.setDocument(this.marshalV2(request));
-      this.saveReceipt(receiptEntity);
-    } catch (InvalidKeyException | URISyntaxException | StorageException | JAXBException e) {
-      log.error(
-          "[managePaSendRtRequest] Generic Error in receipt saving [noticeNumber={}]",
-          request.getReceipt().getNoticeNumber(),
-          e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    }
+	  ReceiptEntity receiptEntity =
+			  this.getReceiptEntity(
+					  request.getIdPA(),
+					  request.getReceipt().getCreditorReferenceId(),
+					  request.getReceipt().getDebtor(),
+					  request.getReceipt().getPaymentDateTime().toString());
+	  try {
+		  receiptEntity.setDocument(this.marshalV2(request));
+	  } catch (JAXBException e) {
+		  log.error(
+				  "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
+				  request.getReceipt().getNoticeNumber(),
+				  e);
+		  throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+	  }
 
-    // GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
-    LocalDateTime paymentDateTime =
-        request.getReceipt().getPaymentDateTime() != null
-            ? request
-                .getReceipt()
-                .getPaymentDateTime()
-                .toGregorianCalendar()
-                .toZonedDateTime()
-                .toLocalDateTime()
-            : null;
-    PaymentOptionModel body =
-        PaymentOptionModel.builder()
-            .idReceipt(request.getReceipt().getReceiptId())
-            .paymentDate(paymentDateTime)
-            .pspCompany(request.getReceipt().getPSPCompanyName())
-            .paymentMethod(request.getReceipt().getPaymentMethod())
-            .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-            .build();
-    return this.getReceiptPaymentOption(
-        request.getReceipt().getNoticeNumber(),
-        request.getIdPA(),
-        request.getReceipt().getCreditorReferenceId(),
-        body,
-        receiptEntity);
+	  LocalDateTime paymentDateTime =
+			  request.getReceipt().getPaymentDateTime() != null
+			  ? request
+					  .getReceipt()
+					  .getPaymentDateTime()
+					  .toGregorianCalendar()
+					  .toZonedDateTime()
+					  .toLocalDateTime()
+					  : null;
+
+	  PaymentOptionModel body =
+			  PaymentOptionModel.builder()
+			  .idReceipt(request.getReceipt().getReceiptId())
+			  .paymentDate(paymentDateTime)
+			  .pspCompany(request.getReceipt().getPSPCompanyName())
+			  .paymentMethod(request.getReceipt().getPaymentMethod())
+			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+			  .build();
+
+
+	  // call to gpd: GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
+	  return this.getReceiptPaymentOption(
+			  request.getReceipt().getNoticeNumber(),
+			  request.getIdPA(),
+			  request.getReceipt().getCreditorReferenceId(),
+			  body,
+			  receiptEntity);
   }
 
   private ReceiptEntity getReceiptEntity(
@@ -872,37 +855,46 @@ public class PartnerService {
     return receiptEntity;
   }
 
-  private PaymentOptionModelResponse getReceiptPaymentOption(
-      String noticeNumber,
-      String idPa,
-      String creditorReferenceId,
-      PaymentOptionModel body,
-      ReceiptEntity receiptEntity) {
+  private PaymentOptionModelResponse getReceiptPaymentOption(String noticeNumber,
+	      String idPa,
+	      String creditorReferenceId,
+          PaymentOptionModel body,
+          ReceiptEntity receiptEntity) {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.receiptPaymentOption(idPa, creditorReferenceId, body);
-      // update receipt status to PAID
+      // creates the PAID receipt
       if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-        receiptEntity.setStatus(Status.PAID.name());
-        this.updateReceipt(receiptEntity);
+        this.saveReceipt(receiptEntity);
       }
     } catch (FeignException.Conflict e) {
+      // if PO is already paid on GPD --> checks and in case creates the receipt in PAID status
       try {
         log.error(
             "[getReceiptPaymentOption] GPD Conflict Error Response [noticeNumber={}]",
             noticeNumber,
             e);
-        ReceiptEntity receiptEntityToUpdate = this.getReceipt(idPa, creditorReferenceId);
-        receiptEntityToUpdate.setStatus(Status.PAID.name());
-        this.updateReceipt(receiptEntityToUpdate);
+        ReceiptEntity receiptEntityToCreate = this.getReceipt(idPa, creditorReferenceId);
+        if (null == receiptEntityToCreate){
+        	// if no receipt found --> save the with PAID receipt
+        	this.saveReceipt(receiptEntity);
+        } 
       } catch (Exception ex) {
         log.error(
             "[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}] during receipt status"
-                + " update",
-            noticeNumber,
+                + " save",
+                noticeNumber,
             e);
       }
       throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
+    } catch (FeignException.NotFound e) {
+    	log.error(
+    	          "[getReceiptPaymentOption] GPD Not Found Error Response [noticeNumber={}]",
+    	          noticeNumber,
+    	          e);
+    	throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+    } catch (PartnerValidationException e) {
+    	throw e;
     } catch (RetryableException e) {
       log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", noticeNumber, e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
