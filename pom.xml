@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.6</version>
+    <version>0.12.6-1-pagopa-1533-qos-receitps</version>
     <name>Payments</name>
     <description>Payments</description>
 
