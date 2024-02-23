@@ -52,8 +52,7 @@ public class PaymentsService {
                     organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodes);
             return this.setReceiptsOutput(getGPDCheckedReceiptsList(filteredEntities, tableClient));
 
-        }
-        catch (TableServiceException e) {
+        } catch (TableServiceException e) {
             log.error("Error in processing get organizations list", e);
             throw new AppException(AppError.DB_ERROR, "ALL");
         }
@@ -171,8 +170,8 @@ public class PaymentsService {
         Iterator<PagedResponse<TableEntity>> filteredIterator = tableClient
                 .listEntities(
                         new ListEntitiesOptions()
-                                .setTop(pageSize)
-                                .setFilter(filter),
+                                .setFilter(filter)
+                                .setTop(pageSize),
                         null,
                         null)
                 .iterableByPage()
