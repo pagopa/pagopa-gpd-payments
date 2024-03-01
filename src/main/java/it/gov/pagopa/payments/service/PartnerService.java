@@ -382,7 +382,7 @@ public class PartnerService {
     }
 
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(source.getDescription());
+    responseData.setDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
     responseData.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
     CtSubject debtor = this.getDebtor(source);
@@ -442,7 +442,7 @@ public class PartnerService {
     }
 
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(source.getDescription());
+    responseData.setDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
     responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
     responseData.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
 
