@@ -120,13 +120,9 @@ public class PartnerService {
     PaymentsModelResponse paymentOption = null;
 
     try {
-      // with Aux-Digit = 3
-      // notice number format is define as follows:
-      // 3<segregation code(2n)><IUV base(13n)><IUV check digit(2n)>
-      // GPD service works on IUVs directly, so we remove the Aux-Digit
       paymentOption =
           gpdClient.getPaymentOption(
-              request.getIdPA(), request.getQrCode().getNoticeNumber().substring(1));
+              request.getIdPA(), request.getQrCode().getNoticeNumber());
     } catch (FeignException.NotFound e) {
       log.error(
           "[paVerifyPaymentNotice] GPD Error not found [noticeNumber={}]",
@@ -862,7 +858,7 @@ public class PartnerService {
           ReceiptEntity receiptEntity) {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
-      paymentOption = gpdClient.receiptPaymentOption(idPa, creditorReferenceId, body);
+      paymentOption = gpdClient.receiptPaymentOption(idPa, noticeNumber, body);
       // creates the PAID receipt
       if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
         this.saveReceipt(receiptEntity);

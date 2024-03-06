@@ -21,20 +21,20 @@ public interface GpdClient {
       exclude = FeignException.FeignClientException.class,
       maxAttemptsExpression = "${retry.maxAttempts}",
       backoff = @Backoff(delayExpression = "${retry.maxDelay}"))
-  @GetMapping(value = "/organizations/{organizationfiscalcode}/paymentoptions/{iuv}")
+  @GetMapping(value = "/organizations/{organizationfiscalcode}/paymentoptions/{nav}")
   PaymentsModelResponse getPaymentOption(
       @PathVariable("organizationfiscalcode") String organizationFiscalCode,
-      @PathVariable("iuv") String iuv);
+      @PathVariable("iuv") String nav);
 
   @Retryable(
       exclude = FeignException.FeignClientException.class,
       maxAttemptsExpression = "${retry.maxAttempts}",
       backoff = @Backoff(delayExpression = "${retry.maxDelay}"))
   @PostMapping(
-      value = "/organizations/{organizationfiscalcode}/paymentoptions/{iuv}/pay",
+      value = "/organizations/{organizationfiscalcode}/paymentoptions/{nav}/pay",
       consumes = MediaType.APPLICATION_JSON_VALUE)
   PaymentOptionModelResponse receiptPaymentOption(
       @PathVariable("organizationfiscalcode") String organizationFiscalCode,
-      @PathVariable("iuv") String iuv,
+      @PathVariable("nav") String nav,
       @RequestBody PaymentOptionModel body);
 }
