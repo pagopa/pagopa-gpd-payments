@@ -914,7 +914,7 @@ class PartnerServiceTest {
     PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
     System.out.println(responseBody.getData().getDueDate());
     // Test post condition
-    assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
+    assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("63155551414999718");
     assertThat(responseBody.getData().getDescription())
         .isEqualTo("Canone Unico Patrimoniale - CORPORATE");
     XMLGregorianCalendar dueDate = responseBody.getData().getDueDate();
