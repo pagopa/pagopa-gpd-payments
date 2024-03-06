@@ -287,8 +287,8 @@ public class PartnerService {
     ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getIuv());
     result.setQrCode(ctQrCode);
 
-    result.setOfficeName(gpsResponse.getOfficeName());
-    result.setPaymentDescription(gpsResponse.getPaymentOption().get(0).getDescription());
+    result.setOfficeName(Optional.ofNullable(gpsResponse.getOfficeName()).orElse("NA"));
+    result.setPaymentDescription(Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
     CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA =
         factory.createCtPaymentOptionsDescriptionListPA();
 
@@ -313,7 +313,7 @@ public class PartnerService {
 
     ctPaymentOptionDescriptionPA.setOptions(StAmountOption.EQ);
     ctPaymentOptionDescriptionPA.setDetailDescription(
-        gpsResponse.getPaymentOption().get(0).getDescription());
+    		Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
     ctPaymentOptionsDescriptionListPA.setPaymentOptionDescription(ctPaymentOptionDescriptionPA);
     result.setPaymentList(ctPaymentOptionsDescriptionListPA);
     return result;
@@ -497,7 +497,7 @@ public class PartnerService {
     paymentOption.setDueDate(
         DatatypeFactory.newInstance()
             .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
-    paymentOption.setDetailDescription(source.getDescription());
+    paymentOption.setDetailDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
     var cpp =
         source
             .getTransfer()
@@ -508,7 +508,7 @@ public class PartnerService {
 
     result.setPaymentList(paymentList);
     // general info
-    result.setPaymentDescription(source.getDescription());
+    result.setPaymentDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
     result.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
     result.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
