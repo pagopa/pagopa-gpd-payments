@@ -363,8 +363,7 @@ public class PartnerService {
     response.setOutcome(StOutcome.OK);
 
     // general payment data
-    responseData.setCreditorReferenceId(
-        request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
+    responseData.setCreditorReferenceId(source.getIuv());
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
 
     DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
