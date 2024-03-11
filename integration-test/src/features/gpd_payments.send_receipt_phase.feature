@@ -25,7 +25,7 @@ Feature: All about Send Receipt Phase on Debt Position Payments workflow
     Given an invalid fiscal code
     And the client sends the SendRTRequest
     Then the client receives status code 200
-    And the client receives a KO with the "PAA_SEMANTICA" fault code error
+    And the client receives a KO with the "PAA_PAGAMENTO_SCONOSCIUTO" fault code error
 
   @GPDScenario
   Scenario: Activate phase - Success
