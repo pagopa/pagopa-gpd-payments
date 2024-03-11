@@ -44,6 +44,7 @@ public class PaSendRTReqMock {
     receipt.setOutcome(StOutcome.OK);
     receipt.setCreditorReferenceId(iuv);
     receipt.setPaymentMethod("creditCard");
+    receipt.setPaymentNote("payment note");
     receipt.setPSPCompanyName("Intesa San Paolo");
     receipt.setFee(BigDecimal.valueOf(2));
     receipt.setPaymentDateTime(

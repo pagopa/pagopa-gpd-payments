@@ -99,6 +99,7 @@ function buildCreateDebtPositionRequest(debtPosition, payer) {
         phone: payer.phone,
         companyName: payer.companyName,
         officeName: payer.officeName,
+        switchToExpired: false,
         paymentOption: [
             {
                 iuv: debtPosition.iuv1,

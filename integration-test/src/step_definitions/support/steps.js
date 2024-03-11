@@ -1,4 +1,4 @@
-const {Given, When, Then, AfterAll, Before} = require('@cucumber/cucumber')
+const {Given, When, Then, AfterAll, Before, setDefaultTimeout} = require('@cucumber/cucumber')
 const { 
     executeHealthCheckForAPIConfig,
     executeHealthCheckForDonations,
@@ -30,6 +30,8 @@ const { createOrganizationInfo, createServiceInfo, sendInvalidDemandPaymentNotic
 const { gpdSessionBundle, gpsSessionBundle } = require('./utility/data');
 const { getValidBundle } = require('./utility/helpers');
 
+// increase cucumber promise timeout
+setDefaultTimeout(15000);
 
 
 /* 
