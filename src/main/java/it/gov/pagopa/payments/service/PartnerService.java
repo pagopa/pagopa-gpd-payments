@@ -120,13 +120,9 @@ public class PartnerService {
     PaymentsModelResponse paymentOption = null;
 
     try {
-      // with Aux-Digit = 3
-      // notice number format is define as follows:
-      // 3<segregation code(2n)><IUV base(13n)><IUV check digit(2n)>
-      // GPD service works on IUVs directly, so we remove the Aux-Digit
       paymentOption =
           gpdClient.getPaymentOption(
-              request.getIdPA(), request.getQrCode().getNoticeNumber().substring(1));
+              request.getIdPA(), request.getQrCode().getNoticeNumber());
     } catch (FeignException.NotFound e) {
       log.error(
           "[paVerifyPaymentNotice] GPD Error not found [noticeNumber={}]",
@@ -291,8 +287,8 @@ public class PartnerService {
     ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getIuv());
     result.setQrCode(ctQrCode);
 
-    result.setOfficeName(gpsResponse.getOfficeName());
-    result.setPaymentDescription(gpsResponse.getPaymentOption().get(0).getDescription());
+    result.setOfficeName(Optional.ofNullable(gpsResponse.getOfficeName()).orElse("NA"));
+    result.setPaymentDescription(Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
     CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA =
         factory.createCtPaymentOptionsDescriptionListPA();
 
@@ -317,7 +313,7 @@ public class PartnerService {
 
     ctPaymentOptionDescriptionPA.setOptions(StAmountOption.EQ);
     ctPaymentOptionDescriptionPA.setDetailDescription(
-        gpsResponse.getPaymentOption().get(0).getDescription());
+    		Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
     ctPaymentOptionsDescriptionListPA.setPaymentOptionDescription(ctPaymentOptionDescriptionPA);
     result.setPaymentList(ctPaymentOptionsDescriptionListPA);
     return result;
@@ -329,7 +325,7 @@ public class PartnerService {
    * @param paymentOption {@link PaymentsModelResponse} response from GPD
    */
   private void checkDebtPositionStatus(PaymentsModelResponse paymentOption) {
-    String iuvLog = " [iuv=" + paymentOption.getIuv() + "]";
+    String iuvLog = " [iuv=" + paymentOption.getIuv() + ", nav=" +paymentOption.getNav()+ "]";
     if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.EXPIRED)) {
       log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCADUTO);
@@ -367,8 +363,7 @@ public class PartnerService {
     response.setOutcome(StOutcome.OK);
 
     // general payment data
-    responseData.setCreditorReferenceId(
-        request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
+    responseData.setCreditorReferenceId(source.getIuv());
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
 
     DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
@@ -427,8 +422,7 @@ public class PartnerService {
     response.setOutcome(StOutcome.OK);
 
     // general payment data
-    responseData.setCreditorReferenceId(
-        request.getQrCode().getNoticeNumber().substring(1)); // set IUV from notice number request
+    responseData.setCreditorReferenceId(source.getIuv());
     responseData.setPaymentAmount(BigDecimal.valueOf(source.getAmount()));
 
     DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
@@ -502,7 +496,7 @@ public class PartnerService {
     paymentOption.setDueDate(
         DatatypeFactory.newInstance()
             .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
-    paymentOption.setDetailDescription(source.getDescription());
+    paymentOption.setDetailDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
     var cpp =
         source
             .getTransfer()
@@ -513,7 +507,7 @@ public class PartnerService {
 
     result.setPaymentList(paymentList);
     // general info
-    result.setPaymentDescription(source.getDescription());
+    result.setPaymentDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
     result.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
     result.setOfficeName(Optional.ofNullable(source.getOfficeName()).orElse(("NA")));
@@ -720,11 +714,7 @@ public class PartnerService {
     PaymentsModelResponse paymentOption = null;
 
     try {
-      // with Aux-Digit = 3
-      // notice number format is define as follows:
-      // 3<segregation code(2n)><IUV base(13n)><IUV check digit(2n)>
-      // GPD service works on IUVs directly, so we remove the Aux-Digit
-      paymentOption = gpdClient.getPaymentOption(idPa, qrCode.getNoticeNumber().substring(1));
+      paymentOption = gpdClient.getPaymentOption(idPa, qrCode.getNoticeNumber());
     } catch (FeignException.NotFound e) {
       log.error(
           "[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]",
@@ -782,7 +772,6 @@ public class PartnerService {
 			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
 			  .build();
 
-	  // call to gpd: GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
 	  return this.getReceiptPaymentOption(
 			  request.getReceipt().getNoticeNumber(),
 			  request.getIdPA(),
@@ -831,8 +820,6 @@ public class PartnerService {
 			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
 			  .build();
 
-
-	  // call to gpd: GPD service works on IUVs directly, so we use creditorReferenceId (=IUV)
 	  return this.getReceiptPaymentOption(
 			  request.getReceipt().getNoticeNumber(),
 			  request.getIdPA(),
@@ -862,7 +849,7 @@ public class PartnerService {
           ReceiptEntity receiptEntity) {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
-      paymentOption = gpdClient.receiptPaymentOption(idPa, creditorReferenceId, body);
+      paymentOption = gpdClient.receiptPaymentOption(idPa, noticeNumber, body);
       // creates the PAID receipt
       if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
         this.saveReceipt(receiptEntity);

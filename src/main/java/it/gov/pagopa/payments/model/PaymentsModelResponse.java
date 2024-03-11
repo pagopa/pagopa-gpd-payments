@@ -14,6 +14,7 @@ public class PaymentsModelResponse implements Serializable {
 
   private static final long serialVersionUID = -4897632346879847721L;
 
+  private String nav;
   private String iuv;
   private String organizationFiscalCode;
   private long amount;
