@@ -39,6 +39,7 @@ function buildGPSOrganizationCreationRequest(serviceId) {
     };
 }
 
+
 function buildDemandPaymentNoticeRequest(gpsSessionBundle) {
     const organizationCode = gpsSessionBundle.organizationCode;
     const brokerCode = gpsSessionBundle.brokerCode;
@@ -400,6 +401,36 @@ function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
                         </soapenv:Body>
                     </soapenv:Envelope>`;
 	}
+	
+	function buildApiConfigServiceCreationCIRequest(creditorInstitutionCode){
+		return {
+			  "address": {
+			    "city": "Lorem",
+			    "country_code": "RM",
+			    "location": "Via delle vie 3",
+			    "tax_domicile": "string",
+			    "zip_code": "00187"
+			  },
+			  "business_name": "Comune di Lorem Ipsum",
+			  "cbill_code": "1234567890100",
+			  "creditor_institution_code": creditorInstitutionCode,
+			  "enabled": true,
+			  "psp_payment": true,
+			  "reporting_ftp": false,
+			  "reporting_zip": false
+			};
+	}
+	
+	function buildApiConfigServiceCreationIbansRequest(dueDate, validityDate){
+		return {
+			  "description": "Riscossione Tributi",
+			  "due_date": dueDate,
+			  "iban": "IT99C0222211111000000000000",
+			  "is_active": true,
+			  "labels": [],
+			  "validity_date": validityDate
+		};
+	}
 
 
 module.exports = {
@@ -413,5 +444,7 @@ module.exports = {
     buildSendRTRequest,
     buildVerifyPaymentNoticeRequest,
     buildGetPaymentReq,
-    buildGetPaymentV2Req
+    buildGetPaymentV2Req,
+    buildApiConfigServiceCreationCIRequest,
+    buildApiConfigServiceCreationIbansRequest
 }

@@ -5,6 +5,8 @@ const {
     readCreditorInstitutionIbans,
     readECStationAssociation,
     readStation,
+    createCreditorInstitution,
+    createCreditorInstitutionIbans
 } = require("../clients/api_config_client");
 const { 
     createDebtPosition, 
@@ -27,7 +29,9 @@ const {
     buildSendPaymentOutcomeRequest, 
     buildSendRTRequest,
     buildGetPaymentReq,
-    buildGetPaymentV2Req 
+    buildGetPaymentV2Req,
+    buildApiConfigServiceCreationCIRequest,
+    buildApiConfigServiceCreationIbansRequest 
 } = require("../utility/request_builders");
 
 
@@ -68,12 +72,21 @@ async function readCreditorInstitutionBrokerInfo(bundle, brokerId) {
 }
 
 async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
-    readAndValidateCreditorInstitutionInfo(bundle, creditorInstitutionId, 200);
+    await readAndValidateCreditorInstitutionInfo(bundle, creditorInstitutionId, 200);
     bundle.organizationCode = creditorInstitutionId;
-    readValidCreditorInstitutionInfo(bundle, creditorInstitutionId, 200);
+    await readValidCreditorInstitutionInfo(bundle, creditorInstitutionId, 200);
     response = await readCreditorInstitutionIbans(bundle.organizationCode);
-    assert.ok(response.data.ibans[0] !== undefined);
-    bundle.debtPosition.iban = response.data.ibans[0].iban;
+    // if there is no iban connected to the CI, it is created
+    if (response.data.ibans_enhanced.length == 0) {
+	   let body = buildApiConfigServiceCreationIbansRequest(new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(), 
+	   new Date(new Date().setDate(new Date().getDate() + 1)).toISOString());
+	   response = await createCreditorInstitutionIbans(bundle.organizationCode, body);
+	   assert.strictEqual(response.status, 201);
+	   bundle.debtPosition.iban = response.data.iban;
+    } else {
+	   assert.ok(response.data.ibans_enhanced[0] !== undefined);
+       bundle.debtPosition.iban = response.data.ibans_enhanced[0].iban;
+    }
 }
 
 async function readStationInfo(bundle, stationId) {
@@ -96,6 +109,13 @@ async function readValidCreditorInstitutionInfo(bundle) {
 async function readAndValidateCreditorInstitutionInfo(bundle, organizationCode, status) {
     bundle.debtPosition.fiscalCode = organizationCode;
     let response = await readCreditorInstitution(bundle.debtPosition.fiscalCode);
+    // if the test Creditor Institution does not exist, it is created
+    if (response.status == 404){
+	   // new expected state check
+	   status = 201;
+	   let body = buildApiConfigServiceCreationCIRequest(organizationCode);
+	   let response = await createCreditorInstitution(body);
+	}
     assert.strictEqual(response.status, status);
 }
 
