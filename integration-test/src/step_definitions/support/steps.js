@@ -23,7 +23,8 @@ const {
     sendSendRTV2Request,
     sendVerifyPaymentNoticeRequest,
     sendGetPaymentRequest,
-    sendGetPaymentV2Request
+    sendGetPaymentV2Request,
+    refreshNodeConfig
 } = require('./logic/gpd_logic');
 const { assertAmount, assertFaultCode, assertOutcome, assertStatusCode, executeAfterAllStep, assertPaymentAmount, assertIbanInTransferList } = require('./logic/common_logic');
 const { createOrganizationInfo, createServiceInfo, sendInvalidDemandPaymentNoticeRequest, sendValidDemandPaymentNoticeRequest } = require('./logic/gps_logic');
@@ -31,7 +32,7 @@ const { gpdSessionBundle, gpsSessionBundle } = require('./utility/data');
 const { getValidBundle } = require('./utility/helpers');
 
 // increase cucumber promise timeout
-setDefaultTimeout(15000);
+setDefaultTimeout(45000);
 
 
 /* 
@@ -51,7 +52,8 @@ Given('ApiConfig running', () => executeHealthCheckForAPIConfig());
  */
 Given('the creditor institution {string}', (orgId) => readCreditorInstitutionInfo(gpdSessionBundle, orgId));
 Given('the creditor institution broker {string}', (brokerId) => readCreditorInstitutionBrokerInfo(gpdSessionBundle, brokerId));
-Given('the station {string}', (stationId) => readStationInfo(gpdSessionBundle, stationId));
+Given('the station {string} for the broker {string}', (stationId, brokerId) => readStationInfo(gpdSessionBundle, stationId, brokerId));
+Given('if necessary, refresh the configuration and wait {int} seconds', async (timeout) => {await refreshNodeConfig(timeout)});
 
 
 /* 
