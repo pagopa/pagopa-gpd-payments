@@ -19,8 +19,25 @@ function readCreditorInstitution(orgId) {
     })
 }
 
+function createCreditorInstitution(body) {    
+    return post(api_config_host + `/creditorinstitutions`, body, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
+
 function readCreditorInstitutionIbans(orgId) {
-    return get(api_config_host + `/creditorinstitutions/${orgId}/ibans`, {
+    return get(api_config_host + `/creditorinstitutions/${orgId}/ibans/enhanced`, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
+function createCreditorInstitutionIbans(orgId, body) {
+    return post(api_config_host + `/creditorinstitutions/${orgId}/ibans`, body, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
@@ -35,8 +52,24 @@ function readCreditorInstitutionBroker(brokerId) {
     })
 }
 
+function createCreditorInstitutionBroker(body) {    
+    return post(api_config_host + `/brokers`, body, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
 function readStation(stationId) {    
     return get(api_config_host + `/stations/${stationId}`, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
+function createStation(body) {    
+    return post(api_config_host + `/stations`, body, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
@@ -51,11 +84,33 @@ function readECStationAssociation(stationId, orgId) {
     })
 }
 
+function createECStationAssociation(orgId, body) {    
+    return post(api_config_host + `/creditorinstitutions/${orgId}/stations`, body, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
+function refreshConfig() {    
+    return get(api_config_host + `/refresh/config`, {
+        headers: {
+            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+        }
+    })
+}
+
 module.exports = {
     apiConfigHealthCheck,
     readCreditorInstitution,
     readCreditorInstitutionBroker,
     readCreditorInstitutionIbans,
     readECStationAssociation,
-    readStation
+    readStation,
+    createCreditorInstitution,
+    createCreditorInstitutionIbans,
+    createCreditorInstitutionBroker,
+    createStation,
+    createECStationAssociation,
+    refreshConfig
 }

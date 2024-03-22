@@ -6,7 +6,8 @@ Feature: All about Send Receipt Phase on Debt Position Payments workflow
     And ApiConfig running
     And the creditor institution "77777777777"
     And the creditor institution broker "15376371009"
-    And the station "15376371009_01"
+    And the station "15376371009_01" for the broker "15376371009"
+    And if necessary, refresh the configuration and wait 30 seconds
     And a valid debt position
     And a proper verification of debt position
     And a proper activation of debt position

@@ -39,6 +39,7 @@ function buildGPSOrganizationCreationRequest(serviceId) {
     };
 }
 
+
 function buildDemandPaymentNoticeRequest(gpsSessionBundle) {
     const organizationCode = gpsSessionBundle.organizationCode;
     const brokerCode = gpsSessionBundle.brokerCode;
@@ -400,6 +401,99 @@ function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
                         </soapenv:Body>
                     </soapenv:Envelope>`;
 	}
+	
+	function buildApiConfigServiceCreationCIRequest(creditorInstitutionCode){
+		return {
+			  "address": {
+			    "city": "Lorem",
+			    "country_code": "RM",
+			    "location": "Via delle vie 3",
+			    "tax_domicile": "string",
+			    "zip_code": "00187"
+			  },
+			  "business_name": "Comune di Lorem Ipsum",
+			  "cbill_code": "1234567890100",
+			  "creditor_institution_code": creditorInstitutionCode,
+			  "enabled": true,
+			  "psp_payment": true,
+			  "reporting_ftp": false,
+			  "reporting_zip": false
+			};
+	}
+	
+	function buildApiConfigServiceCreationIbansRequest(dueDate, validityDate){
+		return {
+			  "description": "Riscossione Tributi",
+			  "due_date": dueDate,
+			  "iban": "IT99C0222211111000000000000",
+			  "is_active": true,
+			  "labels": [],
+			  "validity_date": validityDate
+		};
+	}
+	
+	function buildApiConfigServiceCreationBrokerRequest(brokerCode){
+		return {
+			  "broker_code": brokerCode,
+			  "description": "Lorem ipsum dolor sit amet",
+			  "enabled": true,
+			  "extended_fault_bean": true
+		};
+	}
+	
+	function buildApiConfigServiceCreationStationRequest(stationCode, brokerCode, ip){
+		return {
+			  "broker_code": brokerCode,
+			  "broker_description": "Lorem ipsum dolor sit amet",
+			  "enabled": true,
+			  "flag_online": true,
+			  "invio_rt_istantaneo": false,
+			  "ip": ip,
+			  "ip_4mod": "",
+			  "password": "pagopa_test",
+			  "pof_service": "gpd-payments/api/v1",
+			  "port": 65535,
+			  "port_4mod": 65535,
+			  "primitive_version": 1,
+			  "protocol": "HTTPS",
+			  "protocol_4mod": "HTTP",
+			  "proxy_enabled": true,
+			  "proxy_host": "10.79.20.33",
+			  "proxy_password": "",
+			  "proxy_port": 80,
+			  "proxy_username": "",
+			  "redirect_ip": "",
+			  "redirect_path": "",
+			  "redirect_port": 80,
+			  "redirect_protocol": "HTTP",
+			  "redirect_query_string": "",
+			  "service": "gpd-payments/api/v1",
+			  "service_4mod": "",
+			  "station_code": stationCode,
+			  "target_host": "",
+			  "target_host_pof": "",
+			  "target_path": "",
+			  "target_path_pof": "",
+			  "target_port": 0,
+			  "target_port_pof": 0,
+			  "thread_number": 1,
+			  "timeout_a": 15,
+			  "timeout_b": 30,
+			  "timeout_c": 120,
+			  "version": 2
+		};
+	}
+	
+	function buildApiConfigServiceCreationECStationAssociation(stationCode){
+		return {
+			  "application_code": 3,
+			  "aux_digit": 3,
+			  "broadcast": true,
+			  "mod4": true,
+			  "segregation_code": 47,
+			  "station_code": stationCode
+			};
+	}
 
 
 module.exports = {
@@ -413,5 +507,10 @@ module.exports = {
     buildSendRTRequest,
     buildVerifyPaymentNoticeRequest,
     buildGetPaymentReq,
-    buildGetPaymentV2Req
+    buildGetPaymentV2Req,
+    buildApiConfigServiceCreationCIRequest,
+    buildApiConfigServiceCreationIbansRequest,
+    buildApiConfigServiceCreationBrokerRequest,
+    buildApiConfigServiceCreationStationRequest,
+    buildApiConfigServiceCreationECStationAssociation
 }

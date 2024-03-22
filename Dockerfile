@@ -1,7 +1,7 @@
 #
 # Build
 #
-FROM maven:3.8.4-jdk-11-slim as buildtime
+FROM maven:3.9.3-amazoncorretto-17@sha256:4ab7db7bd5f95e58b0ba1346ff29d6abdd9b73e5fd89c5140edead8b037386ff AS buildtime
 WORKDIR /build
 COPY . .
 RUN mvn clean package -Dmaven.test.skip=true
@@ -9,12 +9,12 @@ RUN mvn clean package -Dmaven.test.skip=true
 #
 # Package stage
 #
-FROM --platform=linux/amd64 adoptopenjdk/openjdk16:alpine as builder
+FROM --platform=linux/amd64 amazoncorretto:17.0.9-alpine3.18@sha256:df48bf2e183230040890460ddb4359a10aa6c7aad24bd88899482c52053c7e17 as builder
 COPY --from=buildtime /build/target/*.jar application.jar
 RUN java -Djarmode=layertools -jar application.jar extract
 
 
-FROM ghcr.io/pagopa/docker-base-springboot-openjdk11:v1.0.1@sha256:bbbe948e91efa0a3e66d8f308047ec255f64898e7f9250bdb63985efd3a95dbf
+FROM ghcr.io/pagopa/docker-base-springboot-openjdk17:v1.1.0@sha256:6fa320d452fa22066441f1ef292d15eb06f944bc8bca293e1a91ea460d30a613
 COPY --chown=spring:spring  --from=builder dependencies/ ./
 COPY --chown=spring:spring  --from=builder snapshot-dependencies/ ./
 # https://github.com/moby/moby/issues/37965#issuecomment-426853382
