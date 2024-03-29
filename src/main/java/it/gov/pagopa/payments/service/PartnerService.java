@@ -94,6 +94,8 @@ public class PartnerService {
   public static final String STATUS_PROPERTY = "status";
 
   public static final String PAYMENT_DATE_PROPERTY = "paymentDate";
+  
+  public static final String IBAN_APPOGGIO_KEY = "IBANAPPOGGIO";
 
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
@@ -559,6 +561,7 @@ public class PartnerService {
       transferPA.setMetadata(ctMetadata);
     }
     
+    // PagoPA-1624: only two cases PAGOPA or POSTAL
     if (transferType != null && transferType.value().equals(StTransferType.PAGOPA.value())) {
     	Optional.ofNullable(transfer.getPostalIban()).ifPresent(
     			value -> createIbanAppoggioMetadata(transferPA, value)
@@ -605,7 +608,7 @@ public class PartnerService {
   
   private void createIbanAppoggioMetadata(CtTransferPAV2 transferPA, String value) {
 		CtMapEntry mapEntry = new CtMapEntry();
-		mapEntry.setKey("IBANAPPOGGIO");
+		mapEntry.setKey(IBAN_APPOGGIO_KEY);
 		mapEntry.setValue(value);
 		CtMetadata ctMetadata = Optional.ofNullable(transferPA.getMetadata()).orElse(new CtMetadata());
 		ctMetadata.getMapEntry().add(mapEntry);
