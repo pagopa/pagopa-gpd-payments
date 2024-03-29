@@ -561,9 +561,8 @@ public class PartnerService {
     
     if (transferType != null && transferType.value().equals(StTransferType.PAGOPA.value())) {
     	Optional.ofNullable(transfer.getPostalIban()).ifPresent(
-    			value -> {
-    				createIbanAppoggioMetadata(transferPA, value); 
-    			});
+    			value -> createIbanAppoggioMetadata(transferPA, value)
+    	);
     	transferPA.setIBAN(transfer.getIban());
     } else {
     	transferPA.setIBAN(getIbanByTransferType(transferType, transfer));

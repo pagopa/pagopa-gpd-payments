@@ -32,5 +32,5 @@ public class PaymentsTransferModelResponse implements Serializable {
   private TransferStatus status;
   private LocalDateTime lastUpdatedDate;
   @Builder.Default
-  private List<TransferMetadataModel> transferMetadata = new ArrayList<TransferMetadataModel>();
+  private List<TransferMetadataModel> transferMetadata = new ArrayList<>();
 }
