@@ -67,6 +67,8 @@ import it.gov.pagopa.payments.model.PaymentOptionModel;
 import it.gov.pagopa.payments.model.PaymentOptionModelResponse;
 import it.gov.pagopa.payments.model.PaymentOptionStatus;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
+import it.gov.pagopa.payments.model.partner.CtMapEntry;
+import it.gov.pagopa.payments.model.partner.CtMetadata;
 import it.gov.pagopa.payments.model.partner.CtTransferPA;
 import it.gov.pagopa.payments.model.partner.CtTransferPAV2;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
@@ -877,6 +879,88 @@ class PartnerServiceTest {
                     "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
                     "IBAN", org.hamcrest.Matchers.is("ABC")))));
+  }
+  
+  @Test
+  void paGetPaymentV2_TransferTypePAGOPA_Test()
+      throws PartnerValidationException, DatatypeConfigurationException, IOException {
+
+    var pService =
+        spy(
+            new PartnerService(
+                resource,
+                factory,
+                gpdClient,
+                gpsClient,
+                tableClientConfiguration(),
+                customizedModelMapper));
+
+    // Test preconditions
+    PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockTransferTypePAGOPA();
+
+    when(factory.createPaGetPaymentV2Response())
+        .thenReturn(factoryUtil.createPaGetPaymentV2Response());
+    when(factory.createCtPaymentPAV2()).thenReturn(factoryUtil.createCtPaymentPAV2());
+    when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtEntityUniqueIdentifier())
+        .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
+    when(factory.createCtTransferListPAV2()).thenReturn(factoryUtil.createCtTransferListPAV2());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
+
+    when(gpdClient.getPaymentOption(anyString(), anyString()))
+        .thenReturn(
+            MockUtil.readModelFromFile("gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
+
+    // Test execution
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+
+    // Test post condition
+    assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
+    assertThat(responseBody.getData().getDescription()).isEqualTo("string");
+    XMLGregorianCalendar dueDate = responseBody.getData().getDueDate();
+    dueDate.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    assertThat(dueDate)
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2122-02-24T17:03:59.408"));
+    assertThat(responseBody.getData().getRetentionDate())
+        .isEqualTo(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar("2022-02-25T17:03:59.408"));
+    assertEquals("77777777777", requestBody.getQrCode().getFiscalCode());
+    assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
+
+    // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued
+    org.hamcrest.MatcherAssert.assertThat(
+        responseBody.getData().getTransferList().getTransfer(),
+        org.hamcrest.Matchers.contains(
+            org.hamcrest.Matchers.allOf(
+            	org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "fiscalCodePA", org.hamcrest.Matchers.is("string")),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", org.hamcrest.Matchers.is("string")),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "metadata", org.hamcrest.Matchers.notNullValue()),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "metadata", org.hamcrest.Matchers.<CtMetadata>hasProperty(
+                    		"mapEntry", org.hamcrest.Matchers.hasSize(2))),
+                 org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "metadata", org.hamcrest.Matchers.<CtMetadata>hasProperty(
+                    		"mapEntry", org.hamcrest.Matchers.hasItem(
+                    				org.hamcrest.Matchers.<CtMapEntry>hasProperty("key", org.hamcrest.Matchers.is("IBANAPPOGGIO"))	
+                    				)))),
+            org.hamcrest.Matchers.allOf(
+            	org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "fiscalCodePA", org.hamcrest.Matchers.is("77777777777")),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", org.hamcrest.Matchers.is("ABC")),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "metadata", org.hamcrest.Matchers.notNullValue()),
+                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    "metadata", org.hamcrest.Matchers.<CtMetadata>hasProperty(
+                		  "mapEntry", org.hamcrest.Matchers.hasSize(1))))));
   }
 
   @Test

@@ -94,6 +94,8 @@ public class PartnerService {
   public static final String STATUS_PROPERTY = "status";
 
   public static final String PAYMENT_DATE_PROPERTY = "paymentDate";
+  
+  public static final String IBAN_APPOGGIO_KEY = "IBANAPPOGGIO";
 
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
@@ -543,7 +545,6 @@ public class PartnerService {
         customizedModelMapper.map(transfer.getStamp(), CtRichiestaMarcaDaBollo.class);
     CtTransferPAV2 transferPA = new CtTransferPAV2();
     transferPA.setFiscalCodePA(transfer.getOrganizationFiscalCode());
-    transferPA.setIBAN(getIbanByTransferType(transferType, transfer));
     transferPA.setRichiestaMarcaDaBollo(richiestaMarcaDaBollo);
     transferPA.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
     transferPA.setRemittanceInformation(transfer.getRemittanceInformation());
@@ -559,7 +560,17 @@ public class PartnerService {
       }
       transferPA.setMetadata(ctMetadata);
     }
-
+    
+    // PagoPA-1624: only two cases PAGOPA or POSTAL
+    if (transferType != null && transferType.value().equals(StTransferType.PAGOPA.value())) {
+    	Optional.ofNullable(transfer.getPostalIban()).ifPresent(
+    			value -> createIbanAppoggioMetadata(transferPA, value)
+    	);
+    	transferPA.setIBAN(transfer.getIban());
+    } else {
+    	transferPA.setIBAN(getIbanByTransferType(transferType, transfer));
+    }
+    
     return transferPA;
   }
 
@@ -582,17 +593,26 @@ public class PartnerService {
    * https://pagopa.atlassian.net/wiki/spaces/PAG/pages/96403906/paGetPayment#trasferType
    */
   private String getIbanByTransferType(
-      StTransferType transferType, PaymentsTransferModelResponse transfer) {
+	      StTransferType transferType, PaymentsTransferModelResponse transfer) {
 
-    String defaultIban =
-        Optional.ofNullable(transfer.getIban())
-            .orElseGet(() -> Optional.ofNullable(transfer.getPostalIban()).orElseGet(() -> null));
+	    String defaultIban =
+	        Optional.ofNullable(transfer.getIban())
+	            .orElseGet(() -> Optional.ofNullable(transfer.getPostalIban()).orElseGet(() -> null));
 
-    return transferType != null
-            && transferType.value().equals(StTransferType.POSTAL.value())
-            && transfer.getPostalIban() != null
-        ? transfer.getPostalIban()
-        : defaultIban;
+	    return transferType != null
+	            && transferType.value().equals(StTransferType.POSTAL.value())
+	            && transfer.getPostalIban() != null
+	        ? transfer.getPostalIban()
+	        : defaultIban;
+  }
+  
+  private void createIbanAppoggioMetadata(CtTransferPAV2 transferPA, String value) {
+		CtMapEntry mapEntry = new CtMapEntry();
+		mapEntry.setKey(IBAN_APPOGGIO_KEY);
+		mapEntry.setValue(value);
+		CtMetadata ctMetadata = Optional.ofNullable(transferPA.getMetadata()).orElse(new CtMetadata());
+		ctMetadata.getMapEntry().add(mapEntry);
+		transferPA.setMetadata(ctMetadata);
   }
 
   private PaSendRTRes generatePaSendRTResponse() {
