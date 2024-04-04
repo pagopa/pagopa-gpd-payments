@@ -1,0 +1,1 @@
+azure-data-tables==12.5.0
