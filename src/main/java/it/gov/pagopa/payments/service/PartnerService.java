@@ -283,13 +283,13 @@ public class PartnerService {
   private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(
       PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
     String officeName = Optional.ofNullable(gpsResponse.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
                                 .orElse(null);
     String description = Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
                                  .orElse("NA");
     String companyName = Optional.ofNullable(gpsResponse.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
                                  .orElse("NA");
 
     var result = factory.createPaDemandPaymentNoticeResponse();
@@ -392,13 +392,13 @@ public class PartnerService {
     }
 
     String officeName = Optional.ofNullable(source.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
                                 .orElse(null);
     String description = Optional.ofNullable(source.getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
                                  .orElse("NA");
     String companyName = Optional.ofNullable(source.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
                                  .orElse("NA");
 
     responseData.setLastPayment(false); // de-scoping
@@ -462,13 +462,13 @@ public class PartnerService {
     }
 
     String officeName = Optional.ofNullable(source.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
                                 .orElse(null);
     String description = Optional.ofNullable(source.getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
                                  .orElse("NA");
     String companyName = Optional.ofNullable(source.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
                                  .orElse("NA");
 
     responseData.setLastPayment(false); // de-scoping
@@ -544,13 +544,13 @@ public class PartnerService {
     result.setPaymentList(paymentList);
     // general info
     String officeName = Optional.ofNullable(source.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
                                 .orElse(null);
     String description = Optional.ofNullable(source.getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
                                  .orElse("NA");
     String companyName = Optional.ofNullable(source.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
                                  .orElse("NA");
     result.setPaymentDescription(description);
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
