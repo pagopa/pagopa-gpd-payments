@@ -96,6 +96,9 @@ public class PartnerService {
   public static final String PAYMENT_DATE_PROPERTY = "paymentDate";
   
   public static final String IBAN_APPOGGIO_KEY = "IBANAPPOGGIO";
+  public static final int PAYMENT_OPTION_DESCRIPTION_MAX = 140;
+  public static final int OFFICE_NAME_MAX = 140;
+  public static final int COMPANY_NAME_MAX = 140;
 
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
@@ -279,8 +282,15 @@ public class PartnerService {
 
   private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(
       PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
+    String officeName = Optional.ofNullable(gpsResponse.getOfficeName())
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .orElse(null);
+    String description = Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription())
+                                 .orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
+    String companyName = Optional.ofNullable(gpsResponse.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
+
     var result = factory.createPaDemandPaymentNoticeResponse();
-    result.setCompanyName(gpsResponse.getCompanyName());
+    result.setCompanyName(companyName);
     result.setOutcome(StOutcome.OK);
     result.setFiscalCodePA(gpsResponse.getFiscalCode());
 
@@ -289,8 +299,8 @@ public class PartnerService {
     ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getIuv());
     result.setQrCode(ctQrCode);
 
-    result.setOfficeName(gpsResponse.getOfficeName());
-    result.setPaymentDescription(Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
+    result.setOfficeName(officeName);
+    result.setPaymentDescription(description);
     CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA =
         factory.createCtPaymentOptionsDescriptionListPA();
 
@@ -378,10 +388,17 @@ public class PartnerService {
       responseData.setRetentionDate(retentionDateXMLGregorian);
     }
 
+    String description = Optional.ofNullable(source.getDescription()).orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
+    String companyName = Optional.ofNullable(source.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
+    String officeName = Optional.ofNullable(source.getOfficeName())
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .orElse(null);
+
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
-    responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
-    responseData.setOfficeName(source.getOfficeName());
+    responseData.setDescription(description);
+    responseData.setCompanyName(companyName);
+    responseData.setOfficeName(officeName);
+
     CtSubject debtor = this.getDebtor(source);
     responseData.setDebtor(debtor);
 
@@ -437,10 +454,16 @@ public class PartnerService {
       responseData.setRetentionDate(retentionDateXMLGregorian);
     }
 
+    String description = Optional.ofNullable(source.getDescription()).orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
+    String companyName = Optional.ofNullable(source.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
+    String officeName = Optional.ofNullable(source.getOfficeName())
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .orElse(null);
+
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
-    responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
-    responseData.setOfficeName(source.getOfficeName());
+    responseData.setDescription(description);
+    responseData.setCompanyName(companyName);
+    responseData.setOfficeName(officeName);
 
     List<PaymentOptionMetadataModel> paymentOptionMetadataModels = source.getPaymentOptionMetadata();
     if(paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
@@ -509,10 +532,15 @@ public class PartnerService {
 
     result.setPaymentList(paymentList);
     // general info
-    result.setPaymentDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
+    String description = Optional.ofNullable(source.getDescription()).orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
+    String companyName = Optional.ofNullable(source.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
+    String officeName = Optional.ofNullable(source.getOfficeName())
+                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
+                                .orElse(null);
+    result.setPaymentDescription(description);
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
-    result.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
-    result.setOfficeName(source.getOfficeName());
+    result.setCompanyName(companyName);
+    result.setOfficeName(officeName);
     return result;
   }
 
