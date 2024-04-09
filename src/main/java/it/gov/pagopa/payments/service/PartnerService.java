@@ -286,8 +286,11 @@ public class PartnerService {
                                 .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
                                 .orElse(null);
     String description = Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription())
-                                 .orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
-    String companyName = Optional.ofNullable(gpsResponse.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .orElse("NA");
+    String companyName = Optional.ofNullable(gpsResponse.getCompanyName())
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .orElse("NA");
 
     var result = factory.createPaDemandPaymentNoticeResponse();
     result.setCompanyName(companyName);
@@ -388,11 +391,15 @@ public class PartnerService {
       responseData.setRetentionDate(retentionDateXMLGregorian);
     }
 
-    String description = Optional.ofNullable(source.getDescription()).orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
-    String companyName = Optional.ofNullable(source.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
     String officeName = Optional.ofNullable(source.getOfficeName())
                                 .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
                                 .orElse(null);
+    String description = Optional.ofNullable(source.getDescription())
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .orElse("NA");
+    String companyName = Optional.ofNullable(source.getCompanyName())
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .orElse("NA");
 
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(description);
@@ -454,11 +461,15 @@ public class PartnerService {
       responseData.setRetentionDate(retentionDateXMLGregorian);
     }
 
-    String description = Optional.ofNullable(source.getDescription()).orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
-    String companyName = Optional.ofNullable(source.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
     String officeName = Optional.ofNullable(source.getOfficeName())
                                 .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
                                 .orElse(null);
+    String description = Optional.ofNullable(source.getDescription())
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .orElse("NA");
+    String companyName = Optional.ofNullable(source.getCompanyName())
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .orElse("NA");
 
     responseData.setLastPayment(false); // de-scoping
     responseData.setDescription(description);
@@ -532,11 +543,15 @@ public class PartnerService {
 
     result.setPaymentList(paymentList);
     // general info
-    String description = Optional.ofNullable(source.getDescription()).orElse("NA").substring(PAYMENT_OPTION_DESCRIPTION_MAX);
-    String companyName = Optional.ofNullable(source.getCompanyName()).orElse("NA").substring(COMPANY_NAME_MAX);
     String officeName = Optional.ofNullable(source.getOfficeName())
                                 .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : null)
                                 .orElse(null);
+    String description = Optional.ofNullable(source.getDescription())
+                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : null)
+                                 .orElse("NA");
+    String companyName = Optional.ofNullable(source.getCompanyName())
+                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : null)
+                                 .orElse("NA");
     result.setPaymentDescription(description);
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
     result.setCompanyName(companyName);
