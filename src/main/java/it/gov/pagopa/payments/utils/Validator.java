@@ -17,7 +17,7 @@ public class Validator {
      */
     public static String validateOfficeName(String officeName) {
         return Optional.ofNullable(officeName)
-                                    .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
+                                    .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(0, OFFICE_NAME_MAX) : office)
                                     .orElse(null);
     }
 
@@ -28,7 +28,7 @@ public class Validator {
      */
     public static String validateCompanyName(String companyName) {
         return Optional.ofNullable(companyName)
-                .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
+                .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(0, COMPANY_NAME_MAX) : company)
                 .orElse(DEFAULT_VALUE);
     }
 
@@ -39,7 +39,7 @@ public class Validator {
      */
     public static String validatePaymentOptionDescription(String description) {
         return Optional.ofNullable(description)
-                .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
+                .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(0, PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
                 .orElse(DEFAULT_VALUE);
     }
 }
