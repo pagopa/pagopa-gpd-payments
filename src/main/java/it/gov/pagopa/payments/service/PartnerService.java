@@ -67,6 +67,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+import it.gov.pagopa.payments.utils.Validator;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -280,7 +281,6 @@ public class PartnerService {
   private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(
       PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
     var result = factory.createPaDemandPaymentNoticeResponse();
-    result.setCompanyName(gpsResponse.getCompanyName());
     result.setOutcome(StOutcome.OK);
     result.setFiscalCodePA(gpsResponse.getFiscalCode());
 
@@ -289,8 +289,9 @@ public class PartnerService {
     ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getIuv());
     result.setQrCode(ctQrCode);
 
-    result.setOfficeName(gpsResponse.getOfficeName());
-    result.setPaymentDescription(Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
+    result.setCompanyName(Validator.validateCompanyName(gpsResponse.getCompanyName()));
+    result.setOfficeName(Validator.validateOfficeName(gpsResponse.getOfficeName()));
+    result.setPaymentDescription(Validator.validatePaymentOptionDescription(gpsResponse.getPaymentOption().get(0).getDescription()));
     CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA =
         factory.createCtPaymentOptionsDescriptionListPA();
 
@@ -314,8 +315,7 @@ public class PartnerService {
         DatatypeFactory.newInstance().newXMLGregorianCalendar(String.valueOf(date)));
 
     ctPaymentOptionDescriptionPA.setOptions(StAmountOption.EQ);
-    ctPaymentOptionDescriptionPA.setDetailDescription(
-    		Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
+    ctPaymentOptionDescriptionPA.setDetailDescription(Validator.validatePaymentOptionDescription(gpsResponse.getPaymentOption().get(0).getDescription()));
     ctPaymentOptionsDescriptionListPA.setPaymentOptionDescription(ctPaymentOptionDescriptionPA);
     result.setPaymentList(ctPaymentOptionsDescriptionListPA);
     return result;
@@ -379,9 +379,10 @@ public class PartnerService {
     }
 
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
-    responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
-    responseData.setOfficeName(source.getOfficeName());
+    responseData.setDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
+    responseData.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
+    responseData.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
+
     CtSubject debtor = this.getDebtor(source);
     responseData.setDebtor(debtor);
 
@@ -438,9 +439,9 @@ public class PartnerService {
     }
 
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
-    responseData.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
-    responseData.setOfficeName(source.getOfficeName());
+    responseData.setDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
+    responseData.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
+    responseData.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
 
     List<PaymentOptionMetadataModel> paymentOptionMetadataModels = source.getPaymentOptionMetadata();
     if(paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
@@ -498,7 +499,7 @@ public class PartnerService {
     paymentOption.setDueDate(
         DatatypeFactory.newInstance()
             .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
-    paymentOption.setDetailDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
+    paymentOption.setDetailDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
     var cpp =
         source
             .getTransfer()
@@ -509,10 +510,10 @@ public class PartnerService {
 
     result.setPaymentList(paymentList);
     // general info
-    result.setPaymentDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
-    result.setCompanyName(Optional.ofNullable(source.getCompanyName()).orElse("NA"));
-    result.setOfficeName(source.getOfficeName());
+    result.setPaymentDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
+    result.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
+    result.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
     return result;
   }
 
