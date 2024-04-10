@@ -315,8 +315,7 @@ public class PartnerService {
         DatatypeFactory.newInstance().newXMLGregorianCalendar(String.valueOf(date)));
 
     ctPaymentOptionDescriptionPA.setOptions(StAmountOption.EQ);
-    ctPaymentOptionDescriptionPA.setDetailDescription(
-    		Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription()).orElse("NA"));
+    ctPaymentOptionDescriptionPA.setDetailDescription(Validator.validatePaymentOptionDescription(gpsResponse.getPaymentOption().get(0).getDescription()));
     ctPaymentOptionsDescriptionListPA.setPaymentOptionDescription(ctPaymentOptionDescriptionPA);
     result.setPaymentList(ctPaymentOptionsDescriptionListPA);
     return result;
@@ -500,7 +499,7 @@ public class PartnerService {
     paymentOption.setDueDate(
         DatatypeFactory.newInstance()
             .newXMLGregorianCalendar(CommonUtil.convertToGregorianCalendar(source.getDueDate())));
-    paymentOption.setDetailDescription(Optional.ofNullable(source.getDescription()).orElse("NA"));
+    paymentOption.setDetailDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
     var cpp =
         source
             .getTransfer()
