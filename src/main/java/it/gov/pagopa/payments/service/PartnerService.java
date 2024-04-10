@@ -67,6 +67,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+
+import it.gov.pagopa.payments.utils.Validator;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -96,9 +98,6 @@ public class PartnerService {
   public static final String PAYMENT_DATE_PROPERTY = "paymentDate";
   
   public static final String IBAN_APPOGGIO_KEY = "IBANAPPOGGIO";
-  public static final int PAYMENT_OPTION_DESCRIPTION_MAX = 140;
-  public static final int OFFICE_NAME_MAX = 140;
-  public static final int COMPANY_NAME_MAX = 140;
 
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
@@ -282,18 +281,8 @@ public class PartnerService {
 
   private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(
       PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
-    String officeName = Optional.ofNullable(gpsResponse.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
-                                .orElse(null);
-    String description = Optional.ofNullable(gpsResponse.getPaymentOption().get(0).getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
-                                 .orElse("NA");
-    String companyName = Optional.ofNullable(gpsResponse.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
-                                 .orElse("NA");
 
     var result = factory.createPaDemandPaymentNoticeResponse();
-    result.setCompanyName(companyName);
     result.setOutcome(StOutcome.OK);
     result.setFiscalCodePA(gpsResponse.getFiscalCode());
 
@@ -302,8 +291,9 @@ public class PartnerService {
     ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getIuv());
     result.setQrCode(ctQrCode);
 
-    result.setOfficeName(officeName);
-    result.setPaymentDescription(description);
+    result.setCompanyName(Validator.validateCompanyName(gpsResponse.getCompanyName()));
+    result.setOfficeName(Validator.validateOfficeName(gpsResponse.getOfficeName()));
+    result.setPaymentDescription(Validator.validatePaymentOptionDescription(gpsResponse.getPaymentOption().get(0).getDescription()));
     CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA =
         factory.createCtPaymentOptionsDescriptionListPA();
 
@@ -391,20 +381,10 @@ public class PartnerService {
       responseData.setRetentionDate(retentionDateXMLGregorian);
     }
 
-    String officeName = Optional.ofNullable(source.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
-                                .orElse(null);
-    String description = Optional.ofNullable(source.getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
-                                 .orElse("NA");
-    String companyName = Optional.ofNullable(source.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
-                                 .orElse("NA");
-
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(description);
-    responseData.setCompanyName(companyName);
-    responseData.setOfficeName(officeName);
+    responseData.setDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
+    responseData.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
+    responseData.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
 
     CtSubject debtor = this.getDebtor(source);
     responseData.setDebtor(debtor);
@@ -461,20 +441,10 @@ public class PartnerService {
       responseData.setRetentionDate(retentionDateXMLGregorian);
     }
 
-    String officeName = Optional.ofNullable(source.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
-                                .orElse(null);
-    String description = Optional.ofNullable(source.getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
-                                 .orElse("NA");
-    String companyName = Optional.ofNullable(source.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
-                                 .orElse("NA");
-
     responseData.setLastPayment(false); // de-scoping
-    responseData.setDescription(description);
-    responseData.setCompanyName(companyName);
-    responseData.setOfficeName(officeName);
+    responseData.setDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
+    responseData.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
+    responseData.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
 
     List<PaymentOptionMetadataModel> paymentOptionMetadataModels = source.getPaymentOptionMetadata();
     if(paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
@@ -543,19 +513,10 @@ public class PartnerService {
 
     result.setPaymentList(paymentList);
     // general info
-    String officeName = Optional.ofNullable(source.getOfficeName())
-                                .map(office -> office.length() > OFFICE_NAME_MAX ? office.substring(OFFICE_NAME_MAX) : office)
-                                .orElse(null);
-    String description = Optional.ofNullable(source.getDescription())
-                                 .map(desc -> desc.length() > PAYMENT_OPTION_DESCRIPTION_MAX ? desc.substring(PAYMENT_OPTION_DESCRIPTION_MAX) : desc)
-                                 .orElse("NA");
-    String companyName = Optional.ofNullable(source.getCompanyName())
-                                 .map(company -> company.length() > COMPANY_NAME_MAX ? company.substring(COMPANY_NAME_MAX) : company)
-                                 .orElse("NA");
-    result.setPaymentDescription(description);
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
-    result.setCompanyName(companyName);
-    result.setOfficeName(officeName);
+    result.setDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
+    result.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
+    result.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
     return result;
   }
 
