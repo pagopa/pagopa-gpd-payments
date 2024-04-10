@@ -67,7 +67,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
-
 import it.gov.pagopa.payments.utils.Validator;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -281,7 +280,6 @@ public class PartnerService {
 
   private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(
       PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
-
     var result = factory.createPaDemandPaymentNoticeResponse();
     result.setOutcome(StOutcome.OK);
     result.setFiscalCodePA(gpsResponse.getFiscalCode());
