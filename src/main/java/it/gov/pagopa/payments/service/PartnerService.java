@@ -514,7 +514,7 @@ public class PartnerService {
     result.setPaymentList(paymentList);
     // general info
     result.setFiscalCodePA(source.getOrganizationFiscalCode());
-    result.setDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
+    result.setPaymentDescription(Validator.validatePaymentOptionDescription(source.getDescription()));
     result.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
     result.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
     return result;
