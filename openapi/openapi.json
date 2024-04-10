@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.12.15-3-PAGOPA-1680-check-field-length"
+    "version": "0.12.16"
   },
   "servers": [
     {
