@@ -187,7 +187,8 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     PaymentsResult<ReceiptModelResponse> res =
-        paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 100, null, null);
+        paymentsService.getOrganizationReceipts(
+                "org123456", null, null, null, null, 0, 100, null, null);
     assertNotNull(res);
     assertEquals(15, res.getResults().size());
   }
@@ -311,6 +312,32 @@ class PaymentsServiceTest {
                 "org123456", null, "11", null, null, 0, 100, null, null);
     assertNotNull(res);
     assertEquals(0, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+
+  @Test
+  void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_Iuv_filter() throws Exception {
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    PaymentsResult<ReceiptModelResponse> res =
+            paymentsService.getOrganizationReceipts(
+                    "org123456", null, null, null, null, 0, 100, null, "03");
+    assertNotNull(res);
+    assertEquals(1, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+
+  @Test
+  void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_debtor_filter() throws Exception {
+    PaymentsService paymentsService =
+            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+
+    PaymentsResult<ReceiptModelResponse> res =
+            paymentsService.getOrganizationReceipts(
+                    "org123456", null, null, null, null, 0, 100, null, "de");
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
