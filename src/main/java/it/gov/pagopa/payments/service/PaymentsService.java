@@ -30,6 +30,8 @@ public class PaymentsService {
 
     public static final String ROWKEY_PROPERTY = "RowKey";
 
+    public static final String DEBTOR_PROPERTY = "debtor";
+
     @Autowired private TableClient tableClient;
     @Autowired
     private GpdClient gpdClient;
@@ -163,7 +165,7 @@ public class PaymentsService {
 
         if(debtorOrIuv != null) {
             String iuvFilter = getStartsWithFilter(ROWKEY_PROPERTY, debtorOrIuv);
-            String debtorFilter = getStartsWithFilter("debtor", debtorOrIuv);
+            String debtorFilter = getStartsWithFilter(DEBTOR_PROPERTY, debtorOrIuv);
             filters.add('(' + String.join(" or ", '(' + iuvFilter + ')', '(' + debtorFilter + ')') + ')');
         }
 
@@ -202,7 +204,7 @@ public class PaymentsService {
         }
 
         if(totalPages < pageNum) {
-            throw new AppException(AppError.NOT_ENOUGH_ELEMENTS);
+            throw new AppException(AppError.PAGE_NUMBER_GREATER_THAN_TOTAL_PAGES);
         }
 
         return PageInfo.builder()

@@ -101,7 +101,7 @@ public interface IPaymentsController {
                             content =
                             @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = ReceiptsInfo.class))),
+                                    schema = @Schema(implementation = PaymentsResult.class))),
                     @ApiResponse(
                             responseCode = "401",
                             description = "Wrong or missing function key.",
