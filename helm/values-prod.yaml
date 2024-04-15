@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.19"
+    tag: "0.12.19-1-PAGOPA-1658-sviluppo-add-filter-to-payments-organizationfiscalcode-receipts"
     pullPolicy: Always
   livenessProbe:
     httpGet:
