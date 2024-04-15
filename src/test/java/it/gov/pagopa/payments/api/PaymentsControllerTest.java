@@ -11,7 +11,7 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentsResult;
-import it.gov.pagopa.payments.model.ReceiptsInfo;
+import it.gov.pagopa.payments.model.ReceiptModelResponse;
 
 import java.util.ArrayList;
 
@@ -98,15 +98,15 @@ class PaymentsControllerTest {
   @Test
   void getOrganizationReceipts_200() throws Exception {
     // precondition
-    PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
-    receipts.setResults(new ArrayList<ReceiptEntity>());
+    PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
+    receipts.setResults(new ArrayList<>());
     when(paymentsService.getOrganizationReceipts(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class)))
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
         .thenReturn(receipts);
 
-    ResponseEntity<ReceiptsInfo> res =
+    ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
         paymentsController.getOrganizationReceipts(
-            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString());
+            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -114,15 +114,15 @@ class PaymentsControllerTest {
   @Test
   void getOrganizationReceipts_200_SegregationCodes() throws Exception {
     // precondition
-    PaymentsResult<ReceiptEntity> receipts = new PaymentsResult<ReceiptEntity>();
-    receipts.setResults(new ArrayList<ReceiptEntity>());
+    PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
+    receipts.setResults(new ArrayList<>());
     when(paymentsService.getOrganizationReceipts(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class)))
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
             .thenReturn(receipts);
 
-    ResponseEntity<ReceiptsInfo> res =
+    ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
             paymentsController.getOrganizationReceipts(
-                    anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString());
+                    anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -131,10 +131,10 @@ class PaymentsControllerTest {
     // precondition
     doThrow(new AppException(AppError.RECEIPTS_NOT_FOUND, "111", 0))
         .when(paymentsService)
-        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class));
+        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString());
     try {
       paymentsController.getOrganizationReceipts(
-          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString());
+          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
