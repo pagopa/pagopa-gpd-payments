@@ -12,9 +12,8 @@ import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
-import it.gov.pagopa.payments.model.PaymentOptionStatus;
-import it.gov.pagopa.payments.model.PaymentsModelResponse;
-import it.gov.pagopa.payments.model.PaymentsResult;
+import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptModelResponse;
+import it.gov.pagopa.payments.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,7 +37,7 @@ public class PaymentsService {
         this.tableClient = tableClient;
     }
 
-    public PaymentsResult<ReceiptEntity> getOrganizationReceipts(
+    public PaymentsResult<ReceiptModelResponse> getOrganizationReceipts(
             @NotBlank String organizationFiscalCode,
             String debtor,
             String service,
@@ -46,11 +45,13 @@ public class PaymentsService {
             String to,
             int pageNum,
             int pageSize,
-            ArrayList<String> segCodes) {
+            ArrayList<String> segCodes,
+            String debtorOrIuv) {
         try {
-            List<ReceiptEntity> filteredEntities = retrieveEntitiesByFilter(tableClient,
-                    organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodes);
-            return this.setReceiptsOutput(getGPDCheckedReceiptsList(filteredEntities, tableClient));
+            PageInfo filteredEntities = retrieveEntitiesByFilter(tableClient,
+                    organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodes, debtorOrIuv);
+            return this.setReceiptsOutput(getGPDCheckedReceiptsList(filteredEntities.getReceiptsList(), tableClient),
+                    filteredEntities.getTotalPages(), pageNum);
 
         } catch (TableServiceException e) {
             log.error("Error in processing get organizations list", e);
@@ -114,11 +115,11 @@ public class PaymentsService {
         }
     }
 
-    public List<ReceiptEntity> getGPDCheckedReceiptsList(List<ReceiptEntity> result, TableClient tableClient) {
+    public List<ReceiptModelResponse> getGPDCheckedReceiptsList(List<ReceiptModelResponse> result, TableClient tableClient) {
         // for all the receipts in the azure table, only those that have been already PAID status or are
         // in PAID status on GPD are returned
-        List<ReceiptEntity> checkedReceipts = new ArrayList<>();
-        for (ReceiptEntity re : result) {
+        List<ReceiptModelResponse> checkedReceipts = new ArrayList<>();
+        for (ReceiptModelResponse re : result) {
             try {
                 this.checkGPDDebtPosStatus(new TableEntity(re.getOrganizationFiscalCode(), re.getIuv()), tableClient);
                 checkedReceipts.add(re);
@@ -137,9 +138,10 @@ public class PaymentsService {
         return checkedReceipts;
     }
 
-    public List<ReceiptEntity> retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
-                                                        String debtor, String service, String from,
-                                                        String to, int pageNum, int pageSize, ArrayList<String> segCodes) {
+    public PageInfo retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
+                                             String debtor, String service, String from,
+                                             String to, int pageNum, int pageSize,
+                                             ArrayList<String> segCodes, String debtorOrIuv) {
 
         List<String> filters = new ArrayList<>();
 
@@ -157,6 +159,12 @@ public class PaymentsService {
             filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
         }
 
+        if(debtorOrIuv != null) {
+            String iuvFilter = this.getStartsWithFilter("debtor", debtorOrIuv);
+            String debtorFilter = this.getStartsWithFilter("RowKey", debtorOrIuv);
+            filters.add('(' + String.join(" or ", '(' + iuvFilter + ')', '(' + debtorFilter + ')') + ')');
+        }
+
         String filter = String.join(" and ", filters);
 
         if(segCodes != null && !segCodes.isEmpty()) {
@@ -167,7 +175,7 @@ public class PaymentsService {
             filter = String.join(" or ", segCodesFilters);
         }
 
-        Iterator<PagedResponse<TableEntity>> filteredIterator = tableClient
+        Iterator<PagedResponse<TableEntity>> filteredReceiptIterator = tableClient
                 .listEntities(
                         new ListEntitiesOptions()
                                 .setFilter(filter)
@@ -177,19 +185,28 @@ public class PaymentsService {
                 .iterableByPage()
                 .iterator();
 
-        for(int i = 0; i < pageNum - 1; i++){
-            if(!filteredIterator.hasNext()){
-                throw new AppException(AppError.NOT_ENOUGH_ELEMENTS);
+        int totalPages = 0;
+        List<ReceiptModelResponse> filteredReceipts = new ArrayList<>();
+
+        while(filteredReceiptIterator.hasNext()) {
+            if (totalPages == pageNum) {
+                filteredReceipts.addAll(filteredReceiptIterator.next().getValue().stream()
+                        .map(ConvertTableEntityToReceiptModelResponse::mapTableEntityToReceiptModelResponse)
+                        .toList());
             } else {
-                filteredIterator.next();
+                filteredReceiptIterator.next();
             }
+            totalPages++;
         }
 
-        if(!filteredIterator.hasNext()) {
+        if(totalPages < pageNum) {
             throw new AppException(AppError.NOT_ENOUGH_ELEMENTS);
         }
 
-        return filteredIterator.next().getValue().stream().map(ConvertTableEntityToReceiptEntity::mapTableEntityToReceiptEntity).collect(Collectors.toList());
+        return PageInfo.builder()
+                .receiptsList(filteredReceipts)
+                .totalPages(totalPages)
+                .build();
     }
 
     private static String getStartsWithFilter(String field, String startsWith) {
@@ -201,10 +218,12 @@ public class PaymentsService {
         return String.format("%s ge '%s' and %s lt '%s'", field, startsWith, field, startWithEnd);
     }
 
-    private PaymentsResult<ReceiptEntity> setReceiptsOutput(List<ReceiptEntity> listOfEntity) {
-        PaymentsResult<ReceiptEntity> result = new PaymentsResult<>();
+    private PaymentsResult<ReceiptModelResponse> setReceiptsOutput(List<ReceiptModelResponse> listOfEntity, int totalPages, int pageNumber) {
+        PaymentsResult<ReceiptModelResponse> result = new PaymentsResult<>();
         result.setResults(listOfEntity);
         result.setLength(listOfEntity.size());
+        result.setCurrentPageNumber(pageNumber);
+        result.setTotalPages(totalPages);
         return result;
     }
 }

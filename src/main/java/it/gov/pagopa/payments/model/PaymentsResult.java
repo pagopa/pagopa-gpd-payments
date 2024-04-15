@@ -13,6 +13,9 @@ public class PaymentsResult<T> {
   /** Holds the number of the results. */
   private int length;
 
+  /** Holds the number of the pages. */
+  private int totalPages;
+
   /** Holds the ArrayList of results. */
   private List<T> results;
 
