@@ -56,6 +56,6 @@ public class CommonUtil {
   }
 
   public static String sanitizeInput(String input) {
-    return input.replace("\n", "").replaceAll("[^a-zA-Z0-9_\\-+/]", "");
+    return input != null ? input.replace("\n", "").replaceAll("[^a-zA-Z0-9_\\-+/]", "") : "";
   }
 }
