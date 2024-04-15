@@ -54,4 +54,8 @@ public class CommonUtil {
 
     return gregorianCalendar;
   }
+
+  public static String sanitizeInput(String input) {
+    return input.replace("\n", "").replaceAll("[^a-zA-Z0-9_\\-+/]", "");
+  }
 }

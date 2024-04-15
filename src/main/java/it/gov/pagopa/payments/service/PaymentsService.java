@@ -28,6 +28,8 @@ public class PaymentsService {
 
     public static final String STATUS_PROPERTY = "status";
 
+    public static final String ROWKEY_PROPERTY = "RowKey";
+
     @Autowired private TableClient tableClient;
     @Autowired
     private GpdClient gpdClient;
@@ -45,7 +47,7 @@ public class PaymentsService {
             String to,
             int pageNum,
             int pageSize,
-            ArrayList<String> segCodes,
+            List<String> segCodes,
             String debtorOrIuv) {
         try {
             PageInfo filteredEntities = retrieveEntitiesByFilter(tableClient,
@@ -60,7 +62,7 @@ public class PaymentsService {
     }
 
     public ReceiptEntity getReceiptByOrganizationFCAndIUV(
-            @NotBlank String organizationFiscalCode, @NotBlank String iuv, ArrayList<String> validSegregationCodes) {
+            @NotBlank String organizationFiscalCode, @NotBlank String iuv, List<String> validSegregationCodes) {
 
         try {
             if(validSegregationCodes != null && !validSegregationCodes.isEmpty() && iuv.length() > 1) {
@@ -81,7 +83,7 @@ public class PaymentsService {
         }
     }
 
-    private boolean isBrokerAuthorized(String iuvSegregationCode, ArrayList<String> brokerSegregationCodes) {
+    private boolean isBrokerAuthorized(String iuvSegregationCode, List<String> brokerSegregationCodes) {
         // verify that IUV is linked with one of segregation code for which the broker is authorized
         for(String code: brokerSegregationCodes) {
             if(code.equals(iuvSegregationCode))
@@ -141,7 +143,7 @@ public class PaymentsService {
     public PageInfo retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
                                              String debtor, String service, String from,
                                              String to, int pageNum, int pageSize,
-                                             ArrayList<String> segCodes, String debtorOrIuv) {
+                                             List<String> segCodes, String debtorOrIuv) {
 
         List<String> filters = new ArrayList<>();
 
@@ -152,7 +154,7 @@ public class PaymentsService {
         }
 
         if(null != service){
-            filters.add(this.getStartsWithFilter("RowKey", service));
+            filters.add(getStartsWithFilter(ROWKEY_PROPERTY, service));
         }
 
         if(null != from && null != to){
@@ -160,8 +162,8 @@ public class PaymentsService {
         }
 
         if(debtorOrIuv != null) {
-            String iuvFilter = this.getStartsWithFilter("debtor", debtorOrIuv);
-            String debtorFilter = this.getStartsWithFilter("RowKey", debtorOrIuv);
+            String iuvFilter = getStartsWithFilter(ROWKEY_PROPERTY, debtorOrIuv);
+            String debtorFilter = getStartsWithFilter("debtor", debtorOrIuv);
             filters.add('(' + String.join(" or ", '(' + iuvFilter + ')', '(' + debtorFilter + ')') + ')');
         }
 
@@ -170,7 +172,7 @@ public class PaymentsService {
         if(segCodes != null && !segCodes.isEmpty()) {
             ArrayList<String> segCodesFilters = new ArrayList<>();
             for(String segCode: segCodes) {
-                segCodesFilters.add(this.getStartsWithFilter("RowKey", segCode) + " and " + filter);
+                segCodesFilters.add(getStartsWithFilter(ROWKEY_PROPERTY, segCode) + " and " + filter);
             }
             filter = String.join(" or ", segCodesFilters);
         }

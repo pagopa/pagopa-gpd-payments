@@ -17,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 
+import static it.gov.pagopa.payments.utils.CommonUtil.sanitizeInput;
+
 @Controller
 @Slf4j
 @Validated
@@ -45,8 +47,8 @@ public class PaymentsController implements IPaymentsController {
   public ResponseEntity<PaymentsResult<ReceiptModelResponse>> getOrganizationReceipts(String organizationFiscalCode, int pageNum, int pageSize, String debtor,
                                                               String service, String from, String to, String segregationCodes, String debtorOrIuv) {
 
-    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getOrganizationReceipts", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode)
-                + "; debtor= " + debtor + "; service= " + service + "; validSegregationCodes= " + segregationCodes));
+    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getOrganizationReceipts", String.format(LOG_BASE_PARAMS_DETAIL, sanitizeInput(organizationFiscalCode)
+                + "; debtor= " + sanitizeInput(debtor) + "; service= " + sanitizeInput(service) + "; validSegregationCodes= " + sanitizeInput(segregationCodes))));
 
     ArrayList<String> segCodesList = segregationCodes != null ? new ArrayList<>(Arrays.asList(segregationCodes.split(","))) : null;
     PaymentsResult<ReceiptModelResponse> receipts = paymentsService
