@@ -203,7 +203,7 @@ public class PaymentsService {
             totalPages++;
         }
 
-        if(totalPages < pageNum) {
+        if(totalPages <= pageNum) {
             throw new AppException(AppError.PAGE_NUMBER_GREATER_THAN_TOTAL_PAGES);
         }
 
