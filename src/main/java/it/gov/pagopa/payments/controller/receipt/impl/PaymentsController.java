@@ -4,12 +4,10 @@ import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
-import it.gov.pagopa.payments.model.ReceiptsInfo;
 import it.gov.pagopa.payments.service.PaymentsService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -18,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
+
+import static it.gov.pagopa.payments.utils.CommonUtil.sanitizeInput;
 
 @Controller
 @Slf4j
@@ -44,18 +44,15 @@ public class PaymentsController implements IPaymentsController {
   }
 
   @Override
-  public ResponseEntity<ReceiptsInfo> getOrganizationReceipts(String organizationFiscalCode, int pageNum, int pageSize, String debtor,
-                                                              String service, String from, String to, String segregationCodes) {
+  public ResponseEntity<PaymentsResult<ReceiptModelResponse>> getOrganizationReceipts(String organizationFiscalCode, int pageNum, int pageSize, String debtor,
+                                                              String service, String from, String to, String segregationCodes, String debtorOrIuv) {
 
-    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getOrganizationReceipts", String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode)
-                + "; debtor= " + debtor + "; service= " + service + "; validSegregationCodes= " + segregationCodes));
+    log.info(String.format(LOG_BASE_HEADER_INFO, "GET", "getOrganizationReceipts", String.format(LOG_BASE_PARAMS_DETAIL, sanitizeInput(organizationFiscalCode)
+                + "; debtor= " + sanitizeInput(debtor) + "; service= " + sanitizeInput(service) + "; validSegregationCodes= " + sanitizeInput(segregationCodes))));
 
     ArrayList<String> segCodesList = segregationCodes != null ? new ArrayList<>(Arrays.asList(segregationCodes.split(","))) : null;
-    PaymentsResult<ReceiptEntity> receipts = paymentsService
-                                                     .getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodesList);
-    return new ResponseEntity<>(
-        ReceiptsInfo.builder().receiptsList(receipts.getResults().stream()
-                    .map(receiptEntity -> modelMapper.map(receiptEntity, ReceiptModelResponse.class))
-                    .collect(Collectors.toList())).build(), HttpStatus.OK);
+    PaymentsResult<ReceiptModelResponse> receipts = paymentsService
+                                                     .getOrganizationReceipts(organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodesList, debtorOrIuv);
+    return new ResponseEntity<>(receipts, HttpStatus.OK);
   }
 }

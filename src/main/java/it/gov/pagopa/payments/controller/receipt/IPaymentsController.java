@@ -8,8 +8,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ProblemJson;
-import it.gov.pagopa.payments.model.ReceiptsInfo;
+import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -99,7 +100,7 @@ public interface IPaymentsController {
                             content =
                             @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = ReceiptsInfo.class))),
+                                    schema = @Schema(implementation = PaymentsResult.class))),
                     @ApiResponse(
                             responseCode = "401",
                             description = "Wrong or missing function key.",
@@ -119,18 +120,19 @@ public interface IPaymentsController {
     @GetMapping(
             value = "/payments/{organizationfiscalcode}/receipts",
             produces = {MediaType.APPLICATION_JSON_VALUE})
-    ResponseEntity<ReceiptsInfo> getOrganizationReceipts(
+    ResponseEntity<PaymentsResult<ReceiptModelResponse>> getOrganizationReceipts(
             @Parameter(
                     description = "Organization fiscal code, the fiscal code of the Organization.",
                     required = true)
             @PathVariable("organizationfiscalcode")
             String organizationFiscalCode,
-            @Parameter(description = "Page number") @RequestParam(required = false, defaultValue = "0") @PositiveOrZero int pageNum,
+            @Parameter(description = "Page number, starts from 0") @RequestParam(required = false, defaultValue = "0") @PositiveOrZero int pageNum,
             @Valid @Parameter(description = "Number of elements per page. Default = 20") @RequestParam(required = false, defaultValue = "20") @Max(100) @Positive int pageSize,
             @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
             @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
             @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
             @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to,
             @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
-            @RequestParam(required = false) String segregationCodes);
+            @RequestParam(required = false) String segregationCodes,
+            @Parameter(description = "Filter start of debtor or IUV") @RequestParam(required = false) String debtorOrIuv);
 }
