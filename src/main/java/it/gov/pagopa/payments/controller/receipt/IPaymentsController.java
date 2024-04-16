@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ProblemJson;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
-import it.gov.pagopa.payments.model.ReceiptsInfo;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
