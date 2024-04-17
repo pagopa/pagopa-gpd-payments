@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.12.19-3-PAGOPA-1658-sviluppo-add-filter-to-payments-organizationfiscalcode-receipts"
+    "version": "0.12.19-4-PAGOPA-1694"
   },
   "servers": [
     {
