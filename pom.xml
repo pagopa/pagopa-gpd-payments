@@ -237,6 +237,11 @@
             <version>2.1.2</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-queue</artifactId>
+            <version>12.20.2</version>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

@@ -4,6 +4,8 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableErrorCode;
 import com.azure.data.tables.models.TableServiceException;
+import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.models.QueueMessageItem;
 import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
 import feign.RetryableException;
@@ -49,15 +51,13 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
+import javax.xml.bind.*;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
@@ -108,6 +108,8 @@ public class PartnerService {
   @Autowired private GpsClient gpsClient;
 
   @Autowired private TableClient tableClient;
+
+  @Autowired private QueueClient queueClient;
 
   @Autowired private CustomizedMapper customizedModelMapper;
 
@@ -905,14 +907,42 @@ public class PartnerService {
     	throw e;
     } catch (RetryableException e) {
       log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", noticeNumber, e);
+      queueClient.sendMessage(receiptEntity.getDocument());
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     } catch (FeignException e) {
       log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", noticeNumber, e);
+      queueClient.sendMessage(receiptEntity.getDocument());
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     } catch (Exception e) {
       log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", noticeNumber, e);
+      queueClient.sendMessage(receiptEntity.getDocument());
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
     return paymentOption;
+  }
+
+  public void getAllFailuresQueue() {
+    try {
+      QueueMessageItem queueMessageItem;
+      List<String> failureBodies = new ArrayList<>();
+      Unmarshaller unmarshaller = JAXBContext.newInstance(PaSendRTV2Request.class).createUnmarshaller();
+      while ((queueMessageItem = queueClient.receiveMessage()) != null) {
+        failureBodies.add(getFailureQueue(queueMessageItem));
+      }
+      for (String failureBody : failureBodies) {
+        JAXBElement<PaSendRTV2Request> request = (JAXBElement<PaSendRTV2Request>) unmarshaller.unmarshal(new ByteArrayInputStream(failureBody.getBytes(StandardCharsets.UTF_8)));
+        paSendRTV2(request.getValue());
+      }
+    } catch (JAXBException e) {
+      log.error(
+              "[managePaSendRtRequest] Error in receipt unmarshalling in queue",
+              e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
+  }
+
+  public String getFailureQueue(QueueMessageItem queueMessageItem){
+    queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
+    return new String(queueMessageItem.getBody().toBytes(), StandardCharsets.UTF_8);
   }
 }
