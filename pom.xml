@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.19-3-PAGOPA-1658-sviluppo-add-filter-to-payments-organizationfiscalcode-receipts</version>
+    <version>0.12.20</version>
     <name>Payments</name>
     <description>Payments</description>
 
