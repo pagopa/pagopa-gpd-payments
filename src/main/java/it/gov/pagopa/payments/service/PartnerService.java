@@ -48,6 +48,7 @@ import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -67,6 +68,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.xpath.*;
+
 import it.gov.pagopa.payments.utils.Validator;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -76,6 +79,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 @Service
@@ -760,11 +767,16 @@ public class PartnerService {
 			  "[managePaSendRtRequest] save receipt [noticeNumber={}]",
 			  request.getReceipt().getNoticeNumber());
 
+      String debtorIdentifier =
+            Optional.ofNullable(request.getReceipt().getDebtor())
+                    .map(CtSubject::getUniqueIdentifier)
+                    .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
+                    .orElse("");
 	  ReceiptEntity receiptEntity =
 			  this.getReceiptEntity(
 					  request.getIdPA(),
 					  request.getReceipt().getCreditorReferenceId(),
-					  request.getReceipt().getDebtor(),
+					  debtorIdentifier,
 					  request.getReceipt().getPaymentDateTime().toString());
 
 	  try {
@@ -808,11 +820,16 @@ public class PartnerService {
 			  "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
 			  request.getReceipt().getNoticeNumber());
 
+      String debtorIdentifier =
+            Optional.ofNullable(request.getReceipt().getDebtor())
+                    .map(CtSubject::getUniqueIdentifier)
+                    .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
+                    .orElse("");
 	  ReceiptEntity receiptEntity =
 			  this.getReceiptEntity(
 					  request.getIdPA(),
 					  request.getReceipt().getCreditorReferenceId(),
-					  request.getReceipt().getDebtor(),
+					  debtorIdentifier,
 					  request.getReceipt().getPaymentDateTime().toString());
 	  try {
 		  receiptEntity.setDocument(this.marshalV2(request));
@@ -852,14 +869,9 @@ public class PartnerService {
   }
 
   private ReceiptEntity getReceiptEntity(
-      String idPa, String creditorReferenceId, CtSubject debtor, String paymentDateTime) {
+      String idPa, String creditorReferenceId, String debtor, String paymentDateTime) {
     ReceiptEntity receiptEntity = new ReceiptEntity(idPa, creditorReferenceId);
-    String debtorIdentifier =
-        Optional.ofNullable(debtor)
-            .map(CtSubject::getUniqueIdentifier)
-            .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
-            .orElse("");
-    receiptEntity.setDebtor(debtorIdentifier);
+    receiptEntity.setDebtor(debtor);
     String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
     receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
     return receiptEntity;
@@ -922,27 +934,78 @@ public class PartnerService {
   }
 
   public void getAllFailuresQueue() {
+    QueueMessageItem queueMessageItem;
+    List<String> failureBodies = new ArrayList<>();
+    XPathFactory xPathfactory = XPathFactory.newInstance();
+    XPath xpath = xPathfactory.newXPath();
+    while ((queueMessageItem = queueClient.receiveMessage()) != null) {
+      failureBodies.add(getFailureQueue(queueMessageItem));
+    }
     try {
-      QueueMessageItem queueMessageItem;
-      List<String> failureBodies = new ArrayList<>();
-      Unmarshaller unmarshaller = JAXBContext.newInstance(PaSendRTV2Request.class).createUnmarshaller();
-      while ((queueMessageItem = queueClient.receiveMessage()) != null) {
-        failureBodies.add(getFailureQueue(queueMessageItem));
-      }
       for (String failureBody : failureBodies) {
-        JAXBElement<PaSendRTV2Request> request = (JAXBElement<PaSendRTV2Request>) unmarshaller.unmarshal(new ByteArrayInputStream(failureBody.getBytes(StandardCharsets.UTF_8)));
-        paSendRTV2(request.getValue());
+        Document xmlDoc = getXMLDocument(failureBody);
+        handlingXml(xmlDoc, xpath);
       }
-    } catch (JAXBException e) {
-      log.error(
-              "[managePaSendRtRequest] Error in receipt unmarshalling in queue",
-              e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    } catch (XPathExpressionException e) {
+
+    }
+  }
+
+  public void handlingXml (Document xmlDoc, XPath xpath) throws XPathExpressionException {
+    XPathExpression xPathExpr = xpath.compile('/' + xmlDoc.getFirstChild().getNodeName());
+    NodeList nodes = (NodeList) xPathExpr.evaluate(xmlDoc, XPathConstants.NODESET);
+
+    Element node = (Element) nodes.item(0);
+
+    String idPA = node.getElementsByTagName("idPA").item(0).getTextContent();
+    String creditorReferenceId = node.getElementsByTagName("creditorReferenceId").item(0).getTextContent();
+    String noticeNumber = node.getElementsByTagName("noticeNumber").item(0).getTextContent();
+    String paymentDateTime = node.getElementsByTagName("paymentDateTime").item(0).getTextContent();
+    String receiptId = node.getElementsByTagName("receiptId").item(0).getTextContent();
+    String PSPCompanyName = node.getElementsByTagName("PSPCompanyName").item(0).getTextContent();
+    String paymentMethod = node.getElementsByTagName("paymentMethod").item(0).getTextContent();
+    String fee = node.getElementsByTagName("fee").item(0).getTextContent();
+    String entityUniqueIdentifierValue = node.getElementsByTagName("entityUniqueIdentifierValue").item(0).getTextContent();
+
+    ReceiptEntity receiptEntity = new ReceiptEntity(idPA, creditorReferenceId);
+    receiptEntity.setDebtor(entityUniqueIdentifierValue);
+    String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
+    receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
+
+    LocalDateTime localPaymentDateTime = paymentDateTime != null ? LocalDateTime.parse(paymentDateTime) : null;
+    PaymentOptionModel body =
+            PaymentOptionModel.builder()
+                    .idReceipt(receiptId)
+                    .paymentDate(localPaymentDateTime)
+                    .pspCompany(PSPCompanyName)
+                    .paymentMethod(paymentMethod)
+                    .fee(String.valueOf(getFeeInCent(new BigDecimal(fee))))
+                    .build();
+
+    try {
+      getReceiptPaymentOption(
+              noticeNumber,
+              idPA,
+              creditorReferenceId,
+              body,
+              receiptEntity);
+    } catch (Exception e) {
+      log.info("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", idPA, noticeNumber);
     }
   }
 
   public String getFailureQueue(QueueMessageItem queueMessageItem){
-    queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
+    //queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
     return new String(queueMessageItem.getBody().toBytes(), StandardCharsets.UTF_8);
+  }
+
+  public Document getXMLDocument(String xmlString) {
+    try {
+      DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+      InputSource is = new InputSource(new StringReader(xmlString));
+      return builder.parse(is);
+    } catch (ParserConfigurationException | SAXException  | IOException e) {
+      throw new AppException(AppError.UNKNOWN);
+    }
   }
 }
