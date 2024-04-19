@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.service;
 
+import com.azure.core.util.Context;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableErrorCode;
@@ -54,6 +55,7 @@ import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Predicate;
@@ -919,39 +921,40 @@ public class PartnerService {
     	throw e;
     } catch (RetryableException e) {
       log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", noticeNumber, e);
-      queueClient.sendMessage(receiptEntity.getDocument());
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     } catch (FeignException e) {
       log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", noticeNumber, e);
-      queueClient.sendMessage(receiptEntity.getDocument());
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     } catch (Exception e) {
       log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", noticeNumber, e);
-      queueClient.sendMessage(receiptEntity.getDocument());
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
     return paymentOption;
   }
 
   public void getAllFailuresQueue() {
-    QueueMessageItem queueMessageItem;
     List<String> failureBodies = new ArrayList<>();
     XPathFactory xPathfactory = XPathFactory.newInstance();
     XPath xpath = xPathfactory.newXPath();
-    while ((queueMessageItem = queueClient.receiveMessage()) != null) {
-      failureBodies.add(getFailureQueue(queueMessageItem));
+    // The message is dequeued and locked for 30 seconds by default
+    Optional<QueueMessageItem> optQueueMessageItem = queueClient.receiveMessages(1).stream().findFirst();
+    while (optQueueMessageItem.isPresent()) {
+      failureBodies.add(getFailureQueue(optQueueMessageItem.get()));
     }
     try {
       for (String failureBody : failureBodies) {
-        Document xmlDoc = getXMLDocument(failureBody);
-        handlingXml(xmlDoc, xpath);
+        handlingXml(failureBody, xpath);
       }
     } catch (XPathExpressionException e) {
 
     }
   }
 
-  public void handlingXml (Document xmlDoc, XPath xpath) throws XPathExpressionException {
+  public void handlingXml (String failureBody, XPath xpath) throws XPathExpressionException {
+    Document xmlDoc = getXMLDocument(failureBody);
     XPathExpression xPathExpr = xpath.compile('/' + xmlDoc.getFirstChild().getNodeName());
     NodeList nodes = (NodeList) xPathExpr.evaluate(xmlDoc, XPathConstants.NODESET);
 
@@ -971,6 +974,7 @@ public class PartnerService {
     receiptEntity.setDebtor(entityUniqueIdentifierValue);
     String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
     receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
+    receiptEntity.setDocument(failureBody);
 
     LocalDateTime localPaymentDateTime = paymentDateTime != null ? LocalDateTime.parse(paymentDateTime) : null;
     PaymentOptionModel body =
@@ -995,7 +999,7 @@ public class PartnerService {
   }
 
   public String getFailureQueue(QueueMessageItem queueMessageItem){
-    //queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
+    queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
     return new String(queueMessageItem.getBody().toBytes(), StandardCharsets.UTF_8);
   }
 

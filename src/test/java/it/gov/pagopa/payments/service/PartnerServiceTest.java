@@ -22,6 +22,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
+import com.azure.storage.queue.QueueClient;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -102,6 +103,8 @@ class PartnerServiceTest {
   @Mock private GpdClient gpdClient;
 
   @Mock private GpsClient gpsClient;
+
+  @Mock private QueueClient queueClient;
 
   private String genericService = "/xsd/general-service.xsd";
   ResourceLoader resourceLoader = new DefaultResourceLoader();
@@ -438,6 +441,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -481,6 +485,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -523,6 +528,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -566,6 +572,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -611,6 +618,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -653,6 +661,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
@@ -694,6 +703,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -748,6 +758,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -797,6 +808,7 @@ class PartnerServiceTest {
                             gpdClient,
                             gpsClient,
                             tableClientConfiguration(),
+                            queueClient,
                             customizedModelMapper));
 
     // Test preconditions
@@ -830,6 +842,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -893,6 +906,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -975,6 +989,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1085,6 +1100,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1128,6 +1144,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1170,6 +1187,7 @@ class PartnerServiceTest {
 							  gpdClient,
 							  gpsClient,
 							  tableClientConfiguration(),
+                              queueClient,
 							  customizedModelMapper));
 
 	  // Test preconditions
@@ -1213,6 +1231,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1258,6 +1277,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1300,6 +1320,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
@@ -1341,6 +1362,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
+                queueClient,
                 customizedModelMapper));
 
     // Test preconditions
@@ -1383,6 +1405,7 @@ class PartnerServiceTest {
                             gpdClient,
                             gpsClient,
                             tableClientConfiguration(),
+                            queueClient,
                             customizedModelMapper));
 
     // Test preconditions
@@ -1426,6 +1449,7 @@ class PartnerServiceTest {
                             gpdClient,
                             gpsClient,
                             tableClientConfiguration(),
+                            queueClient,
                             customizedModelMapper));
 
     // Test preconditions
