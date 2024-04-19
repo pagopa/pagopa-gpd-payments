@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.20"
+    tag: "0.12.19-4-PAGOPA-1694"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -48,7 +48,7 @@ microservice-chart:
       cpu: "0.5"
     limits:
       memory: "768Mi"
-      cpu: "3.0" # high limit used only in startup phase
+      cpu: "0.5"
   autoscaling:
     enable: true
     minReplica: 1
@@ -60,15 +60,17 @@ microservice-chart:
         metadata:
           # Required
           type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
-          value: "50"
+          value: "75"
   envConfig:
     WEBSITE_SITE_NAME: 'pagopa-u-gpd-payments-service'
     PAA_ID_INTERMEDIARIO: "15376371009"
     PAA_STAZIONE_INT: "15376371009_01"
-    RETRY_MAX_DELAY: "2000"
-    RETRY_MAX_ATTEMPTS: "3"
+    RETRY_MAX_DELAY: "1000"
+    RETRY_MAX_ATTEMPTS: "2"
+    RETRY_MULTIPLIER: "2"
     CONNECTION_TIMEOUT: "3000"
     LOGGING_LEVEL: "INFO"
+    FEIGN_LOG_LEVEL: "BASIC"
     CACHE_SIZE: "1000"
     CACHE_EXPIRATION_TIME: "1s"
     AZURE_TABLES_TABLENAME: "gpdpaymentsreceiptstable"
