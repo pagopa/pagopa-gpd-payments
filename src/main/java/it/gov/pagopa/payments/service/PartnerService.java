@@ -694,7 +694,7 @@ public class PartnerService {
     }
   }
 
-  private long getFeeInCent(BigDecimal fee) {
+  public long getFeeInCent(BigDecimal fee) {
     long feeInCent = 0;
     if (null != fee) {
       feeInCent = fee.multiply(BigDecimal.valueOf(100)).longValue();
@@ -907,7 +907,7 @@ public class PartnerService {
     return receiptEntity;
   }
 
-  private PaymentOptionModelResponse getReceiptPaymentOption(String noticeNumber,
+  public PaymentOptionModelResponse getReceiptPaymentOption(String noticeNumber,
 	      String idPa,
 	      String creditorReferenceId,
           PaymentOptionModel body,

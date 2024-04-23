@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.controller.scheduler;
+package it.gov.pagopa.payments.scheduler;
 
 import it.gov.pagopa.payments.service.PartnerService;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 @Slf4j
 @Validated
-public class Scheduler {
+public class SchedulerTest {
 
     @Autowired
     PartnerService partnerService;
