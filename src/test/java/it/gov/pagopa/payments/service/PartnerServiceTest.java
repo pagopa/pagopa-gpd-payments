@@ -23,6 +23,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
 import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.QueueClientBuilder;
+import com.microsoft.azure.storage.queue.CloudQueue;
+import com.microsoft.azure.storage.queue.CloudQueueClient;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -103,8 +106,6 @@ class PartnerServiceTest {
   @Mock private GpdClient gpdClient;
 
   @Mock private GpsClient gpsClient;
-
-  @Mock private QueueClient queueClient;
 
   private String genericService = "/xsd/general-service.xsd";
   ResourceLoader resourceLoader = new DefaultResourceLoader();
@@ -441,7 +442,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -462,6 +463,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception e) {
       log.info("Error during table creation", e);
     }
@@ -485,7 +489,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -503,6 +507,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -528,7 +535,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -546,6 +553,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -572,7 +582,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -593,6 +603,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", ex);
     }
@@ -618,7 +631,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -636,6 +649,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -661,7 +677,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
@@ -678,6 +694,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -703,7 +722,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -721,6 +740,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -758,7 +780,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -808,7 +830,7 @@ class PartnerServiceTest {
                             gpdClient,
                             gpsClient,
                             tableClientConfiguration(),
-                            queueClient,
+                            queueClientConfiguration(),
                             customizedModelMapper));
 
     // Test preconditions
@@ -842,7 +864,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -906,7 +928,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -989,7 +1011,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -1100,7 +1122,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -1121,6 +1143,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception e) {
       log.info("Error during table creation", e);
     }
@@ -1144,7 +1169,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -1162,6 +1187,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -1187,7 +1215,7 @@ class PartnerServiceTest {
 							  gpdClient,
 							  gpsClient,
 							  tableClientConfiguration(),
-                              queueClient,
+                              queueClientConfiguration(),
 							  customizedModelMapper));
 
 	  // Test preconditions
@@ -1205,6 +1233,9 @@ class PartnerServiceTest {
 		  cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
 		  CloudTable table = cloudTableClient.getTableReference("receiptsTable");
 		  table.createIfNotExists();
+          CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+          CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+          queue.createIfNotExists();
 	  } catch (Exception ex) {
 		  log.info("Error during table creation", e);
 	  }
@@ -1231,7 +1262,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -1252,6 +1283,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", ex);
     }
@@ -1277,7 +1311,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -1295,6 +1329,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -1320,7 +1357,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
@@ -1337,6 +1374,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -1362,7 +1402,7 @@ class PartnerServiceTest {
                 gpdClient,
                 gpsClient,
                 tableClientConfiguration(),
-                queueClient,
+                queueClientConfiguration(),
                 customizedModelMapper));
 
     // Test preconditions
@@ -1380,6 +1420,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception ex) {
       log.info("Error during table creation", e);
     }
@@ -1405,7 +1448,7 @@ class PartnerServiceTest {
                             gpdClient,
                             gpsClient,
                             tableClientConfiguration(),
-                            queueClient,
+                            queueClientConfiguration(),
                             customizedModelMapper));
 
     // Test preconditions
@@ -1426,6 +1469,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception e) {
       log.info("Error during table creation", e);
     }
@@ -1449,7 +1495,7 @@ class PartnerServiceTest {
                             gpdClient,
                             gpsClient,
                             tableClientConfiguration(),
-                            queueClient,
+                            queueClientConfiguration(),
                             customizedModelMapper));
 
     // Test preconditions
@@ -1470,6 +1516,9 @@ class PartnerServiceTest {
       cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
       CloudTable table = cloudTableClient.getTableReference("receiptsTable");
       table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
     } catch (Exception e) {
       log.info("Error during table creation", e);
     }
@@ -1488,4 +1537,11 @@ class PartnerServiceTest {
                 .tableName("receiptsTable")
                 .buildClient();
     }
+
+  private QueueClient queueClientConfiguration() {
+    return new QueueClientBuilder()
+            .connectionString(storageConnectionString)
+            .queueName("testqueue")
+            .buildClient();
+  }
 }

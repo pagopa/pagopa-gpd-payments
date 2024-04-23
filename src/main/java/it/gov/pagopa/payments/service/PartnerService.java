@@ -765,109 +765,137 @@ public class PartnerService {
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTReq request) {
-	  log.debug(
-			  "[managePaSendRtRequest] save receipt [noticeNumber={}]",
-			  request.getReceipt().getNoticeNumber());
+    log.debug(
+            "[managePaSendRtRequest] save receipt [noticeNumber={}]",
+            request.getReceipt().getNoticeNumber());
 
-      String debtorIdentifier =
+    String debtorIdentifier =
             Optional.ofNullable(request.getReceipt().getDebtor())
                     .map(CtSubject::getUniqueIdentifier)
                     .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
                     .orElse("");
-	  ReceiptEntity receiptEntity =
-			  this.getReceiptEntity(
-					  request.getIdPA(),
-					  request.getReceipt().getCreditorReferenceId(),
-					  debtorIdentifier,
-					  request.getReceipt().getPaymentDateTime().toString());
+    ReceiptEntity receiptEntity =
+            this.getReceiptEntity(
+                    request.getIdPA(),
+                    request.getReceipt().getCreditorReferenceId(),
+                    debtorIdentifier,
+                    request.getReceipt().getPaymentDateTime().toString());
 
-	  try {
-		  receiptEntity.setDocument(this.marshal(request));
-	  } catch (JAXBException e) {
-		  log.error(
-				  "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
-				  request.getReceipt().getNoticeNumber(),
-				  e);
-		  throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-	  }
+    try {
+      receiptEntity.setDocument(this.marshal(request));
+    } catch (JAXBException e) {
+      log.error(
+              "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
+              request.getReceipt().getNoticeNumber(),
+              e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
 
-	  LocalDateTime paymentDateTime =
-			  request.getReceipt().getPaymentDateTime() != null
-			  ? request
-					  .getReceipt()
-					  .getPaymentDateTime()
-					  .toGregorianCalendar()
-					  .toZonedDateTime()
-					  .toLocalDateTime()
-					  : null;
-	  PaymentOptionModel body =
-			  PaymentOptionModel.builder()
-			  .idReceipt(request.getReceipt().getReceiptId())
-			  .paymentDate(paymentDateTime)
-			  .pspCompany(request.getReceipt().getPSPCompanyName())
-			  .paymentMethod(request.getReceipt().getPaymentMethod())
-			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-			  .build();
-
-	  return this.getReceiptPaymentOption(
-			  request.getReceipt().getNoticeNumber(),
-			  request.getIdPA(),
-			  request.getReceipt().getCreditorReferenceId(),
-			  body,
-			  receiptEntity);
+    LocalDateTime paymentDateTime =
+            request.getReceipt().getPaymentDateTime() != null
+                    ? request
+                    .getReceipt()
+                    .getPaymentDateTime()
+                    .toGregorianCalendar()
+                    .toZonedDateTime()
+                    .toLocalDateTime()
+                    : null;
+    PaymentOptionModel body =
+            PaymentOptionModel.builder()
+                    .idReceipt(request.getReceipt().getReceiptId())
+                    .paymentDate(paymentDateTime)
+                    .pspCompany(request.getReceipt().getPSPCompanyName())
+                    .paymentMethod(request.getReceipt().getPaymentMethod())
+                    .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+                    .build();
+    try {
+      return this.getReceiptPaymentOption(
+              request.getReceipt().getNoticeNumber(),
+              request.getIdPA(),
+              request.getReceipt().getCreditorReferenceId(),
+              body,
+              receiptEntity);
+    } catch (RetryableException e) {
+      log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    } catch (FeignException e) {
+      log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+    } catch (PartnerValidationException e) {
+      throw e;
+    } catch (Exception e) {
+      log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTV2Request request) {
-	  log.debug(
-			  "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
-			  request.getReceipt().getNoticeNumber());
+    log.debug(
+            "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
+            request.getReceipt().getNoticeNumber());
 
-      String debtorIdentifier =
+    String debtorIdentifier =
             Optional.ofNullable(request.getReceipt().getDebtor())
                     .map(CtSubject::getUniqueIdentifier)
                     .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
                     .orElse("");
-	  ReceiptEntity receiptEntity =
-			  this.getReceiptEntity(
-					  request.getIdPA(),
-					  request.getReceipt().getCreditorReferenceId(),
-					  debtorIdentifier,
-					  request.getReceipt().getPaymentDateTime().toString());
-	  try {
-		  receiptEntity.setDocument(this.marshalV2(request));
-	  } catch (JAXBException e) {
-		  log.error(
-				  "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
-				  request.getReceipt().getNoticeNumber(),
-				  e);
-		  throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-	  }
+    ReceiptEntity receiptEntity =
+            this.getReceiptEntity(
+                    request.getIdPA(),
+                    request.getReceipt().getCreditorReferenceId(),
+                    debtorIdentifier,
+                    request.getReceipt().getPaymentDateTime().toString());
+    try {
+      receiptEntity.setDocument(this.marshalV2(request));
+    } catch (JAXBException e) {
+      log.error(
+              "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
+              request.getReceipt().getNoticeNumber(),
+              e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
 
-	  LocalDateTime paymentDateTime =
-			  request.getReceipt().getPaymentDateTime() != null
-			  ? request
-					  .getReceipt()
-					  .getPaymentDateTime()
-					  .toGregorianCalendar()
-					  .toZonedDateTime()
-					  .toLocalDateTime()
-					  : null;
+    LocalDateTime paymentDateTime =
+            request.getReceipt().getPaymentDateTime() != null
+                    ? request
+                    .getReceipt()
+                    .getPaymentDateTime()
+                    .toGregorianCalendar()
+                    .toZonedDateTime()
+                    .toLocalDateTime()
+                    : null;
 
-	  PaymentOptionModel body =
-			  PaymentOptionModel.builder()
-			  .idReceipt(request.getReceipt().getReceiptId())
-			  .paymentDate(paymentDateTime)
-			  .pspCompany(request.getReceipt().getPSPCompanyName())
-			  .paymentMethod(request.getReceipt().getPaymentMethod())
-			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-			  .build();
-
-	  return this.getReceiptPaymentOption(
-			  request.getReceipt().getNoticeNumber(),
-			  request.getIdPA(),
-			  request.getReceipt().getCreditorReferenceId(),
-			  body,
-			  receiptEntity);
+    PaymentOptionModel body =
+            PaymentOptionModel.builder()
+                    .idReceipt(request.getReceipt().getReceiptId())
+                    .paymentDate(paymentDateTime)
+                    .pspCompany(request.getReceipt().getPSPCompanyName())
+                    .paymentMethod(request.getReceipt().getPaymentMethod())
+                    .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+                    .build();
+    try {
+      return this.getReceiptPaymentOption(
+              request.getReceipt().getNoticeNumber(),
+              request.getIdPA(),
+              request.getReceipt().getCreditorReferenceId(),
+              body,
+              receiptEntity);
+    } catch (RetryableException e) {
+      log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    } catch (FeignException e) {
+      log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+    } catch (PartnerValidationException e) {
+      throw e;
+    } catch (Exception e) {
+      log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
   }
 
   private ReceiptEntity getReceiptEntity(
@@ -883,7 +911,7 @@ public class PartnerService {
 	      String idPa,
 	      String creditorReferenceId,
           PaymentOptionModel body,
-          ReceiptEntity receiptEntity) {
+          ReceiptEntity receiptEntity) throws FeignException, URISyntaxException, InvalidKeyException, StorageException{
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.receiptPaymentOption(idPa, noticeNumber, body);
@@ -919,41 +947,29 @@ public class PartnerService {
     	throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (PartnerValidationException e) {
     	throw e;
-    } catch (RetryableException e) {
-      log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", noticeNumber, e);
-      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    } catch (FeignException e) {
-      log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", noticeNumber, e);
-      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
-    } catch (Exception e) {
-      log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", noticeNumber, e);
-      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofMinutes(10L), null, null, Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
     return paymentOption;
   }
 
   public void getAllFailuresQueue() {
-    List<String> failureBodies = new ArrayList<>();
     XPathFactory xPathfactory = XPathFactory.newInstance();
     XPath xpath = xPathfactory.newXPath();
-    // The message is dequeued and locked for 30 seconds by default
-    Optional<QueueMessageItem> optQueueMessageItem = queueClient.receiveMessages(1).stream().findFirst();
-    while (optQueueMessageItem.isPresent()) {
-      failureBodies.add(getFailureQueue(optQueueMessageItem.get()));
-    }
     try {
-      for (String failureBody : failureBodies) {
-        handlingXml(failureBody, xpath);
+      // The message is dequeued and locked for 30 seconds by default
+      List<QueueMessageItem> queueList = queueClient.receiveMessages(10, Duration.ofMinutes(5L), null, Context.NONE).stream().toList();
+      for(QueueMessageItem message: queueList) {
+        if(checkQueueCountValidity(message)) {
+          handlingXml(getFailureQueue(message), xpath, message);
+        } else {
+          queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
+        }
       }
     } catch (XPathExpressionException e) {
 
     }
   }
 
-  public void handlingXml (String failureBody, XPath xpath) throws XPathExpressionException {
+  public void handlingXml (String failureBody, XPath xpath, QueueMessageItem queueMessageItem) throws XPathExpressionException {
     Document xmlDoc = getXMLDocument(failureBody);
     XPathExpression xPathExpr = xpath.compile('/' + xmlDoc.getFirstChild().getNodeName());
     NodeList nodes = (NodeList) xPathExpr.evaluate(xmlDoc, XPathConstants.NODESET);
@@ -993,16 +1009,19 @@ public class PartnerService {
               creditorReferenceId,
               body,
               receiptEntity);
-    } catch (Exception e) {
+    } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
       log.info("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", idPA, noticeNumber);
+      queueClient.updateMessageWithResponse(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt(), receiptEntity.getDocument(), Duration.ofMinutes(10L), null, Context.NONE);
     }
   }
 
-  public String getFailureQueue(QueueMessageItem queueMessageItem){
-    queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
-    return new String(queueMessageItem.getBody().toBytes(), StandardCharsets.UTF_8);
+  public boolean checkQueueCountValidity(QueueMessageItem message) {
+    return message.getDequeueCount() <= 5; //TODO parametrize this variable
   }
 
+  public String getFailureQueue(QueueMessageItem queueMessageItem){
+    return new String(queueMessageItem.getBody().toBytes(), StandardCharsets.UTF_8);
+  }
   public Document getXMLDocument(String xmlString) {
     try {
       DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
