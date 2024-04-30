@@ -9,6 +9,8 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,10 +38,19 @@ import java.util.Optional;
 
 @Service
 @Slf4j
+@NoArgsConstructor
+@AllArgsConstructor
 public class SchedulerService {
 
     @Value(value = "${azure.queue.dequeue.limit}")
     private Integer dequeueLimit;
+
+    @Value(value = "${azure.queue.receive.invisibilityTime}")
+    private Long queueReceiveInvisibilityTime;
+
+    @Value(value = "${azure.queue.send.invisibilityTime}")
+    private Long queueUpdateInvisibilityTime;
+
     @Autowired
     QueueClient queueClient;
 
@@ -49,18 +60,23 @@ public class SchedulerService {
     public void getAllFailuresQueue() {
         XPathFactory xPathfactory = XPathFactory.newInstance();
         XPath xpath = xPathfactory.newXPath();
-        try {
-            // The message is dequeued and locked for 30 seconds by default
-            List<QueueMessageItem> queueList = queueClient.receiveMessages(10, Duration.ofMinutes(5L), null, Context.NONE).stream().toList();
-            for(QueueMessageItem message: queueList) {
-                if(checkQueueCountValidity(message)) {
+        // The message is dequeued and locked for a timeout equal to <queueReceiveInvisibilityTime> seconds
+        List<QueueMessageItem> queueList = queueClient.receiveMessages(
+                10,
+                Duration.ofSeconds(queueReceiveInvisibilityTime),
+                null,
+                Context.NONE)
+                .stream().toList();
+        for(QueueMessageItem message: queueList) {
+            if(checkQueueCountValidity(message)) {
+                try{
                     handlingXml(getFailureQueue(message), xpath, message);
-                } else {
-                    queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
+                } catch (XPathExpressionException e) {
+                    log.error("[paSendRT] XML error during retry process [messageId={},popReceipt={}]\",\n", message.getMessageId() , message.getPopReceipt());
                 }
+            } else {
+                queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
             }
-        } catch (XPathExpressionException e) {
-
         }
     }
 
@@ -98,15 +114,22 @@ public class SchedulerService {
                         .build();
 
         try {
-            partnerService.getReceiptPaymentOption(
+            partnerService.getReceiptPaymentOptionScheduler(
                     noticeNumber,
                     idPA,
                     creditorReferenceId,
                     body,
                     receiptEntity);
+            queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
             log.info("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", idPA, noticeNumber);
-            queueClient.updateMessageWithResponse(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt(), receiptEntity.getDocument(), Duration.ofMinutes(10L), null, Context.NONE);
+            queueClient.updateMessageWithResponse(
+                    queueMessageItem.getMessageId(),
+                    queueMessageItem.getPopReceipt(),
+                    receiptEntity.getDocument(),
+                    Duration.ofSeconds(queueUpdateInvisibilityTime),
+                    null,
+                    Context.NONE);
         }
     }
 

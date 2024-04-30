@@ -5,8 +5,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
@@ -110,6 +110,9 @@ class PartnerServiceTest {
   private String genericService = "/xsd/general-service.xsd";
   ResourceLoader resourceLoader = new DefaultResourceLoader();
   Resource resource = resourceLoader.getResource(genericService);
+
+  @Value(value = "${azure.queue.send.invisibilityTime}")
+  private Long queueSendInvisibilityTime;
 
   private final ObjectFactory factoryUtil = new ObjectFactory();
 
@@ -438,6 +441,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -485,6 +489,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -531,6 +536,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -578,6 +584,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -627,6 +634,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -673,6 +681,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -718,6 +727,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -776,6 +786,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -826,6 +837,7 @@ class PartnerServiceTest {
             spy(
                     new PartnerService(
                             resource,
+                            queueSendInvisibilityTime,
                             factory,
                             gpdClient,
                             gpsClient,
@@ -860,6 +872,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -924,6 +937,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1007,6 +1021,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1118,6 +1133,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1165,6 +1181,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1211,6 +1228,7 @@ class PartnerServiceTest {
 			  spy(
 					  new PartnerService(
 							  resource,
+                              queueSendInvisibilityTime,
 							  factory,
 							  gpdClient,
 							  gpsClient,
@@ -1258,6 +1276,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1307,6 +1326,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1353,6 +1373,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1398,6 +1419,7 @@ class PartnerServiceTest {
         spy(
             new PartnerService(
                 resource,
+                queueSendInvisibilityTime,
                 factory,
                 gpdClient,
                 gpsClient,
@@ -1444,6 +1466,7 @@ class PartnerServiceTest {
             spy(
                     new PartnerService(
                             resource,
+                            queueSendInvisibilityTime,
                             factory,
                             gpdClient,
                             gpsClient,
@@ -1491,6 +1514,7 @@ class PartnerServiceTest {
             spy(
                     new PartnerService(
                             resource,
+                            queueSendInvisibilityTime,
                             factory,
                             gpdClient,
                             gpsClient,
@@ -1531,12 +1555,60 @@ class PartnerServiceTest {
     assertEquals("L'id del pagamento ricevuto  e' duplicato", e.getMessage());
   }
 
-    private TableClient tableClientConfiguration() {
-        return new TableClientBuilder()
-                .connectionString(storageConnectionString)
-                .tableName("receiptsTable")
-                .buildClient();
+  @Test
+  void paSendRTQueueInsertTest() throws DatatypeConfigurationException, IOException {
+
+    var pService =
+            spy(
+                    new PartnerService(
+                            resource,
+                            queueSendInvisibilityTime,
+                            factory,
+                            gpdClient,
+                            gpsClient,
+                            tableClientConfiguration(),
+                            queueClientConfiguration(),
+                            customizedModelMapper));
+    // Test preconditions
+    PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
+
+    var e = Mockito.mock(FeignException.class);
+    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+            .thenThrow(e);
+
+    try {
+      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
+      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
+      TableRequestOptions tableRequestOptions = new TableRequestOptions();
+      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
+      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
+      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      table.createIfNotExists();
+      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
+      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+      queue.createIfNotExists();
+    } catch (Exception ex) {
+      log.info("Error during table creation", e);
     }
+
+    try {
+      // Test execution
+      assertEquals(0, queueClientConfiguration().receiveMessages(10).stream().toList().size());
+      pService.paSendRT(requestBody);
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
+      assertEquals(1, queueClientConfiguration().receiveMessages(10).stream().toList().size());
+    }
+  }
+
+  private TableClient tableClientConfiguration() {
+      return new TableClientBuilder()
+              .connectionString(storageConnectionString)
+              .tableName("receiptsTable")
+              .buildClient();
+  }
 
   private QueueClient queueClientConfiguration() {
     return new QueueClientBuilder()

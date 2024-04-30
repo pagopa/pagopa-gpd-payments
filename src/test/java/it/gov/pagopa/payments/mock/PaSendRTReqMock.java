@@ -1,10 +1,7 @@
 package it.gov.pagopa.payments.mock;
 
-import it.gov.pagopa.payments.model.partner.CtReceipt;
-import it.gov.pagopa.payments.model.partner.CtReceiptV2;
-import it.gov.pagopa.payments.model.partner.PaSendRTReq;
-import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
-import it.gov.pagopa.payments.model.partner.StOutcome;
+import it.gov.pagopa.payments.model.partner.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import javax.xml.datatype.DatatypeConfigurationException;
@@ -54,6 +51,35 @@ public class PaSendRTReqMock {
     receipt.setIdCiBundle("idCiBundle");
 
     PaSendRTV2Request mock = new PaSendRTV2Request();
+    mock.setIdBrokerPA("77777777777");
+    mock.setIdPA("77777777777");
+    mock.setIdStation("77777777777_01");
+    mock.setReceipt(receipt);
+
+    return mock;
+  }
+
+  public static PaSendRTReq getMockDebtor(String iuv) throws DatatypeConfigurationException {
+    CtEntityUniqueIdentifier debtorCode = new CtEntityUniqueIdentifier();
+    debtorCode.setEntityUniqueIdentifierValue("debtorCode");
+
+    CtSubject debtor = new CtSubject();
+    debtor.setUniqueIdentifier(debtorCode);
+
+    CtReceipt receipt = new CtReceipt();
+    receipt.setReceiptId("c110729d258c4ab1b765fe902aae41d6");
+    receipt.setNoticeNumber("3" + iuv);
+    receipt.setFiscalCode("77777777777");
+    receipt.setOutcome(StOutcome.OK);
+    receipt.setCreditorReferenceId(iuv);
+    receipt.setPaymentMethod("creditCard");
+    receipt.setPSPCompanyName("Intesa San Paolo");
+    receipt.setFee(BigDecimal.valueOf(2));
+    receipt.setDebtor(debtor);
+    receipt.setPaymentDateTime(
+            DatatypeFactory.newInstance().newXMLGregorianCalendar(LocalDateTime.now().toString()));
+
+    PaSendRTReq mock = new PaSendRTReq();
     mock.setIdBrokerPA("77777777777");
     mock.setIdPA("77777777777");
     mock.setIdStation("77777777777_01");
