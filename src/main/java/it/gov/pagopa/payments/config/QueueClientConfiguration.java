@@ -14,12 +14,12 @@ public class QueueClientConfiguration {
     private static String CONNECTION_STRING;
 
     @Value("${azure.queue.connection.string}")
-    public static void setConnectionStringStatic(String connectionString) {
+    public void setConnectionStringStatic(String connectionString) {
         QueueClientConfiguration.CONNECTION_STRING = connectionString;
     }
 
     @Value("${azure.queue.queueName}")
-    public static void setTableNameStatic(String queueName) {
+    public void setTableNameStatic(String queueName) {
         QueueClientConfiguration.QUEUE_NAME = queueName;
     }
 
