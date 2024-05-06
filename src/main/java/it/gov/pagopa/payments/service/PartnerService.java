@@ -803,31 +803,13 @@ public class PartnerService {
                     .paymentMethod(request.getReceipt().getPaymentMethod())
                     .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
                     .build();
-    try {
-      return this.getReceiptPaymentOption(
-              request.getReceipt().getNoticeNumber(),
-              request.getIdPA(),
-              request.getReceipt().getCreditorReferenceId(),
-              body,
-              receiptEntity);
-    } catch (RetryableException e) {
-      log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
-      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    } catch (FeignException e) {
-      log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
-      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
-    } catch (StorageException e) {
-      log.error("[getReceiptPaymentOption] Storage exception [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
-      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    } catch (PartnerValidationException e) {
-      throw e;
-    } catch (Exception e) {
-      log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    }
+
+    return this.getReceiptExceptionHandling(
+            request.getReceipt().getNoticeNumber(),
+            request.getIdPA(),
+            request.getReceipt().getCreditorReferenceId(),
+            body,
+            receiptEntity);
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTV2Request request) {
@@ -874,29 +856,43 @@ public class PartnerService {
                     .paymentMethod(request.getReceipt().getPaymentMethod())
                     .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
                     .build();
+
+    return this.getReceiptExceptionHandling(
+            request.getReceipt().getNoticeNumber(),
+            request.getIdPA(),
+            request.getReceipt().getCreditorReferenceId(),
+            body,
+            receiptEntity);
+  }
+
+  private PaymentOptionModelResponse getReceiptExceptionHandling(String noticeNumber,
+                                                                 String idPa,
+                                                                 String creditorReferenceId,
+                                                                 PaymentOptionModel body,
+                                                                 ReceiptEntity receiptEntity ) {
     try {
       return this.getReceiptPaymentOption(
-              request.getReceipt().getNoticeNumber(),
-              request.getIdPA(),
-              request.getReceipt().getCreditorReferenceId(),
+              noticeNumber,
+              idPa,
+              creditorReferenceId,
               body,
               receiptEntity);
     } catch (RetryableException e) {
-      log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", noticeNumber, e);
       queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     } catch (FeignException e) {
-      log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", noticeNumber, e);
       queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     } catch (StorageException e) {
-      log.error("[getReceiptPaymentOption] Storage exception [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      log.error("[getReceiptPaymentOption] Storage exception [noticeNumber={}]", noticeNumber, e);
       queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     } catch (PartnerValidationException e) {
       throw e;
     } catch (Exception e) {
-      log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", request.getReceipt().getNoticeNumber(), e);
+      log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", noticeNumber, e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
   }
