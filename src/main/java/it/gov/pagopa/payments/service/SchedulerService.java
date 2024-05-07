@@ -143,10 +143,10 @@ public class SchedulerService {
     }
     public Document getXMLDocument(String xmlString) {
         try {
-            DocumentBuilderFactory x = DocumentBuilderFactory.newInstance();
-            x.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-            x.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-            DocumentBuilder builder = x.newDocumentBuilder();
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultNSInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            DocumentBuilder builder = factory.newDocumentBuilder();
             InputSource is = new InputSource(new StringReader(xmlString));
             return builder.parse(is);
         } catch (ParserConfigurationException | SAXException | IOException e) {
