@@ -71,7 +71,7 @@ public class SchedulerService {
         for(QueueMessageItem message: queueList) {
             if(checkQueueCountValidity(message)) {
                 try{
-                    handlingXml(getFailureQueue(message), xpath, message);
+                    handlingXml(getMessageContent(message), xpath, message);
                 } catch (XPathExpressionException e) {
                     log.error("[paSendRT] XML error during retry process [messageId={},popReceipt={}]\",\n", message.getMessageId() , message.getPopReceipt());
                 }
@@ -81,6 +81,10 @@ public class SchedulerService {
         }
     }
 
+    /*
+    This method is used to parse the xml string and extract the necessary values to create a payment option body.
+    After this, the payment process is triggered with the newly created body.
+     */
     public void handlingXml (String failureBody, XPath xpath, QueueMessageItem queueMessageItem) throws XPathExpressionException {
         Document xmlDoc = getXMLDocument(failureBody);
         XPathExpression xPathExpr = xpath.compile('/' + xmlDoc.getFirstChild().getNodeName());
@@ -138,9 +142,10 @@ public class SchedulerService {
         return message.getDequeueCount() <= dequeueLimit;
     }
 
-    public String getFailureQueue(QueueMessageItem queueMessageItem){
+    public String getMessageContent(QueueMessageItem queueMessageItem){
         return new String(queueMessageItem.getBody().toBytes(), StandardCharsets.UTF_8);
     }
+
     public Document getXMLDocument(String xmlString) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultInstance();
