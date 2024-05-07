@@ -152,7 +152,7 @@ class SchedulerServiceTest {
       // Test post condition
       assertEquals(1, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
       assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
-      schedService.getAllFailuresQueue();
+      schedService.retryFailedPaSendRT();
       await().pollDelay(Duration.ofSeconds(2L)).until(() -> true);
       assertEquals(0, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
     }
@@ -217,7 +217,7 @@ class SchedulerServiceTest {
       // Test post condition
       assertEquals(1, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
       assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
-      schedService.getAllFailuresQueue();
+      schedService.retryFailedPaSendRT();
       await().pollDelay(Duration.ofSeconds(2L)).until(() -> true);
       assertEquals(1, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
     }
@@ -288,7 +288,7 @@ class SchedulerServiceTest {
                 null
         );
       }
-      schedService.getAllFailuresQueue();
+      schedService.retryFailedPaSendRT();
       assertEquals(0, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
     }
   }

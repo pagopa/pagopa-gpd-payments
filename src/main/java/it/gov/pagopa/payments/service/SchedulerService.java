@@ -58,7 +58,7 @@ public class SchedulerService {
     @Autowired
     PartnerService partnerService;
 
-    public void getAllFailuresQueue() {
+    public void retryFailedPaSendRT() {
         XPathFactory xPathfactory = XPathFactory.newInstance();
         XPath xpath = xPathfactory.newXPath();
         // The message is dequeued and locked for a timeout equal to <queueReceiveInvisibilityTime> seconds

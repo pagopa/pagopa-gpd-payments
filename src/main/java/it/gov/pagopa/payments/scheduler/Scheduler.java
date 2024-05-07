@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,7 +27,7 @@ public class Scheduler {
     @Async
     public void retryPaSendRT() {
         log.info(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now())));
-        schedulerService.getAllFailuresQueue();
+        schedulerService.retryFailedPaSendRT();
         this.threadOfExecution = Thread.currentThread();
     }
 }
