@@ -143,7 +143,7 @@ public class SchedulerService {
     }
     public Document getXMLDocument(String xmlString) {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultNSInstance();
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultInstance();
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
             DocumentBuilder builder = factory.newDocumentBuilder();
