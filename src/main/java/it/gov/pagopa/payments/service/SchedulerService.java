@@ -21,6 +21,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -142,7 +143,10 @@ public class SchedulerService {
     }
     public Document getXMLDocument(String xmlString) {
         try {
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            DocumentBuilderFactory x = DocumentBuilderFactory.newInstance();
+            x.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            x.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            DocumentBuilder builder = x.newDocumentBuilder();
             InputSource is = new InputSource(new StringReader(xmlString));
             return builder.parse(is);
         } catch (ParserConfigurationException | SAXException | IOException e) {
