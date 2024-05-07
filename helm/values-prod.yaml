@@ -75,6 +75,12 @@ microservice-chart:
     API_CONFIG_HOST: "https://api.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.platform.pagopa.it/gps/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.platform.pagopa.it/gpd/api/v1"
+    QUEUE_NAME: "gpd-receipt-poison-queue"
+    DEQUEUE_LIMIT: "5"
+    QUEUE_SEND_INVISIBILITY_TIME: "120"
+    QUEUE_RECEIVE_INVISIBILITY_TIME: "300"
+    CRON_JOB_SCHEDULE_RETRY_ENABLED: "false"
+    CRON_JOB_SCHEDULE_HISTORY_TRIGGER: "0 0 13 * * *"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-p-connection-string'
@@ -82,6 +88,7 @@ microservice-chart:
     GPD_SUBSCRIPTION_KEY: "gpd-p-gpd-subscription-key"
     GPS_SUBSCRIPTION_KEY: "gpd-p-gps-subscription-key"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-p-cosmos-connection-string"
+    QUEUE_CONNECTION_STRING: "gpd-payments-p-queue-connection-string"
   keyvault:
     name: "pagopa-p-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"

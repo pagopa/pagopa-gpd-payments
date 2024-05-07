@@ -24,7 +24,7 @@ public class Scheduler {
     @Autowired
     SchedulerService schedulerService;
 
-    @Scheduled(cron = "${cron.job.schedule.expression.retry.status}")
+    @Scheduled(cron = "${cron.job.schedule.expression.retry.trigger}")
     @Async
     @Transactional
     public void changeDebtPositionStatusToValid() {
