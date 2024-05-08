@@ -5,6 +5,7 @@ import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.models.QueueMessageItem;
 import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
+import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
@@ -135,6 +136,10 @@ public class SchedulerService {
                     Duration.ofSeconds(queueUpdateInvisibilityTime),
                     null,
                     Context.NONE);
+        } catch (PartnerValidationException e) {
+            // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
+            log.info("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), idPA, noticeNumber);
+            queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         }
     }
 
