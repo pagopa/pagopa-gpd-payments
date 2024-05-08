@@ -1,9 +1,11 @@
 package it.gov.pagopa.payments.service;
 
+import com.azure.core.util.Context;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableErrorCode;
 import com.azure.data.tables.models.TableServiceException;
+import com.azure.storage.queue.QueueClient;
 import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
 import feign.RetryableException;
@@ -50,14 +52,12 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
+import javax.xml.bind.*;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
@@ -67,6 +67,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+
 import it.gov.pagopa.payments.utils.Validator;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -101,6 +102,9 @@ public class PartnerService {
   @Value(value = "${xsd.generic-service}")
   private Resource xsdGenericService;
 
+  @Value(value = "${azure.queue.send.invisibilityTime}")
+  private Long queueSendInvisibilityTime;
+
   @Autowired private ObjectFactory factory;
 
   @Autowired private GpdClient gpdClient;
@@ -108,6 +112,8 @@ public class PartnerService {
   @Autowired private GpsClient gpsClient;
 
   @Autowired private TableClient tableClient;
+
+  @Autowired private QueueClient queueClient;
 
   @Autowired private CustomizedMapper customizedModelMapper;
 
@@ -683,7 +689,7 @@ public class PartnerService {
     }
   }
 
-  private long getFeeInCent(BigDecimal fee) {
+  public long getFeeInCent(BigDecimal fee) {
     long feeInCent = 0;
     if (null != fee) {
       feeInCent = fee.multiply(BigDecimal.valueOf(100)).longValue();
@@ -754,110 +760,149 @@ public class PartnerService {
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTReq request) {
-	  log.debug(
-			  "[managePaSendRtRequest] save receipt [noticeNumber={}]",
-			  request.getReceipt().getNoticeNumber());
+    log.debug(
+            "[managePaSendRtRequest] save receipt [noticeNumber={}]",
+            request.getReceipt().getNoticeNumber());
 
-	  ReceiptEntity receiptEntity =
-			  this.getReceiptEntity(
-					  request.getIdPA(),
-					  request.getReceipt().getCreditorReferenceId(),
-					  request.getReceipt().getDebtor(),
-					  request.getReceipt().getPaymentDateTime().toString());
+    String debtorIdentifier =
+            Optional.ofNullable(request.getReceipt().getDebtor())
+                    .map(CtSubject::getUniqueIdentifier)
+                    .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
+                    .orElse("");
+    ReceiptEntity receiptEntity =
+            this.getReceiptEntity(
+                    request.getIdPA(),
+                    request.getReceipt().getCreditorReferenceId(),
+                    debtorIdentifier,
+                    request.getReceipt().getPaymentDateTime().toString());
 
-	  try {
-		  receiptEntity.setDocument(this.marshal(request));
-	  } catch (JAXBException e) {
-		  log.error(
-				  "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
-				  request.getReceipt().getNoticeNumber(),
-				  e);
-		  throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-	  }
+    try {
+      receiptEntity.setDocument(this.marshal(request));
+    } catch (JAXBException e) {
+      log.error(
+              "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
+              request.getReceipt().getNoticeNumber(),
+              e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
 
-	  LocalDateTime paymentDateTime =
-			  request.getReceipt().getPaymentDateTime() != null
-			  ? request
-					  .getReceipt()
-					  .getPaymentDateTime()
-					  .toGregorianCalendar()
-					  .toZonedDateTime()
-					  .toLocalDateTime()
-					  : null;
-	  PaymentOptionModel body =
-			  PaymentOptionModel.builder()
-			  .idReceipt(request.getReceipt().getReceiptId())
-			  .paymentDate(paymentDateTime)
-			  .pspCompany(request.getReceipt().getPSPCompanyName())
-			  .paymentMethod(request.getReceipt().getPaymentMethod())
-			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-			  .build();
+    LocalDateTime paymentDateTime =
+            request.getReceipt().getPaymentDateTime() != null
+                    ? request
+                    .getReceipt()
+                    .getPaymentDateTime()
+                    .toGregorianCalendar()
+                    .toZonedDateTime()
+                    .toLocalDateTime()
+                    : null;
+    PaymentOptionModel body =
+            PaymentOptionModel.builder()
+                    .idReceipt(request.getReceipt().getReceiptId())
+                    .paymentDate(paymentDateTime)
+                    .pspCompany(request.getReceipt().getPSPCompanyName())
+                    .paymentMethod(request.getReceipt().getPaymentMethod())
+                    .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+                    .build();
 
-	  return this.getReceiptPaymentOption(
-			  request.getReceipt().getNoticeNumber(),
-			  request.getIdPA(),
-			  request.getReceipt().getCreditorReferenceId(),
-			  body,
-			  receiptEntity);
+    return this.getReceiptExceptionHandling(
+            request.getReceipt().getNoticeNumber(),
+            request.getIdPA(),
+            request.getReceipt().getCreditorReferenceId(),
+            body,
+            receiptEntity);
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTV2Request request) {
-	  log.debug(
-			  "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
-			  request.getReceipt().getNoticeNumber());
+    log.debug(
+            "[managePaSendRtRequest] save V2 receipt [noticeNumber={}]",
+            request.getReceipt().getNoticeNumber());
 
-	  ReceiptEntity receiptEntity =
-			  this.getReceiptEntity(
-					  request.getIdPA(),
-					  request.getReceipt().getCreditorReferenceId(),
-					  request.getReceipt().getDebtor(),
-					  request.getReceipt().getPaymentDateTime().toString());
-	  try {
-		  receiptEntity.setDocument(this.marshalV2(request));
-	  } catch (JAXBException e) {
-		  log.error(
-				  "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
-				  request.getReceipt().getNoticeNumber(),
-				  e);
-		  throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-	  }
+    String debtorIdentifier =
+            Optional.ofNullable(request.getReceipt().getDebtor())
+                    .map(CtSubject::getUniqueIdentifier)
+                    .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
+                    .orElse("");
+    ReceiptEntity receiptEntity =
+            this.getReceiptEntity(
+                    request.getIdPA(),
+                    request.getReceipt().getCreditorReferenceId(),
+                    debtorIdentifier,
+                    request.getReceipt().getPaymentDateTime().toString());
+    try {
+      receiptEntity.setDocument(this.marshalV2(request));
+    } catch (JAXBException e) {
+      log.error(
+              "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
+              request.getReceipt().getNoticeNumber(),
+              e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
 
-	  LocalDateTime paymentDateTime =
-			  request.getReceipt().getPaymentDateTime() != null
-			  ? request
-					  .getReceipt()
-					  .getPaymentDateTime()
-					  .toGregorianCalendar()
-					  .toZonedDateTime()
-					  .toLocalDateTime()
-					  : null;
+    LocalDateTime paymentDateTime =
+            request.getReceipt().getPaymentDateTime() != null
+                    ? request
+                    .getReceipt()
+                    .getPaymentDateTime()
+                    .toGregorianCalendar()
+                    .toZonedDateTime()
+                    .toLocalDateTime()
+                    : null;
 
-	  PaymentOptionModel body =
-			  PaymentOptionModel.builder()
-			  .idReceipt(request.getReceipt().getReceiptId())
-			  .paymentDate(paymentDateTime)
-			  .pspCompany(request.getReceipt().getPSPCompanyName())
-			  .paymentMethod(request.getReceipt().getPaymentMethod())
-			  .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
-			  .build();
+    PaymentOptionModel body =
+            PaymentOptionModel.builder()
+                    .idReceipt(request.getReceipt().getReceiptId())
+                    .paymentDate(paymentDateTime)
+                    .pspCompany(request.getReceipt().getPSPCompanyName())
+                    .paymentMethod(request.getReceipt().getPaymentMethod())
+                    .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
+                    .build();
 
-	  return this.getReceiptPaymentOption(
-			  request.getReceipt().getNoticeNumber(),
-			  request.getIdPA(),
-			  request.getReceipt().getCreditorReferenceId(),
-			  body,
-			  receiptEntity);
+    return this.getReceiptExceptionHandling(
+            request.getReceipt().getNoticeNumber(),
+            request.getIdPA(),
+            request.getReceipt().getCreditorReferenceId(),
+            body,
+            receiptEntity);
+  }
+
+  private PaymentOptionModelResponse getReceiptExceptionHandling(String noticeNumber,
+                                                                 String idPa,
+                                                                 String creditorReferenceId,
+                                                                 PaymentOptionModel body,
+                                                                 ReceiptEntity receiptEntity ) {
+    try {
+      return this.getReceiptPaymentOption(
+              noticeNumber,
+              idPa,
+              creditorReferenceId,
+              body,
+              receiptEntity);
+    } catch (RetryableException e) {
+      log.error("[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Not Reachable [noticeNumber={}]", noticeNumber, e);
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    } catch (FeignException e) {
+      log.error("[getReceiptPaymentOption] PAA_SEMANTICA: GPD Error Response [noticeNumber={}]", noticeNumber, e);
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+    } catch (StorageException e) {
+      log.error("[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Storage exception [noticeNumber={}]", noticeNumber, e);
+      queueClient.sendMessageWithResponse(receiptEntity.getDocument(), Duration.ofSeconds(queueSendInvisibilityTime), null, null, Context.NONE);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    } catch (PartnerValidationException e) {
+      // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
+      throw e;
+    } catch (Exception e) {
+      // no retry because the long-term retry is enabled only when there is a gpd-core error response or a storage communication failure
+      log.error("[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Generic Error [noticeNumber={}]", noticeNumber, e);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    }
   }
 
   private ReceiptEntity getReceiptEntity(
-      String idPa, String creditorReferenceId, CtSubject debtor, String paymentDateTime) {
+      String idPa, String creditorReferenceId, String debtor, String paymentDateTime) {
     ReceiptEntity receiptEntity = new ReceiptEntity(idPa, creditorReferenceId);
-    String debtorIdentifier =
-        Optional.ofNullable(debtor)
-            .map(CtSubject::getUniqueIdentifier)
-            .map(CtEntityUniqueIdentifier::getEntityUniqueIdentifierValue)
-            .orElse("");
-    receiptEntity.setDebtor(debtorIdentifier);
+    receiptEntity.setDebtor(debtor);
     String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
     receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
     return receiptEntity;
@@ -867,7 +912,7 @@ public class PartnerService {
 	      String idPa,
 	      String creditorReferenceId,
           PaymentOptionModel body,
-          ReceiptEntity receiptEntity) {
+          ReceiptEntity receiptEntity) throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.receiptPaymentOption(idPa, noticeNumber, body);
@@ -879,7 +924,7 @@ public class PartnerService {
       // if PO is already paid on GPD --> checks and in case creates the receipt in PAID status
       try {
         log.error(
-            "[getReceiptPaymentOption] GPD Conflict Error Response [noticeNumber={}]",
+            "[getReceiptPaymentOption] PAA_RECEIPT_DUPLICATA: GPD Conflict Error Response [noticeNumber={}]",
             noticeNumber,
             e);
         ReceiptEntity receiptEntityToCreate = this.getReceipt(idPa, creditorReferenceId);
@@ -897,22 +942,21 @@ public class PartnerService {
       throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
     } catch (FeignException.NotFound e) {
     	log.error(
-    	          "[getReceiptPaymentOption] GPD Not Found Error Response [noticeNumber={}]",
+    	          "[getReceiptPaymentOption] PAA_PAGAMENTO_SCONOSCIUTO: GPD Not Found Error Response [noticeNumber={}]",
     	          noticeNumber,
     	          e);
     	throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (PartnerValidationException e) {
     	throw e;
-    } catch (RetryableException e) {
-      log.error("[getReceiptPaymentOption] GPD Not Reachable [noticeNumber={}]", noticeNumber, e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
-    } catch (FeignException e) {
-      log.error("[getReceiptPaymentOption] GPD Error Response [noticeNumber={}]", noticeNumber, e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
-    } catch (Exception e) {
-      log.error("[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}]", noticeNumber, e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
     return paymentOption;
+  }
+
+  public PaymentOptionModelResponse getReceiptPaymentOptionScheduler(String noticeNumber,
+         String idPa,
+         String creditorReferenceId,
+         PaymentOptionModel body,
+         ReceiptEntity receiptEntity) throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
+    return getReceiptPaymentOption(noticeNumber, idPa, creditorReferenceId, body, receiptEntity);
   }
 }
