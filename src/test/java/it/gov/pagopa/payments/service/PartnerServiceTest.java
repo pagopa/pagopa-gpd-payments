@@ -1504,7 +1504,7 @@ class PartnerServiceTest {
     PartnerValidationException e = Assertions.assertThrows(PartnerValidationException.class, () -> pService.paSendRTV2(requestBody));
 
     // Test post condition
-    assertEquals("L'id del pagamento ricevuto  e' duplicato", e.getMessage());
+    assertEquals("PAA_RECEIPT_DUPLICATA, L'id del pagamento ricevuto  e' duplicato", e.getMessage());
   }
 
   @Test
@@ -1552,7 +1552,7 @@ class PartnerServiceTest {
     PartnerValidationException e = Assertions.assertThrows(PartnerValidationException.class, () -> pService.paSendRT(requestBody));
 
     // Test post condition
-    assertEquals("L'id del pagamento ricevuto  e' duplicato", e.getMessage());
+    assertEquals("PAA_RECEIPT_DUPLICATA, L'id del pagamento ricevuto  e' duplicato", e.getMessage());
   }
 
   @Test
