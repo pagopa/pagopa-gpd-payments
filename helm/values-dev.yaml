@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.21"
+    tag: "0.12.21-1-PAGOPA-1695-sviluppo-pa-send-rt-long-term-reliability"
     pullPolicy: Always
   livenessProbe:
     httpGet:
