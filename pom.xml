@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.21-1-PAGOPA-1695-sviluppo-pa-send-rt-long-term-reliability</version>
+    <version>0.12.21-2-PAGOPA-1695-sviluppo-pa-send-rt-long-term-reliability</version>
     <name>Payments</name>
     <description>Payments</description>
 
