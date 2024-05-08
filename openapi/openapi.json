@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.12.21-2-PAGOPA-1695-sviluppo-pa-send-rt-long-term-reliability"
+    "version": "0.12.22"
   },
   "servers": [
     {
