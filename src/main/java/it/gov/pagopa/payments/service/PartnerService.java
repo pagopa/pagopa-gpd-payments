@@ -548,8 +548,12 @@ public class PartnerService {
    */
   private CtTransferPAV2 getTransferResponseV2(
       PaymentsTransferModelResponse transfer, StTransferType transferType) {
-    CtRichiestaMarcaDaBollo richiestaMarcaDaBollo =
-        customizedModelMapper.map(transfer.getStamp(), CtRichiestaMarcaDaBollo.class);
+    Stamp stamp = transfer.getStamp();
+    CtRichiestaMarcaDaBollo richiestaMarcaDaBollo = null;
+
+    if(stamp.getHashDocument() != null && stamp.getStampType() != null && stamp.getProvincialResidence() != null)
+      richiestaMarcaDaBollo = customizedModelMapper.map(transfer.getStamp(), CtRichiestaMarcaDaBollo.class);
+
     CtTransferPAV2 transferPA = new CtTransferPAV2();
     transferPA.setFiscalCodePA(transfer.getOrganizationFiscalCode());
     transferPA.setRichiestaMarcaDaBollo(richiestaMarcaDaBollo);
