@@ -1,0 +1,65 @@
+{
+  "nav": "311111111112222222",
+  "iuv": "11111111112222222",
+  "organizationFiscalCode": "77777777777",
+  "amount": 1055,
+  "description": "string",
+  "isPartialPayment": true,
+  "dueDate": "2122-02-24T17:03:59.408Z",
+  "retentionDate": "2022-02-25T17:03:59.408Z",
+  "paymentDate": null,
+  "reportingDate": "2022-02-24T17:03:59.408Z",
+  "insertedDate": "2022-02-24T17:03:59.408Z",
+  "paymentMethod": "string",
+  "fee": 0,
+  "pspCompany": "string",
+  "idReceipt": "string",
+  "idFlowReporting": "string",
+  "status": "PO_UNPAID",
+  "paymentOptionMetadata": [
+    {
+      "key": "string",
+      "value": "string"
+    }
+  ],
+  "type": "G",
+  "fiscalCode": "string",
+  "fullName": "string",
+  "streetName": "string",
+  "civicNumber": "string",
+  "postalCode": "string",
+  "city": "string",
+  "province": "string",
+  "region": "string",
+  "country": "string",
+  "email": "string",
+  "phone": "string",
+  "companyName": "string",
+  "officeName": "string",
+  "debtPositionStatus": "VALID",
+  "transfer": [
+    {
+      "organizationFiscalCode": "string",
+      "idTransfer": "1",
+      "amount": 1005,
+      "remittanceInformation": "string",
+      "category": null,
+      "iban": null,
+      "stamp": {
+        "hashDocument": "f2aca93b80cae681221f04",
+        "stampType": "01",
+        "provincialResidence": "RM"
+      },
+      "postalIban": "string",
+      "insertedDate": "2022-02-24T17:03:59.408Z",
+      "status": "T_UNREPORTED",
+      "lastUpdatedDate": "2022-02-24T17:03:59.408Z",
+      "transferMetadata": [
+        {
+          "key": "string",
+          "value": "string"
+        }
+      ]
+    }
+  ]
+}
