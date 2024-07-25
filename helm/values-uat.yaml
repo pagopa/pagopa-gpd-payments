@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.27"
+    tag: "0.12.28"
     pullPolicy: Always
   livenessProbe:
     httpGet:
