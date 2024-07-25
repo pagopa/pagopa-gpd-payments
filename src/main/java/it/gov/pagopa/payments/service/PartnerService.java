@@ -479,14 +479,13 @@ public class PartnerService {
     transferList
         .getTransfer()
         .addAll(
-            source
-                .getTransfer()
-                .stream()
-                .map(
-                    paymentsTransferModelResponse ->
-                        getTransferResponseV2(
-                            paymentsTransferModelResponse, request.getTransferType()))
-                .collect(Collectors.toList()));
+                source
+                        .getTransfer()
+                        .stream()
+                        .map(
+                                paymentsTransferModelResponse ->
+                                        getTransferResponseV2(
+                                                paymentsTransferModelResponse, request.getTransferType())).toList());
 
     responseData.setTransferList(transferList);
     responseData.setDebtor(debtor);
@@ -574,6 +573,7 @@ public class PartnerService {
 
     CtTransferPAV2 transferPA = new CtTransferPAV2();
     transferPA.setFiscalCodePA(transfer.getOrganizationFiscalCode());
+    transferPA.setCompanyName(" "); // stText140(1, 140) todo: to be filled in with the correct company name for the PO Nth transfer
     transferPA.setRichiestaMarcaDaBollo(richiestaMarcaDaBollo);
     transferPA.setIdTransfer(Integer.parseInt(transfer.getIdTransfer()));
     transferPA.setRemittanceInformation(transfer.getRemittanceInformation());
