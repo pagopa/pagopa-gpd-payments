@@ -34,7 +34,7 @@ public class Scheduler {
     public void retryPaSendRT() {
         try {
             updateMDCForStartExecution("retryPaSendRT", "");
-            log.info(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now())));
+            log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now())));
             schedulerService.retryFailedPaSendRT();
             this.threadOfExecution = Thread.currentThread();
             updateMDCForEndExecution();

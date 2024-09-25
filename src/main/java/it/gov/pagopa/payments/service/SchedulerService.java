@@ -128,7 +128,7 @@ public class SchedulerService {
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
-            log.info("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", idPA, noticeNumber);
+            log.debug("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", idPA, noticeNumber);
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
                     queueMessageItem.getPopReceipt(),
@@ -138,7 +138,7 @@ public class SchedulerService {
                     Context.NONE);
         } catch (PartnerValidationException e) {
             // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
-            log.info("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), idPA, noticeNumber);
+            log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), idPA, noticeNumber);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         }
     }
