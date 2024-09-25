@@ -32,7 +32,9 @@ public class PaymentsModelResponse implements Serializable {
   private String idFlowReporting;
   private PaymentOptionStatus status;
   private Type type;
+  @ToString.Exclude
   private String fiscalCode;
+  @ToString.Exclude
   private String fullName;
   private String streetName;
   private String civicNumber;
@@ -41,7 +43,9 @@ public class PaymentsModelResponse implements Serializable {
   private String province;
   private String region;
   private String country;
+  @ToString.Exclude
   private String email;
+  @ToString.Exclude
   private String phone;
   private String companyName;
   private String officeName;

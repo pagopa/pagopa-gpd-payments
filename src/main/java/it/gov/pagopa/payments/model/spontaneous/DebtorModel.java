@@ -5,11 +5,8 @@ import java.io.Serializable;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import lombok.*;
 
 @Data
 @NoArgsConstructor
@@ -21,9 +18,11 @@ public class DebtorModel implements Serializable {
   private Type type;
 
   @NotBlank(message = "fiscal code is required")
+  @ToString.Exclude
   private String fiscalCode;
 
   @NotBlank(message = "full name is required")
+  @ToString.Exclude
   private String fullName;
 
   private String streetName;
@@ -41,7 +40,9 @@ public class DebtorModel implements Serializable {
   private String country;
 
   @Email(message = "Please provide a valid email address")
+  @ToString.Exclude
   private String email;
 
+  @ToString.Exclude
   private String phone;
 }
