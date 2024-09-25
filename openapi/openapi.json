@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.12.28-2-PAGOPA-2178-gpd-debito-tecnico-ottimizzazione-dei-log"
+    "version": "0.12.28-3-PAGOPA-2178-gpd-debito-tecnico-ottimizzazione-dei-log"
   },
   "servers": [
     {
