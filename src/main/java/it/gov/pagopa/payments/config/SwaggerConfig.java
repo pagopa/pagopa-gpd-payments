@@ -22,8 +22,8 @@ public class SwaggerConfig {
 
   @Bean
   public OpenAPI customOpenAPI(
-      @Value("${application.description}") String appDescription,
-      @Value("${application.version}") String appVersion) {
+      @Value("${info.application.description}") String appDescription,
+      @Value("${info.application.version}") String appVersion) {
     return new OpenAPI()
         .components(
             new Components()
@@ -55,7 +55,10 @@ public class SwaggerConfig {
   public OpenApiCustomiser sortOperationsAlphabetically() {
     return openApi -> {
       Paths paths =
-          openApi.getPaths().entrySet().stream()
+          openApi
+              .getPaths()
+              .entrySet()
+              .stream()
               .sorted(Map.Entry.comparingByKey())
               .collect(
                   Paths::new,
@@ -68,7 +71,10 @@ public class SwaggerConfig {
                   .forEach(
                       operation -> {
                         var responses =
-                            operation.getResponses().entrySet().stream()
+                            operation
+                                .getResponses()
+                                .entrySet()
+                                .stream()
                                 .sorted(Map.Entry.comparingByKey())
                                 .collect(
                                     ApiResponses::new,

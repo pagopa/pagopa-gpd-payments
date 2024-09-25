@@ -20,13 +20,13 @@ import org.springframework.web.reactive.result.view.RedirectView;
 
 @RestController()
 public class BaseController {
-  @Value("${application.name}")
+  @Value("${info.application.name}")
   private String name;
 
   @Value("${application.version}")
   private String version;
 
-  @Value("${properties.environment}")
+  @Value("${info.properties.environment}")
   private String environment;
 
   @Value("${server.servlet.context-path:/}")
