@@ -23,7 +23,7 @@ public class BaseController {
   @Value("${info.application.name}")
   private String name;
 
-  @Value("${application.version}")
+  @Value("${info.application.version}")
   private String version;
 
   @Value("${info.properties.environment}")
@@ -47,50 +47,64 @@ public class BaseController {
   }
 
   @Operation(
-      summary = "health check",
-      description = "Return OK if application is started",
-      security = {
-        @SecurityRequirement(name = "ApiKey"),
-        @SecurityRequirement(name = "Authorization")
-      },
-      tags = {"Home"})
+    summary = "health check",
+    description = "Return OK if application is started",
+    security = {
+      @SecurityRequirement(name = "ApiKey"),
+      @SecurityRequirement(name = "Authorization")
+    },
+    tags = {"Home"}
+  )
   @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "OK",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = AppInfo.class))),
-        @ApiResponse(
-            responseCode = "400",
-            description = "Bad Request",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = ProblemJson.class))),
-        @ApiResponse(
-            responseCode = "401",
-            description = "Unauthorized",
-            content = @Content(schema = @Schema())),
-        @ApiResponse(
-            responseCode = "403",
-            description = "Forbidden",
-            content = @Content(schema = @Schema())),
-        @ApiResponse(
-            responseCode = "429",
-            description = "Too many requests",
-            content = @Content(schema = @Schema())),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Service unavailable",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = ProblemJson.class)))
-      })
-  @GetMapping(value = "/info", produces = {MediaType.APPLICATION_JSON_VALUE})
+    value = {
+      @ApiResponse(
+        responseCode = "200",
+        description = "OK",
+        content =
+            @Content(
+              mediaType = MediaType.APPLICATION_JSON_VALUE,
+              schema = @Schema(implementation = AppInfo.class)
+            )
+      ),
+      @ApiResponse(
+        responseCode = "400",
+        description = "Bad Request",
+        content =
+            @Content(
+              mediaType = MediaType.APPLICATION_JSON_VALUE,
+              schema = @Schema(implementation = ProblemJson.class)
+            )
+      ),
+      @ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = @Content(schema = @Schema())
+      ),
+      @ApiResponse(
+        responseCode = "403",
+        description = "Forbidden",
+        content = @Content(schema = @Schema())
+      ),
+      @ApiResponse(
+        responseCode = "429",
+        description = "Too many requests",
+        content = @Content(schema = @Schema())
+      ),
+      @ApiResponse(
+        responseCode = "500",
+        description = "Service unavailable",
+        content =
+            @Content(
+              mediaType = MediaType.APPLICATION_JSON_VALUE,
+              schema = @Schema(implementation = ProblemJson.class)
+            )
+      )
+    }
+  )
+  @GetMapping(
+    value = "/info",
+    produces = {MediaType.APPLICATION_JSON_VALUE}
+  )
   @ResponseStatus(HttpStatus.OK)
   public ResponseEntity<AppInfo> healthCheck() {
     // Used just for health checking
