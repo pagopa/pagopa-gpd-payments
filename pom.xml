@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.28-5-PAGOPA-2178-gpd-debito-tecnico-ottimizzazione-dei-log</version>
+    <version>0.12.28-6-PAGOPA-2178-gpd-debito-tecnico-ottimizzazione-dei-log</version>
     <name>Payments</name>
     <description>Payments</description>
 
