@@ -10,10 +10,6 @@
     "sampling": {
       "overrides": [
         {
-          "telemetryKind": "request",
-          "percentage": 100
-        },
-        {
           "telemetryKind": "exception",
           "percentage": 100
         }
