@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.28-8-PAGOPA-2178-gpd-debito-tecnico-ottimizzazione-dei-log"
+    tag: "0.12.28-9-PAGOPA-2178-gpd-debito-tecnico-ottimizzazione-dei-log"
     pullPolicy: Always
   livenessProbe:
     httpGet:
