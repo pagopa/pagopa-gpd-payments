@@ -36,13 +36,14 @@ public class PaymentsController implements IPaymentsController {
   public ResponseEntity<String> getReceiptByIUV(
       String organizationFiscalCode, String iuv, String segregationCodes) {
     String sanitizedOrganizationFiscalCode = sanitizeInput(organizationFiscalCode);
+    String sanitizedIuv = sanitizeInput(iuv);
     log.debug(
         String.format(
             LOG_BASE_HEADER_INFO,
             "GET",
             String.format(LOG_BASE_PARAMS_DETAIL, sanitizedOrganizationFiscalCode)
                 + "; iuv= "
-                + iuv
+                + sanitizedIuv
                 + "; validSegregationCodes= "
                 + segregationCodes));
 
