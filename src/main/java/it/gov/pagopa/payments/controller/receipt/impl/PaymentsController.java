@@ -35,12 +35,12 @@ public class PaymentsController implements IPaymentsController {
   @Override
   public ResponseEntity<String> getReceiptByIUV(
       String organizationFiscalCode, String iuv, String segregationCodes) {
+    String sanitizedOrganizationFiscalCode = sanitizeInput(organizationFiscalCode);
     log.debug(
         String.format(
             LOG_BASE_HEADER_INFO,
             "GET",
-            "getReceiptByIUV",
-            String.format(LOG_BASE_PARAMS_DETAIL, organizationFiscalCode)
+            String.format(LOG_BASE_PARAMS_DETAIL, sanitizedOrganizationFiscalCode)
                 + "; iuv= "
                 + iuv
                 + "; validSegregationCodes= "
