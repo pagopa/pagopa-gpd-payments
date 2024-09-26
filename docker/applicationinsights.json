@@ -7,18 +7,6 @@
     "percentage": 5,
     "overrides": [
       {
-        "telemetryType": "request",
-        "percentage": 5
-      },
-      {
-        "telemetryType": "dependency",
-        "percentage": 5
-      },
-      {
-        "telemetryType": "trace",
-        "percentage": 5
-      },
-      {
         "telemetryType": "exception",
         "percentage": 100
       }
