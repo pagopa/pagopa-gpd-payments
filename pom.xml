@@ -146,6 +146,12 @@
             </exclusions>
         </dependency>
 
+        <!-- ECS logging agent -->
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>logback-ecs-encoder</artifactId>
+            <version>1.6.0</version>
+        </dependency>
 
         <!-- Dependency to SOAP web service - START - -->
         <dependency>
