@@ -37,6 +37,7 @@ public class PaymentsController implements IPaymentsController {
       String organizationFiscalCode, String iuv, String segregationCodes) {
     String sanitizedOrganizationFiscalCode = sanitizeInput(organizationFiscalCode);
     String sanitizedIuv = sanitizeInput(iuv);
+    String sanitizedSegregationCodes = sanitizeInput(segregationCodes);
     log.debug(
         String.format(
             LOG_BASE_HEADER_INFO,
@@ -45,7 +46,7 @@ public class PaymentsController implements IPaymentsController {
                 + "; iuv= "
                 + sanitizedIuv
                 + "; validSegregationCodes= "
-                + segregationCodes));
+                + sanitizedSegregationCodes));
 
     ArrayList<String> segCodesList =
         segregationCodes != null
@@ -68,6 +69,7 @@ public class PaymentsController implements IPaymentsController {
       String segregationCodes,
       String debtorOrIuv) {
 
+    String sanitizedSegregationCodes = sanitizeInput(segregationCodes);
     log.debug(
         String.format(
             LOG_BASE_HEADER_INFO,
@@ -81,7 +83,7 @@ public class PaymentsController implements IPaymentsController {
                     + "; service= "
                     + sanitizeInput(service)
                     + "; validSegregationCodes= "
-                    + sanitizeInput(segregationCodes))));
+                    + sanitizedSegregationCodes)));
 
     ArrayList<String> segCodesList =
         segregationCodes != null
