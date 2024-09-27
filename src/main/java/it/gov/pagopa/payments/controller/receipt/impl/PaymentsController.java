@@ -24,7 +24,6 @@ public class PaymentsController implements IPaymentsController {
 
   private static final String LOG_BASE_HEADER_INFO =
       "[RequestMethod: %s] - [ClassMethod: %s] - [MethodParamsToLog: %s]";
-  private static final String LOG_BASE_PARAMS_DETAIL = "organizationFiscalCode= %s";
 
   @Autowired private ModelMapper modelMapper;
 
@@ -41,7 +40,8 @@ public class PaymentsController implements IPaymentsController {
             LOG_BASE_HEADER_INFO,
             "GET",
             "getReceiptByIUV",
-            String.format(LOG_BASE_PARAMS_DETAIL, sanitizedOrganizationFiscalCode)
+            "organizationFiscalCode="
+                + sanitizedOrganizationFiscalCode
                 + "; iuv= "
                 + sanitizedIuv
                 + "; validSegregationCodes= "
@@ -74,15 +74,14 @@ public class PaymentsController implements IPaymentsController {
             LOG_BASE_HEADER_INFO,
             "GET",
             "getOrganizationReceipts",
-            String.format(
-                LOG_BASE_PARAMS_DETAIL,
-                sanitizeInput(organizationFiscalCode)
-                    + "; debtor= "
-                    + sanitizeInput(debtor)
-                    + "; service= "
-                    + sanitizeInput(service)
-                    + "; validSegregationCodes= "
-                    + sanitizedSegregationCodes)));
+            "organizationFiscalCode="
+                + sanitizeInput(organizationFiscalCode)
+                + "; debtor= "
+                + sanitizeInput(debtor)
+                + "; service= "
+                + sanitizeInput(service)
+                + "; validSegregationCodes= "
+                + sanitizedSegregationCodes));
 
     ArrayList<String> segCodesList =
         segregationCodes != null
