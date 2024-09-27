@@ -2,6 +2,8 @@ package it.gov.pagopa.payments.config;
 
 import static it.gov.pagopa.payments.utils.CommonUtil.deNull;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.model.ProblemJson;
 import java.util.HashMap;
@@ -10,6 +12,7 @@ import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.bind.JAXBElement;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -84,7 +87,15 @@ public class LoggingAspect {
     Map<String, String> params = new HashMap<>();
     int i = 0;
     for (var paramName : codeSignature.getParameterNames()) {
-      params.put(paramName, deNull(joinPoint.getArgs()[i++]));
+      var arg = joinPoint.getArgs()[i++];
+      if (arg instanceof JAXBElement<?>) {
+        try {
+          arg = new ObjectMapper().writer().writeValueAsString(arg);
+        } catch (JsonProcessingException e) {
+          arg = "unreadable!";
+        }
+      }
+      params.put(paramName, deNull(arg));
     }
     return params;
   }
