@@ -10,6 +10,7 @@ import it.gov.pagopa.payments.service.PaymentsService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,12 +26,9 @@ public class PaymentsController implements IPaymentsController {
       "[RequestMethod: %s] - [ClassMethod: %s] - [MethodParamsToLog: %s]";
   private static final String LOG_BASE_PARAMS_DETAIL = "organizationFiscalCode= %s";
 
-  private final PaymentsService paymentsService;
+  @Autowired private ModelMapper modelMapper;
 
-  @Autowired
-  public PaymentsController(PaymentsService paymentsService) {
-    this.paymentsService = paymentsService;
-  }
+  @Autowired private PaymentsService paymentsService;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(
@@ -42,6 +40,7 @@ public class PaymentsController implements IPaymentsController {
         String.format(
             LOG_BASE_HEADER_INFO,
             "GET",
+            "getReceiptByIUV",
             String.format(LOG_BASE_PARAMS_DETAIL, sanitizedOrganizationFiscalCode)
                 + "; iuv= "
                 + sanitizedIuv
