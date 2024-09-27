@@ -12,6 +12,7 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+import it.gov.pagopa.payments.utils.Sensitive;
 import lombok.*;
 
 @Builder
@@ -27,7 +28,7 @@ public class PaymentPositionModel implements Serializable {
   private Type type;
 
   @NotBlank(message = "fiscal code is required")
-  @ToString.Exclude
+  @Sensitive
   private String fiscalCode;
 
   @NotBlank(message = "full name is required")

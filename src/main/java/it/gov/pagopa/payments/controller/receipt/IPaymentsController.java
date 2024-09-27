@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ProblemJson;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
+import it.gov.pagopa.payments.utils.Sensitive;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -81,6 +82,7 @@ public interface IPaymentsController {
                                     + " and identifies three key elements of a payment: reason, payer, amount",
                     required = true, example = "ABC123")
             @PathVariable("iuv")
+                    @Sensitive
             String iuv,
             @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
             @RequestParam(required = false) String segregationCodes);

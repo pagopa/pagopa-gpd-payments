@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.entity;
 
+import it.gov.pagopa.payments.utils.Sensitive;
 import lombok.*;
 
 @Data
@@ -10,7 +11,7 @@ public class ReceiptEntity {
 
     private String organizationFiscalCode;
     private String iuv;
-    @ToString.Exclude
+    @Sensitive
     private String debtor;
     private String paymentDateTime;
     private String status = Status.PAID.name();

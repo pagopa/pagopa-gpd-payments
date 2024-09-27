@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.model.ProblemJson;
+import it.gov.pagopa.payments.utils.Sensitive;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -20,7 +22,7 @@ import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
-import org.aspectj.lang.reflect.CodeSignature;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -83,10 +85,13 @@ public class LoggingAspect {
   }
 
   private static Map<String, String> getParams(ProceedingJoinPoint joinPoint) {
-    CodeSignature codeSignature = (CodeSignature) joinPoint.getSignature();
+    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    Method method = signature.getMethod();
     Map<String, String> params = new HashMap<>();
     int i = 0;
-    for (var paramName : codeSignature.getParameterNames()) {
+    for (var parameter : method.getParameters()) {
+      var paramName = parameter.getName();
+      boolean isSensitive = parameter.isAnnotationPresent(Sensitive.class);
       var arg = joinPoint.getArgs()[i++];
       if (arg instanceof JAXBElement<?>) {
         try {
@@ -94,6 +99,9 @@ public class LoggingAspect {
         } catch (JsonProcessingException e) {
           arg = "unreadable!";
         }
+      }
+      if (isSensitive && arg != null) {
+        arg = "obfuscated-" + arg.hashCode();
       }
       params.put(paramName, deNull(arg));
     }
