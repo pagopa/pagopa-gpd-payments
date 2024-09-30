@@ -46,12 +46,12 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
-            <version>${azure.core.version}</version>
+            <version>1.51.0</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-data-tables</artifactId>
-            <version>${azure.data.table.version}</version>
+            <version>12.4.4</version>
         </dependency>
         <!-- End cosmos tables -->
         <dependency>
@@ -251,6 +251,13 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>2021.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-sdk-bom</artifactId>
+                <version>1.2.24</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
