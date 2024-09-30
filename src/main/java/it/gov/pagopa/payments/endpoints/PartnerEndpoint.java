@@ -21,7 +21,6 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
-import it.gov.pagopa.payments.utils.Sensitive;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
@@ -43,7 +42,7 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paVerifyPaymentNoticeReq")
   @ResponsePayload
   public JAXBElement<PaVerifyPaymentNoticeRes> paVerifyPaymentNotice(
-      @RequestPayload @Sensitive JAXBElement<PaVerifyPaymentNoticeReq> request)
+      @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request)
       throws DatatypeConfigurationException, PartnerValidationException {
 
     log.debug(" paVerifyPaymentNotice START ");
@@ -66,7 +65,7 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paGetPaymentV2Request")
   @ResponsePayload
   public JAXBElement<PaGetPaymentV2Response> paGetPaymentV2(
-      @RequestPayload @Sensitive JAXBElement<PaGetPaymentV2Request> request)
+      @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPaymentV2 START ");

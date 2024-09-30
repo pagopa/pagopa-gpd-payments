@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import it.gov.pagopa.payments.utils.Sensitive;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -34,7 +33,6 @@ public class PaymentsModelResponse implements Serializable {
   private String idFlowReporting;
   private PaymentOptionStatus status;
   private Type type;
-  @Sensitive
   private String fiscalCode;
   @ToString.Exclude
   private String fullName;

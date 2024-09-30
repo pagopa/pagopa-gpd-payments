@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.model.ProblemJson;
-import it.gov.pagopa.payments.utils.Sensitive;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -91,7 +90,6 @@ public class LoggingAspect {
     int i = 0;
     for (var parameter : method.getParameters()) {
       var paramName = parameter.getName();
-      boolean isSensitive = parameter.isAnnotationPresent(Sensitive.class);
       var arg = joinPoint.getArgs()[i++];
       if (arg instanceof JAXBElement<?>) {
         try {
@@ -99,9 +97,6 @@ public class LoggingAspect {
         } catch (JsonProcessingException e) {
           arg = "unreadable!";
         }
-      }
-      if (isSensitive && arg != null) {
-        arg = "obfuscated-" + arg.hashCode();
       }
       params.put(paramName, deNull(arg));
     }

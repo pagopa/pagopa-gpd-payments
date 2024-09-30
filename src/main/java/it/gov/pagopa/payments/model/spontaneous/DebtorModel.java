@@ -6,7 +6,6 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-import it.gov.pagopa.payments.utils.Sensitive;
 import lombok.*;
 
 @Data
@@ -19,7 +18,6 @@ public class DebtorModel implements Serializable {
   private Type type;
 
   @NotBlank(message = "fiscal code is required")
-  @Sensitive
   private String fiscalCode;
 
   @NotBlank(message = "full name is required")
