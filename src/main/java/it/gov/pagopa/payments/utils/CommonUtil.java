@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Optional;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -57,5 +58,13 @@ public class CommonUtil {
 
   public static String sanitizeInput(String input) {
     return input != null ? input.replace("\n", "").replaceAll("[^a-zA-Z0-9_\\-+/]", "") : "";
+  }
+
+  /**
+   * @param value value to deNullify.
+   * @return return empty string if value is null
+   */
+  public static String deNull(Object value) {
+    return Optional.ofNullable(value).orElse("").toString();
   }
 }

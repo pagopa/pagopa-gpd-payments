@@ -11,10 +11,8 @@ import java.util.List;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import lombok.*;
 
 @Builder
 @Data
@@ -32,6 +30,7 @@ public class PaymentPositionModel implements Serializable {
   private String fiscalCode;
 
   @NotBlank(message = "full name is required")
+  @ToString.Exclude
   private String fullName;
 
   private String streetName;
@@ -49,8 +48,10 @@ public class PaymentPositionModel implements Serializable {
   private String country;
 
   @Email(message = "Please provide a valid email address")
+  @ToString.Exclude
   private String email;
 
+  @ToString.Exclude
   private String phone;
 
   @Schema(
