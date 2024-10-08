@@ -2,7 +2,7 @@ package it.gov.pagopa.payments.mapper;
 
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import org.modelmapper.Converter;
 import org.modelmapper.spi.MappingContext;
 

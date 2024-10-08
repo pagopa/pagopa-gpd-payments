@@ -11,6 +11,13 @@ import it.gov.pagopa.payments.model.partner.PaSendRTRes;
 import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
 import it.gov.pagopa.payments.model.partner.StOutcome;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.xml.soap.MessageFactory;
+import jakarta.xml.soap.SOAPBody;
+import jakarta.xml.soap.SOAPException;
+import jakarta.xml.soap.SOAPMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,18 +25,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.ws.transport.http.MessageDispatcherServlet;
 import org.w3c.dom.Document;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.soap.MessageFactory;
-import javax.xml.soap.SOAPBody;
-import javax.xml.soap.SOAPException;
-import javax.xml.soap.SOAPMessage;
 import java.io.IOException;
 
 @Component

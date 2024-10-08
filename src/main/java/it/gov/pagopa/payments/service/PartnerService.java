@@ -6,7 +6,6 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableErrorCode;
 import com.azure.data.tables.models.TableServiceException;
 import com.azure.storage.queue.QueueClient;
-import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
@@ -58,7 +57,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import javax.xml.bind.*;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
@@ -68,6 +66,11 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
+
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -679,7 +682,7 @@ public class PartnerService {
   }
 
   private void saveReceipt(ReceiptEntity receiptEntity)
-      throws InvalidKeyException, URISyntaxException, StorageException {
+      throws InvalidKeyException, URISyntaxException{
     try {
       TableEntity tableEntity =
           new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
@@ -700,7 +703,7 @@ public class PartnerService {
   }
 
   private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv)
-      throws InvalidKeyException, URISyntaxException, StorageException {
+      throws InvalidKeyException, URISyntaxException {
     try {
       TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
@@ -920,18 +923,18 @@ public class PartnerService {
           null,
           Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
-    } catch (StorageException e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Storage exception [noticeNumber={}]",
-          noticeNumber,
-          e);
-      queueClient.sendMessageWithResponse(
-          receiptEntity.getDocument(),
-          Duration.ofSeconds(queueSendInvisibilityTime),
-          null,
-          null,
-          Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+//    } catch (StorageException e) {
+//      log.error(
+//          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Storage exception [noticeNumber={}]",
+//          noticeNumber,
+//          e);
+//      queueClient.sendMessageWithResponse(
+//          receiptEntity.getDocument(),
+//          Duration.ofSeconds(queueSendInvisibilityTime),
+//          null,
+//          null,
+//          Context.NONE);
+//      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     } catch (PartnerValidationException e) {
       // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
       throw e;
@@ -961,7 +964,7 @@ public class PartnerService {
       String creditorReferenceId,
       PaymentOptionModel body,
       ReceiptEntity receiptEntity)
-      throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
+      throws FeignException, URISyntaxException, InvalidKeyException {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.receiptPaymentOption(idPa, noticeNumber, body);
@@ -1007,7 +1010,7 @@ public class PartnerService {
       String creditorReferenceId,
       PaymentOptionModel body,
       ReceiptEntity receiptEntity)
-      throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
+      throws FeignException, URISyntaxException, InvalidKeyException {
     return getReceiptPaymentOption(noticeNumber, idPa, creditorReferenceId, body, receiptEntity);
   }
 }

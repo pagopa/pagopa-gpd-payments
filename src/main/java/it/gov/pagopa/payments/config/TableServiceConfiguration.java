@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.config;
 
+import com.azure.core.util.ConfigurationBuilder;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,9 +25,16 @@ public class TableServiceConfiguration {
 
     @Bean
     public TableClient tableClientConfiguration() {
+        var config = new ConfigurationBuilder()
+                .putProperty("MAX_HTTP_HEADER_SIZE_IN_BYTES", "16384")
+                .build();
         return new TableClientBuilder()
+                .configuration(config)
                 .connectionString(CONNECTION_STRING)
                 .tableName(TABLE_NAME)
                 .buildClient();
     }
+
+
+
 }

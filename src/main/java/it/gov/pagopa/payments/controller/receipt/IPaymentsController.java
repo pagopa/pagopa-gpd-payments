@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.PositiveOrZero;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 @Tag(name = "Payments receipts API")
 @RequestMapping
@@ -127,7 +127,9 @@ public interface IPaymentsController {
             @PathVariable("organizationfiscalcode")
             String organizationFiscalCode,
             @Parameter(description = "Page number, starts from 0") @RequestParam(required = false, defaultValue = "0") @PositiveOrZero int pageNum,
-            @Valid @Parameter(description = "Number of elements per page. Default = 20") @RequestParam(required = false, defaultValue = "20") @Max(100) @Positive int pageSize,
+            @Valid @Parameter(description = "Number of elements per page. Default = 20") @RequestParam(required = false, defaultValue = "20")
+//            @Max(100)
+            @Positive int pageSize,
             @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
             @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
             @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,

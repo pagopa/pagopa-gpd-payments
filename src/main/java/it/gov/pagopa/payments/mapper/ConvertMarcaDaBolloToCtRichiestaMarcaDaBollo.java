@@ -2,7 +2,7 @@ package it.gov.pagopa.payments.mapper;
 
 import it.gov.pagopa.payments.model.Stamp;
 import it.gov.pagopa.payments.model.partner.CtRichiestaMarcaDaBollo;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import org.modelmapper.Converter;
 import org.modelmapper.MappingException;
 import org.modelmapper.spi.MappingContext;

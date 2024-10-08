@@ -1,7 +1,7 @@
 package it.gov.pagopa.payments.exception;
 
 import java.util.Formatter;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;

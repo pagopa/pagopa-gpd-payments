@@ -1,6 +1,7 @@
 package it.gov.pagopa.payments.service;
 
 import com.azure.core.http.rest.PagedResponse;
+import com.azure.core.util.paging.ContinuablePagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
@@ -14,11 +15,11 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptModelResponse;
 import it.gov.pagopa.payments.model.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.validation.constraints.NotBlank;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,14 +33,11 @@ public class PaymentsService {
 
     public static final String DEBTOR_PROPERTY = "debtor";
 
-    @Autowired private TableClient tableClient;
+    @Autowired
+    private TableClient tableClient;
+
     @Autowired
     private GpdClient gpdClient;
-
-    public PaymentsService(GpdClient gpdClient, TableClient tableClient) {
-        this.gpdClient = gpdClient;
-        this.tableClient = tableClient;
-    }
 
     public PaymentsResult<ReceiptModelResponse> getOrganizationReceipts(
             @NotBlank String organizationFiscalCode,
@@ -179,15 +177,17 @@ public class PaymentsService {
             filter = String.join(" or ", segCodesFilters);
         }
 
-        Iterator<PagedResponse<TableEntity>> filteredReceiptIterator = tableClient
+        Iterable<PagedResponse<TableEntity>> pagedResponses = tableClient
                 .listEntities(
                         new ListEntitiesOptions()
                                 .setFilter(filter)
                                 .setTop(pageSize),
                         null,
                         null)
-                .iterableByPage()
+                .iterableByPage(pageSize);
+        Iterator<PagedResponse<TableEntity>> filteredReceiptIterator = pagedResponses
                 .iterator();
+
 
         int totalPages = 0;
         List<ReceiptModelResponse> filteredReceipts = new ArrayList<>();

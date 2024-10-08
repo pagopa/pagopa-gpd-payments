@@ -1,13 +1,13 @@
 package it.gov.pagopa.payments.model;
 
-import com.microsoft.azure.storage.ResultSegment;
+//import com.microsoft.azure.storage.ResultSegment;
 import java.util.List;
 import lombok.Data;
 
 @Data
 public class PaymentsResultSegment<T> {
 
-  private ResultSegment<T> resultSegment;
+//  private ResultSegment<T> resultSegment;
 
   /** Holds the current page number. */
   private int currentPageNumber;

@@ -3,7 +3,7 @@ package it.gov.pagopa.payments.model.spontaneous;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

@@ -3,7 +3,7 @@ package it.gov.pagopa.payments.exception;
 import it.gov.pagopa.payments.model.ProblemJson;
 import java.util.ArrayList;
 import java.util.List;
-import javax.validation.ConstraintViolationException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -38,15 +38,15 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
    * @param request from frontend
    * @return a {@link ProblemJson} as response with the cause and with a 400 as HTTP status
    */
-  @Override
-  public ResponseEntity<Object> handleHttpMessageNotReadable(
-      HttpMessageNotReadableException ex,
-      HttpHeaders headers,
-      HttpStatus status,
-      WebRequest request) {
-    log.warn("Input not readable: ", ex);
-    return generateErrorResponse(ex.getMessage());
-  }
+//  @Override
+//  public ResponseEntity<Object> handleHttpMessageNotReadable(
+//      HttpMessageNotReadableException ex,
+//      HttpHeaders headers,
+//      HttpStatus status,
+//      WebRequest request) {
+//    log.warn("Input not readable: ", ex);
+//    return generateErrorResponse(ex.getMessage());
+//  }
 
   /**
    * Handle if missing some request parameters in the request
@@ -57,15 +57,15 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
    * @param request from frontend
    * @return a {@link ProblemJson} as response with the cause and with a 400 as HTTP status
    */
-  @Override
-  public ResponseEntity<Object> handleMissingServletRequestParameter(
-      MissingServletRequestParameterException ex,
-      HttpHeaders headers,
-      HttpStatus status,
-      WebRequest request) {
-    log.warn("Missing request parameter: ", ex);
-    return generateErrorResponse(ex.getMessage());
-  }
+//  @Override
+//  public ResponseEntity<Object> handleMissingServletRequestParameter(
+//      MissingServletRequestParameterException ex,
+//      HttpHeaders headers,
+//      HttpStatus status,
+//      WebRequest request) {
+//    log.warn("Missing request parameter: ", ex);
+//    return generateErrorResponse(ex.getMessage());
+//  }
 
   /**
    * Customize the response for TypeMismatchException.
@@ -76,15 +76,15 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
    * @param request the current request
    * @return a {@code ResponseEntity} instance
    */
-  @Override
-  protected ResponseEntity<Object> handleTypeMismatch(
-      TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-    log.warn("Type mismatch: ", ex);
-    return generateErrorResponse(
-        String.format(
-            "Invalid value %s for property %s",
-            ex.getValue(), ((MethodArgumentTypeMismatchException) ex).getName()));
-  }
+//  @Override
+//  protected ResponseEntity<Object> handleTypeMismatch(
+//      TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+//    log.warn("Type mismatch: ", ex);
+//    return generateErrorResponse(
+//        String.format(
+//            "Invalid value %s for property %s",
+//            ex.getValue(), ((MethodArgumentTypeMismatchException) ex).getName()));
+//  }
 
   /**
    * Handle if validation constraints are unsatisfied
@@ -95,20 +95,20 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
    * @param request from frontend
    * @return a {@link ProblemJson} as response with the cause and with a 400 as HTTP status
    */
-  @Override
-  protected ResponseEntity<Object> handleMethodArgumentNotValid(
-      MethodArgumentNotValidException ex,
-      HttpHeaders headers,
-      HttpStatus status,
-      WebRequest request) {
-    List<String> details = new ArrayList<>();
-    for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-      details.add(error.getField() + ": " + error.getDefaultMessage());
-    }
-    var detailsMessage = String.join(", ", details);
-    log.warn("Input not valid: " + detailsMessage);
-    return generateErrorResponse(detailsMessage);
-  }
+//  @Override
+//  protected ResponseEntity<Object> handleMethodArgumentNotValid(
+//      MethodArgumentNotValidException ex,
+//      HttpHeaders headers,
+//      HttpStatus status,
+//      WebRequest request) {
+//    List<String> details = new ArrayList<>();
+//    for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+//      details.add(error.getField() + ": " + error.getDefaultMessage());
+//    }
+//    var detailsMessage = String.join(", ", details);
+//    log.warn("Input not valid: " + detailsMessage);
+//    return generateErrorResponse(detailsMessage);
+//  }
 
   /**
    * @param ex {@link DataIntegrityViolationException} exception raised when the SQL statement

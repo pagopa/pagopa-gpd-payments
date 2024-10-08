@@ -3,7 +3,6 @@ package it.gov.pagopa.payments.service;
 import com.azure.core.util.Context;
 import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.models.QueueMessageItem;
-import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
@@ -127,7 +126,7 @@ public class SchedulerService {
                     body,
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
-        } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
+        } catch (FeignException | URISyntaxException | InvalidKeyException e) {
             log.info("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", idPA, noticeNumber);
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
