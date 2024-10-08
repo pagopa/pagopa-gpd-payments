@@ -4,7 +4,7 @@
     "level": "INFO"
   },
   "sampling": {
-    "requestsPerSecond": 5
+    "percentage": 5
   },
   "preview": {
     "sampling": {
