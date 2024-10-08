@@ -4,16 +4,12 @@
     "level": "INFO"
   },
   "sampling": {
-    "percentage": 5
-  },
-  "preview": {
-    "sampling": {
-      "overrides": [
-        {
-          "telemetryKind": "exception",
-          "percentage": 100
-        }
-      ]
-    }
+    "percentage": 5,
+    "overrides": [
+      {
+        "telemetryType": "exception",
+        "percentage": 100
+      }
+    ]
   }
 }
