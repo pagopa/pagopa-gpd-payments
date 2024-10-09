@@ -14,16 +14,7 @@ COPY --from=buildtime /build/target/*.jar application.jar
 RUN java -Djarmode=layertools -jar application.jar extract
 
 
-FROM eclipse-temurin:17-jre@sha256:0adcf8486107fbd706de4b4fdde64c2d2e3ead4c689b2fb7ae4947010e1f00b4
-
-RUN addgroup spring
-RUN useradd -g spring spring
-USER spring:spring
-
-# https://github.com/microsoft/ApplicationInsights-Java/releases
-ADD --chown=spring:spring https://github.com/microsoft/ApplicationInsights-Java/releases/download/3.4.19/applicationinsights-agent-3.4.19.jar /applicationinsights-agent.jar
-COPY --chown=spring:spring docker/applicationinsights.json ./applicationinsights.json
-COPY --chown=spring:spring docker/run.sh ./run.sh
+FROM ghcr.io/pagopa/docker-base-springboot-openjdk17:v2.1.0@sha256:7093cd54f2beb7bdb1cca3b33cb94e06eeb5750027cdb96f7bebb274118a5629
 
 COPY --chown=spring:spring  --from=builder dependencies/ ./
 COPY --chown=spring:spring  --from=builder snapshot-dependencies/ ./
@@ -32,8 +23,3 @@ COPY --chown=spring:spring  --from=builder snapshot-dependencies/ ./
 RUN true
 COPY --chown=spring:spring  --from=builder spring-boot-loader/ ./
 COPY --chown=spring:spring  --from=builder application/ ./
-
-EXPOSE 8080
-
-RUN chmod +x ./run.sh
-ENTRYPOINT ["./run.sh"]
