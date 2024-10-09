@@ -1,0 +1,23 @@
+{
+  "selfDiagnostics": {
+    "destination": "console",
+    "level": "INFO"
+  },
+  "sampling": {
+    "percentage": 5,
+    "overrides": [
+      {
+        "telemetryType": "exception",
+        "percentage": 100
+      },
+      {
+        "telemetryType": "request",
+        "percentage": 100
+      },
+      {
+        "telemetryType": "dependency",
+        "percentage": 1
+      }
+    ]
+  }
+}
