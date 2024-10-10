@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.29"
+    tag: "0.12.30"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -84,11 +84,7 @@ microservice-chart:
     QUEUE_RECEIVE_INVISIBILITY_TIME: "300"
     CRON_JOB_SCHEDULE_RETRY_ENABLED: "true"
     CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 0 0,6,12,18 * * *"
-    OTEL_SERVICE_NAME: "pagopa-gpd-payments"
-    OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=dev"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.elastic-system.svc:4317"
-    OTEL_LOGS_EXPORTER: none
-    OTEL_TRACES_SAMPLER: "always_on"
+    SERVICE_NAME: "pagopa-gpd-payments"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-d-connection-string'
@@ -97,7 +93,6 @@ microservice-chart:
     GPS_SUBSCRIPTION_KEY: "gpd-d-gps-subscription-key"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-d-cosmos-connection-string"
     QUEUE_CONNECTION_STRING: "gpd-payments-d-queue-connection-string"
-    OTEL_EXPORTER_OTLP_HEADERS: elastic-apm-secret-token
   keyvault:
     name: "pagopa-d-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
