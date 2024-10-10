@@ -91,13 +91,7 @@ public class LoggingAspect {
     for (var parameter : method.getParameters()) {
       var paramName = parameter.getName();
       var arg = joinPoint.getArgs()[i++];
-      if (arg instanceof JAXBElement<?>) {
-        try {
-          arg = new ObjectMapper().writer().writeValueAsString(arg);
-        } catch (JsonProcessingException e) {
-          arg = "unreadable!";
-        }
-      }
+      arg = jaxToString(arg);
       params.put(paramName, deNull(arg));
     }
     return params;
@@ -141,7 +135,7 @@ public class LoggingAspect {
     Map<String, String> params = getParams(joinPoint);
     MDC.put(ARGS, params.toString());
 
-    log.info("Invoking API operation {} - args: {}", joinPoint.getSignature().getName(), params);
+    log.debug("Invoking API operation {} - args: {}", joinPoint.getSignature().getName(), params);
 
     Object result = joinPoint.proceed();
 
@@ -149,7 +143,9 @@ public class LoggingAspect {
     MDC.put(CODE, String.valueOf(httpResponse.getStatus()));
     MDC.put(RESPONSE_TIME, getExecutionTime());
     log.info(
-        "Successful API operation {} - result: {}", joinPoint.getSignature().getName(), result);
+        "Successful API operation {} - result: {}",
+        joinPoint.getSignature().getName(),
+        jaxToString(result));
     MDC.remove(STATUS);
     MDC.remove(CODE);
     MDC.remove(RESPONSE_TIME);
@@ -175,5 +171,16 @@ public class LoggingAspect {
     Object result = joinPoint.proceed();
     log.debug("Return method {} - result: {}", joinPoint.getSignature().toShortString(), result);
     return result;
+  }
+
+  private static Object jaxToString(Object arg) {
+    if (arg instanceof JAXBElement<?>) {
+      try {
+        arg = new ObjectMapper().writer().writeValueAsString(arg);
+      } catch (JsonProcessingException e) {
+        arg = "unreadable!";
+      }
+    }
+    return arg;
   }
 }
