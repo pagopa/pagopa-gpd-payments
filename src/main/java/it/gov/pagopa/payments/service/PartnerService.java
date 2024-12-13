@@ -271,8 +271,8 @@ public class PartnerService {
         result.setFiscalCodePA(gpsResponse.getFiscalCode());
 
         CtQrCode ctQrCode = factory.createCtQrCode();
-        ctQrCode.setFiscalCode(gpsResponse.getFiscalCode());
-        ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getIuv());
+        ctQrCode.setFiscalCode(gpsResponse.getPaymentOption().get(0).getOrganizationFiscalCode());
+        ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getNav());
         result.setQrCode(ctQrCode);
 
         result.setCompanyName(Validator.validateCompanyName(gpsResponse.getCompanyName()));

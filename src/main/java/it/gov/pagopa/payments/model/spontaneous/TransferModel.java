@@ -22,6 +22,9 @@ public class TransferModel implements Serializable {
   @NotBlank(message = "remittance information is required")
   private String remittanceInformation; // causale
 
+  @NotBlank(message = "organizationFiscalCode is required")
+  private String organizationFiscalCode;
+
   @NotBlank(message = "category is required")
   private String category; // taxonomy
 

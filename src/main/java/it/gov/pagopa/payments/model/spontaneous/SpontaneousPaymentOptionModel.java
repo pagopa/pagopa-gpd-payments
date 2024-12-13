@@ -14,6 +14,12 @@ public class SpontaneousPaymentOptionModel implements Serializable {
   @NotBlank(message = "iuv is required")
   private String iuv;
 
+  @NotBlank(message = "organizationFiscalCode is required")
+  private String organizationFiscalCode;
+
+  @NotBlank(message = "nav is required")
+  private String nav;
+
   @NotBlank(message = "amount is required")
   private long amount;
 
