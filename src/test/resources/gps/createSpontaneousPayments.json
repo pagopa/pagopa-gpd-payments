@@ -20,6 +20,7 @@
   "paymentOption": [
     {
       "iuv": "",
+      "organizationFiscalCode": "77777777777",
       "amount": 1055,
       "description": "string",
       "isPartialPayment": false,
@@ -29,6 +30,7 @@
       "transfer": [
         {
           "idTransfer": "",
+          "organizationFiscalCode": "77777777777",
           "amount": 0,
           "remittanceInformation": "",
           "category": "",
