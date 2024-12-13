@@ -268,7 +268,7 @@ public class PartnerService {
             PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
         var result = factory.createPaDemandPaymentNoticeResponse();
         result.setOutcome(StOutcome.OK);
-        result.setFiscalCodePA(gpsResponse.getFiscalCode());
+        result.setFiscalCodePA(gpsResponse.getPaymentOption().get(0).getOrganizationFiscalCode());
 
         CtQrCode ctQrCode = factory.createCtQrCode();
         ctQrCode.setFiscalCode(gpsResponse.getPaymentOption().get(0).getOrganizationFiscalCode());
