@@ -76,7 +76,7 @@ microservice-chart:
     CACHE_EXPIRATION_TIME: "1d"
     AZURE_TABLES_TABLENAME: "gpdpaymentsreceiptstable"
     API_CONFIG_HOST: "https://api.platform.pagopa.it/apiconfig/auth/api/v1"
-    GPS_HOST: "https://api.platform.pagopa.it/gps/spontaneous-payments-service/v1"
+    GPS_HOST: "https://api.platform.pagopa.it/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.platform.pagopa.it/gpd/api/v1"
     QUEUE_NAME: "gpd-receipt-poison-queue"
     DEQUEUE_LIMIT: "5"
