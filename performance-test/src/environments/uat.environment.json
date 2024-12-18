@@ -4,7 +4,7 @@
       "env": "uat",
       "soap_payments_host": "https://api.uat.platform.pagopa.it/gpd-payments/api/v1",
       "rest_payments_host": "https://api.uat.platform.pagopa.it/gpd/payments-receipts-service/v1",
-      "gps_host": "https://api.uat.platform.pagopa.it/gps/spontaneous-payments-service/v1",
+      "gps_host": "https://api.uat.platform.pagopa.it/spontaneous-payments-service/v1",
       "donation_host": "https://api.uat.platform.pagopa.it/gps/donation-service/v1",
       "gpd_host": "https://api.uat.platform.pagopa.it/gpd/api/v1",
       "id_broker_pa": "15376371009",
