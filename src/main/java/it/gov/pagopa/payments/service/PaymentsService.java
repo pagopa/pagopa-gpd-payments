@@ -151,19 +151,19 @@ public class PaymentsService {
 
         filters.add(String.format("PartitionKey eq '%s'", organizationFiscalCode));
 
-        if(null != debtor){
+        if (null != debtor) {
             filters.add(String.format("debtor eq '%s'", debtor));
         }
 
-        if(null != service){
+        if (null != service) {
             filters.add(getStartsWithFilter(ROWKEY_PROPERTY, service));
         }
 
-        if(null != from && null != to){
+        if (null != from && null != to) {
             filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
         }
 
-        if(debtorOrIuv != null) {
+        if (debtorOrIuv != null) {
             String iuvFilter = getStartsWithFilter(ROWKEY_PROPERTY, debtorOrIuv);
             String debtorFilter = getStartsWithFilter(DEBTOR_PROPERTY, debtorOrIuv);
             filters.add('(' + String.join(" or ", '(' + iuvFilter + ')', '(' + debtorFilter + ')') + ')');
@@ -171,9 +171,9 @@ public class PaymentsService {
 
         String filter = String.join(" and ", filters);
 
-        if(segCodes != null && !segCodes.isEmpty()) {
+        if (segCodes != null && !segCodes.isEmpty()) {
             ArrayList<String> segCodesFilters = new ArrayList<>();
-            for(String segCode: segCodes) {
+            for (String segCode : segCodes) {
                 segCodesFilters.add(getStartsWithFilter(ROWKEY_PROPERTY, segCode) + " and " + filter);
             }
             filter = String.join(" or ", segCodesFilters);
@@ -189,23 +189,29 @@ public class PaymentsService {
                 .iterableByPage()
                 .iterator();
 
-        int totalPages = 0;
-        List<ReceiptModelResponse> filteredReceipts = new ArrayList<>();
 
-        while(filteredReceiptIterator.hasNext()) {
-            if (totalPages == pageNum) {
-                filteredReceipts.addAll(filteredReceiptIterator.next().getValue().stream()
-                        .map(ConvertTableEntityToReceiptModelResponse::mapTableEntityToReceiptModelResponse)
-                        .toList());
-            } else {
-                filteredReceiptIterator.next();
-            }
-            totalPages++;
+//        int totalPages = 0;
+        List<ReceiptModelResponse> filteredReceipts = null;
+        if (filteredReceiptIterator.hasNext()) {
+            filteredReceipts = filteredReceiptIterator.next().getValue().stream()
+                    .map(ConvertTableEntityToReceiptModelResponse::mapTableEntityToReceiptModelResponse)
+                    .toList();
         }
 
-        if(totalPages <= pageNum) {
-            throw new AppException(AppError.PAGE_NUMBER_GREATER_THAN_TOTAL_PAGES);
-        }
+//        while(filteredReceiptIterator.hasNext()) {
+//            if (totalPages == pageNum) {
+//                filteredReceipts.addAll(filteredReceiptIterator.next().getValue().stream()
+//                        .map(ConvertTableEntityToReceiptModelResponse::mapTableEntityToReceiptModelResponse)
+//                        .toList());
+//            } else {
+//                filteredReceiptIterator.next();
+//            }
+//            totalPages++;
+//        }
+
+//        if(totalPages <= pageNum) {
+//            throw new AppException(AppError.PAGE_NUMBER_GREATER_THAN_TOTAL_PAGES);
+//        }
 
         return PageInfo.builder()
                 .receiptsList(filteredReceipts)
