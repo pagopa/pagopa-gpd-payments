@@ -16,7 +16,7 @@ public class ConvertTableEntityToReceiptModelResponse {
                 .organizationFiscalCode(tableEntity.getPartitionKey())
                 .iuv(tableEntity.getRowKey())
                 .debtor(tableEntity.getProperty(DEBTOR_PROPERTY).toString())
-                .paymentDateTime((LocalDateTime) tableEntity.getProperty(PAYMENT_DATE_PROPERTY))
+                .paymentDateTime(LocalDateTime.parse(tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString()))
                 .status(ReceiptStatus.valueOf(tableEntity.getProperty(STATUS_PROPERTY).toString()))
                 .build();
     }

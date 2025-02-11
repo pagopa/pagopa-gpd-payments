@@ -3,7 +3,9 @@ package it.gov.pagopa.payments.config;
 import static it.gov.pagopa.payments.utils.CommonUtil.deNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.model.ProblemJson;
 import java.lang.reflect.Method;
@@ -42,6 +44,7 @@ public class LoggingAspect {
   public static final String REQUEST_ID = "requestId";
   public static final String OPERATION_ID = "operationId";
   public static final String ARGS = "args";
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   final HttpServletRequest httRequest;
 
@@ -92,6 +95,11 @@ public class LoggingAspect {
       var paramName = parameter.getName();
       var arg = joinPoint.getArgs()[i++];
       arg = jaxToString(arg);
+
+      if(method.getName().equals("paSendRTV2") || method.getName().equals("paSendRT")) {
+        arg = removeValueKey(deNull(arg));
+      }
+
       params.put(paramName, deNull(arg));
     }
     return params;
@@ -182,5 +190,20 @@ public class LoggingAspect {
       }
     }
     return arg;
+  }
+
+  private static String removeValueKey(String json) {
+    try {
+      JsonNode rootNode = objectMapper.readTree(json);
+      System.out.println(rootNode);
+
+      if (rootNode.isObject()) {
+        ((ObjectNode) rootNode).replace("value", null);
+      }
+
+      return objectMapper.writeValueAsString(rootNode);
+    } catch (JsonProcessingException e) {
+      return json;
+    }
   }
 }
