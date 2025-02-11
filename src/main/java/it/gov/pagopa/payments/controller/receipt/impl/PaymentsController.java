@@ -5,8 +5,9 @@ import static it.gov.pagopa.payments.utils.CommonUtil.sanitizeInput;
 import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.PaymentsResult;
-import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.service.PaymentsService;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
@@ -57,14 +58,14 @@ public class PaymentsController implements IPaymentsController {
   }
 
   @Override
-  public ResponseEntity<PaymentsResult<ReceiptModelResponse>> getOrganizationReceipts(
+  public ResponseEntity<PaymentsResult> getOrganizationReceipts(
       String organizationFiscalCode,
       int pageNum,
       int pageSize,
       String debtor,
       String service,
-      String from,
-      String to,
+      LocalDateTime from,
+      LocalDateTime to,
       String segregationCodes,
       String debtorOrIuv) {
 
@@ -87,7 +88,7 @@ public class PaymentsController implements IPaymentsController {
         segregationCodes != null
             ? new ArrayList<>(Arrays.asList(segregationCodes.split(",")))
             : null;
-    PaymentsResult<ReceiptModelResponse> receipts =
+    PaymentsResult receipts =
         paymentsService.getOrganizationReceipts(
             organizationFiscalCode,
             debtor,

@@ -11,7 +11,6 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentsResult;
-import it.gov.pagopa.payments.model.ReceiptModelResponse;
 
 import java.util.ArrayList;
 
@@ -96,15 +95,15 @@ class PaymentsControllerTest {
 
   /** GET RECEIPTS */
   @Test
-  void getOrganizationReceipts_200() throws Exception {
+  void getOrganizationReceipts_200() {
     // precondition
-    PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
+    PaymentsResult receipts = new PaymentsResult();
     receipts.setResults(new ArrayList<>());
     when(paymentsService.getOrganizationReceipts(
             anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
         .thenReturn(receipts);
 
-    ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
+    ResponseEntity<PaymentsResult> res =
         paymentsController.getOrganizationReceipts(
             anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());
@@ -112,15 +111,15 @@ class PaymentsControllerTest {
 
   /** GET RECEIPTS with segration codes */
   @Test
-  void getOrganizationReceipts_200_SegregationCodes() throws Exception {
+  void getOrganizationReceipts_200_SegregationCodes() {
     // precondition
-    PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
+    PaymentsResult receipts = new PaymentsResult();
     receipts.setResults(new ArrayList<>());
     when(paymentsService.getOrganizationReceipts(
             anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
             .thenReturn(receipts);
 
-    ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
+    ResponseEntity<PaymentsResult> res =
             paymentsController.getOrganizationReceipts(
                     anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
     assertEquals(HttpStatus.OK, res.getStatusCode());

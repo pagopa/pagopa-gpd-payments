@@ -106,7 +106,7 @@ public class SchedulerService {
         ReceiptEntity receiptEntity = new ReceiptEntity(idPA, creditorReferenceId);
         receiptEntity.setDebtor(entityUniqueIdentifierValue);
         String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
-        receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
+        receiptEntity.setPaymentDateTime(LocalDateTime.parse(paymentDateTimeIdentifier));
         receiptEntity.setDocument(failureBody);
 
         LocalDateTime localPaymentDateTime = paymentDateTime != null ? LocalDateTime.parse(paymentDateTime) : null;

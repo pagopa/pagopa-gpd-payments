@@ -660,8 +660,7 @@ public class PartnerService {
         return sw.toString();
     }
 
-    private void saveReceipt(ReceiptEntity receiptEntity)
-            throws InvalidKeyException, URISyntaxException, StorageException {
+    private void saveReceipt(ReceiptEntity receiptEntity) {
         try {
             TableEntity tableEntity =
                     new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
@@ -933,7 +932,7 @@ public class PartnerService {
         ReceiptEntity receiptEntity = new ReceiptEntity(idPa, creditorReferenceId);
         receiptEntity.setDebtor(debtor);
         String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
-        receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
+        receiptEntity.setPaymentDateTime(LocalDateTime.parse(paymentDateTimeIdentifier));
         return receiptEntity;
     }
 

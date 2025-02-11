@@ -516,8 +516,28 @@
           "results": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/ReceiptModelResponse"
             }
+          }
+        }
+      },
+      "ReceiptModelResponse": {
+        "type": "object",
+        "properties": {
+          "organizationFiscalCode": {
+            "type": "string"
+          },
+          "iuv": {
+            "type": "string"
+          },
+          "debtor": {
+            "type": "string"
+          },
+          "paymentDateTime": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
           }
         }
       },

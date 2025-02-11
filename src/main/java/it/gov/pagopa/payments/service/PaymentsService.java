@@ -19,8 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -41,12 +41,12 @@ public class PaymentsService {
         this.tableClient = tableClient;
     }
 
-    public PaymentsResult<ReceiptModelResponse> getOrganizationReceipts(
+    public PaymentsResult getOrganizationReceipts(
             @NotBlank String organizationFiscalCode,
             String debtor,
             String service,
-            String from,
-            String to,
+            LocalDateTime from,
+            LocalDateTime to,
             int pageNum,
             int pageSize,
             List<String> segCodes,
@@ -143,8 +143,8 @@ public class PaymentsService {
     }
 
     public PageInfo retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
-                                             String debtor, String service, String from,
-                                             String to, int pageNum, int pageSize,
+                                             String debtor, String service, LocalDateTime from,
+                                             LocalDateTime to, int pageNum, int pageSize,
                                              List<String> segCodes, String debtorOrIuv) {
 
         List<String> filters = new ArrayList<>();
@@ -222,8 +222,8 @@ public class PaymentsService {
         return String.format("%s ge '%s' and %s lt '%s'", field, startsWith, field, startWithEnd);
     }
 
-    private PaymentsResult<ReceiptModelResponse> setReceiptsOutput(List<ReceiptModelResponse> listOfEntity, int totalPages, int pageNumber) {
-        PaymentsResult<ReceiptModelResponse> result = new PaymentsResult<>();
+    private PaymentsResult setReceiptsOutput(List<ReceiptModelResponse> listOfEntity, int totalPages, int pageNumber) {
+        PaymentsResult result = new PaymentsResult();
         result.setResults(listOfEntity);
         result.setLength(listOfEntity.size());
         result.setCurrentPageNumber(pageNumber);

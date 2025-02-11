@@ -3,6 +3,8 @@ package it.gov.pagopa.payments.mapper;
 import com.azure.data.tables.models.TableEntity;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 
+import java.time.LocalDateTime;
+
 public class ConvertTableEntityToReceiptEntity {
     public static final String DEBTOR_PROPERTY = "debtor";
     public static final String DOCUMENT_PROPERTY = "document";
@@ -13,7 +15,7 @@ public class ConvertTableEntityToReceiptEntity {
         return new ReceiptEntity(
                 tableEntity.getPartitionKey(), tableEntity.getRowKey(),
                 tableEntity.getProperty(DEBTOR_PROPERTY).toString(),
-                tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString(),
+                LocalDateTime.parse(tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString()),
                 tableEntity.getProperty(STATUS_PROPERTY).toString(),
                 tableEntity.getProperty(DOCUMENT_PROPERTY).toString());
     }

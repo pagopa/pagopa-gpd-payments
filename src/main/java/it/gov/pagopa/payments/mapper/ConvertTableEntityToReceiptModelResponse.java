@@ -2,6 +2,9 @@ package it.gov.pagopa.payments.mapper;
 
 import com.azure.data.tables.models.TableEntity;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
+import it.gov.pagopa.payments.model.enumeration.ReceiptStatus;
+
+import java.time.LocalDateTime;
 
 public class ConvertTableEntityToReceiptModelResponse {
     public static final String DEBTOR_PROPERTY = "debtor";
@@ -13,8 +16,8 @@ public class ConvertTableEntityToReceiptModelResponse {
                 .organizationFiscalCode(tableEntity.getPartitionKey())
                 .iuv(tableEntity.getRowKey())
                 .debtor(tableEntity.getProperty(DEBTOR_PROPERTY).toString())
-                .paymentDateTime(tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString())
-                .status(tableEntity.getProperty(STATUS_PROPERTY).toString())
+                .paymentDateTime(LocalDateTime.parse(tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString()))
+                .status(ReceiptStatus.valueOf(tableEntity.getProperty(STATUS_PROPERTY).toString()))
                 .build();
     }
 }
