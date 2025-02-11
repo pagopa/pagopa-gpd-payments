@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class PaymentsResult<T> {
+public class PaymentsResult {
 
   /** Holds the current page number. */
   private int currentPageNumber;
@@ -17,6 +17,5 @@ public class PaymentsResult<T> {
   private int totalPages;
 
   /** Holds the ArrayList of results. */
-  private List<T> results;
-
+  private List<ReceiptModelResponse> results;
 }

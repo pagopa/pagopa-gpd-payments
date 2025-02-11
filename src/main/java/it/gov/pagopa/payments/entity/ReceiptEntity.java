@@ -2,6 +2,8 @@ package it.gov.pagopa.payments.entity;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -11,7 +13,7 @@ public class ReceiptEntity {
     private String organizationFiscalCode;
     private String iuv;
     private String debtor;
-    private String paymentDateTime;
+    private LocalDateTime paymentDateTime;
     private String status = Status.PAID.name();
     private String document;
 
