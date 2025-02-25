@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.controller.receipt;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -50,6 +51,14 @@ public interface IPaymentsController {
                             responseCode = "401",
                             description = "Wrong or missing function key.",
                             content = @Content(schema = @Schema())),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "Forbidden.",
+                            content = @Content(schema = @Schema(), examples = {@ExampleObject(name = "forbidden", value = """
+                                    {
+                                      "statusCode": 403,
+                                      "message": "You are not allowed to access this resource."
+                                    }""")}, mediaType = MediaType.APPLICATION_JSON_VALUE)),
                     @ApiResponse(
                             responseCode = "404",
                             description = "No receipt found.",
@@ -105,6 +114,14 @@ public interface IPaymentsController {
                             responseCode = "401",
                             description = "Wrong or missing function key.",
                             content = @Content(schema = @Schema())),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "Forbidden.",
+                            content = @Content(schema = @Schema(), examples = {@ExampleObject(name = "forbidden", value = """
+                                    {
+                                      "statusCode": 403,
+                                      "message": "You are not allowed to access this resource."
+                                    }""")}, mediaType = MediaType.APPLICATION_JSON_VALUE)),
                     @ApiResponse(
                             responseCode = "404",
                             description = "No receipts found.",
