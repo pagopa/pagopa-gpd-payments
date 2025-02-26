@@ -240,7 +240,7 @@
             }
           },
           "403" : {
-            "description" : "Wrong or missing function key.",
+            "description" : "Forbidden.",
             "headers" : {
               "X-Request-Id" : {
                 "description" : "This header identifies the call",
@@ -251,14 +251,9 @@
             },
             "content" : {
               "application/json" : {
-                "examples" : {
-                  "forbidden" : {
-                    "description" : "forbidden",
-                    "value" : {
-                      "statusCode" : 403,
-                      "message" : "You are not allowed to access this resource."
-                    }
-                  }
+                "example" : {
+                  "statusCode" : 403,
+                  "message" : "You are not allowed to access this resource."
                 }
               }
             }
@@ -379,7 +374,7 @@
             }
           },
           "403" : {
-            "description" : "Wrong or missing function key.",
+            "description" : "Forbidden.",
             "headers" : {
               "X-Request-Id" : {
                 "description" : "This header identifies the call",
@@ -390,14 +385,9 @@
             },
             "content" : {
               "application/json" : {
-                "examples" : {
-                  "forbidden" : {
-                    "description" : "forbidden",
-                    "value" : {
-                      "statusCode" : 403,
-                      "message" : "You are not allowed to access this resource."
-                    }
-                  }
+                "example" : {
+                  "statusCode" : 403,
+                  "message" : "You are not allowed to access this resource."
                 }
               }
             }

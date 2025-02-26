@@ -54,7 +54,7 @@ public interface IPaymentsController {
                     @ApiResponse(
                             responseCode = "403",
                             description = "Forbidden.",
-                            content = @Content(schema = @Schema(), examples = {@ExampleObject(name = "forbidden", value = """
+                            content = @Content(schema = @Schema(), examples = {@ExampleObject(value = """
                                     {
                                       "statusCode": 403,
                                       "message": "You are not allowed to access this resource."
@@ -117,7 +117,7 @@ public interface IPaymentsController {
                     @ApiResponse(
                             responseCode = "403",
                             description = "Forbidden.",
-                            content = @Content(schema = @Schema(), examples = {@ExampleObject(name = "forbidden", value = """
+                            content = @Content(schema = @Schema(), examples = {@ExampleObject(value = """
                                     {
                                       "statusCode": 403,
                                       "message": "You are not allowed to access this resource."
