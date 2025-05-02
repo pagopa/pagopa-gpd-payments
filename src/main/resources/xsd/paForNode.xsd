@@ -5,7 +5,7 @@
 	xmlns:tns="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd"
 	xmlns:common="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/">
 
-	<xs:import namespace="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/" schemaLocation="../xsd-common/sac-common-types-1.0.xsd"
+	<xs:import namespace="http://pagopa-api.pagopa.gov.it/xsd/common-types/v1.0.0/" schemaLocation="../../xsd-common/sac-common-types-1.0.xsd"
 		xmlns:xs="http://www.w3.org/2001/XMLSchema" />
 
 	<xsd:simpleType name="stText20">
@@ -148,6 +148,7 @@
 			<xsd:element name="IBAN" type="tns:stIBAN" />
 			<xsd:element name="remittanceInformation" type="common:stText140" />
 			<xsd:element name="transferCategory" type="common:stText140" />
+			<xsd:element name="metadata" type="common:ctMetadata" minOccurs="0" />
 		</xsd:sequence>
 	</xsd:complexType>
 
@@ -230,6 +231,7 @@
 			<xsd:element name="applicationDate" type="common:stISODate" minOccurs="0" />
 			<xsd:element name="transferDate" type="common:stISODate" minOccurs="0" />
 			<xsd:element name="metadata" type="common:ctMetadata" minOccurs="0" />
+			<xsd:element name="standIn" type="xsd:boolean" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 
@@ -268,6 +270,7 @@
 			<xsd:element name="applicationDate" type="common:stISODate" minOccurs="0" />
 			<xsd:element name="transferDate" type="common:stISODate" minOccurs="0" />
 			<xsd:element name="metadata" type="common:ctMetadata" minOccurs="0" />
+			<xsd:element name="standIn" type="xsd:boolean" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 
@@ -364,7 +367,7 @@
 			<xsd:element name="idTransfer" type="tns:stIdTransfer" />
 			<xsd:element name="transferAmount" type="tns:stAmountNotZero" />
 			<xsd:element name="fiscalCodePA" type="common:stFiscalCodePA" />
-			<xsd:element name="companyName" type="common:stText140" />
+			<xsd:element name="companyName" type="common:stText140"  minOccurs="0"/>
 			<xsd:choice>
 				<xsd:element name="IBAN" type="tns:stIBAN" />
 				<xsd:element name="richiestaMarcaDaBollo" type="common:ctRichiestaMarcaDaBollo" />
