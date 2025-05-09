@@ -29,7 +29,7 @@ on:
           - patch
           - buildNumber
           - skip
-        default: skip
+        default: patch
       beta:
         required: false
         type: boolean
