@@ -87,7 +87,7 @@ public class PartnerEndpoint {
   public JAXBElement<PaSendRTV2Response> paSendRTV2(
       @RequestPayload JAXBElement<PaSendRTV2Request> request) {
 
-    log.debug(" paSendRTV2 START ");
+    log.debug("paSendRTV2 START ");
     return factory.createPaSendRTV2Response(partnerService.paSendRTV2(request.getValue()));
   }
 
