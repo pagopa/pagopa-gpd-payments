@@ -294,6 +294,7 @@ class PartnerServiceTest {
     when(factory.createPaGetPaymentRes()).thenReturn(factoryUtil.createPaGetPaymentRes());
     when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
@@ -342,6 +343,7 @@ class PartnerServiceTest {
     when(factory.createPaGetPaymentRes()).thenReturn(factoryUtil.createPaGetPaymentRes());
     when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
