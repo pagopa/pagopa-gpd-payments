@@ -30,6 +30,12 @@ public class PaymentOptionModel implements Serializable {
   @NotBlank(message = "paymentMethod is required")
   private String paymentMethod;
 
+  @NotBlank(message = "pspCode is required")
+  private String pspCode;
+
+  // optional pspFiscalCode https://github.com/pagopa/pagopa-api/blob/c752179c66da9e3a2a71dd16397fde6b0ad08818/wsdl/xsd/paForNode.xsd#L22
+  private String pspTaxCode;
+
   @NotBlank(message = "pspCompany is required")
   private String pspCompany;
 

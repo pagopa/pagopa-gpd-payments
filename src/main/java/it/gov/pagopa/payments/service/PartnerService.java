@@ -378,6 +378,12 @@ public class PartnerService {
         responseData.setCompanyName(Validator.validateCompanyName(source.getCompanyName()));
         responseData.setOfficeName(Validator.validateOfficeName(source.getOfficeName()));
 
+        List<PaymentOptionMetadataModel> paymentOptionMetadataModels =
+                source.getPaymentOptionMetadata();
+        if (paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
+            responseData.setMetadata(getCtMetadata(paymentOptionMetadataModels));
+        }
+
         CtSubject debtor = this.getDebtor(source);
         responseData.setDebtor(debtor);
 
@@ -446,12 +452,7 @@ public class PartnerService {
         List<PaymentOptionMetadataModel> paymentOptionMetadataModels =
                 source.getPaymentOptionMetadata();
         if (paymentOptionMetadataModels != null && !paymentOptionMetadataModels.isEmpty()) {
-            CtMetadata paymentOptionMetadata = factory.createCtMetadata();
-            List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
-            for (PaymentOptionMetadataModel po : paymentOptionMetadataModels) {
-                poMapEntry.add(getPaymentOptionMetadata(po));
-            }
-            responseData.setMetadata(paymentOptionMetadata);
+            responseData.setMetadata(getCtMetadata(paymentOptionMetadataModels));
         }
 
         // debtor data
@@ -582,6 +583,15 @@ public class PartnerService {
         }
 
         return transferPA;
+    }
+
+    private CtMetadata getCtMetadata(List<PaymentOptionMetadataModel>  paymentOptionMetadataModels) {
+        CtMetadata paymentOptionMetadata = factory.createCtMetadata();
+        List<CtMapEntry> poMapEntry = paymentOptionMetadata.getMapEntry();
+        for (PaymentOptionMetadataModel po : paymentOptionMetadataModels) {
+            poMapEntry.add(getPaymentOptionMetadata(po));
+        }
+        return paymentOptionMetadata;
     }
 
     private CtMapEntry getPaymentOptionMetadata(PaymentOptionMetadataModel metadataModel) {
@@ -803,6 +813,8 @@ public class PartnerService {
                 PaymentOptionModel.builder()
                         .idReceipt(request.getReceipt().getReceiptId())
                         .paymentDate(paymentDateTime)
+                        .pspCode(request.getReceipt().getIdPSP())
+                        .pspTaxCode(request.getReceipt().getPspFiscalCode())
                         .pspCompany(request.getReceipt().getPSPCompanyName())
                         .paymentMethod(request.getReceipt().getPaymentMethod())
                         .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
@@ -856,6 +868,8 @@ public class PartnerService {
                 PaymentOptionModel.builder()
                         .idReceipt(request.getReceipt().getReceiptId())
                         .paymentDate(paymentDateTime)
+                        .pspCode(request.getReceipt().getIdPSP())
+                        .pspTaxCode(request.getReceipt().getPspFiscalCode())
                         .pspCompany(request.getReceipt().getPSPCompanyName())
                         .paymentMethod(request.getReceipt().getPaymentMethod())
                         .fee(String.valueOf(this.getFeeInCent(request.getReceipt().getFee())))
