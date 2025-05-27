@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.37-PIDM-491-workload-identity"
+    tag: "0.12.38"
     pullPolicy: Always
   livenessProbe:
     httpGet:
