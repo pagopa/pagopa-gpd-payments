@@ -43,7 +43,7 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paVerifyPaymentNoticeReq")
   @ResponsePayload
   public JAXBElement<PaVerifyPaymentNoticeRes> paVerifyPaymentNotice(
-      @RequestParam("serviceType") String serviceType,
+      @RequestParam(name = "serviceType", required = false) String serviceType,
       @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request)
       throws DatatypeConfigurationException, PartnerValidationException {
 
@@ -56,8 +56,8 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paGetPaymentReq")
   @ResponsePayload
   public JAXBElement<PaGetPaymentRes> paGetPayment(
-      @RequestParam("serviceType") String serviceType,
-      @RequestPayload JAXBElement<PaGetPaymentReq> request)
+          @RequestParam(name = "serviceType", required = false) String serviceType,
+          @RequestPayload JAXBElement<PaGetPaymentReq> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPayment START ");
@@ -68,8 +68,8 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paGetPaymentV2Request")
   @ResponsePayload
   public JAXBElement<PaGetPaymentV2Response> paGetPaymentV2(
-      @RequestParam("serviceType") String serviceType,
-      @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
+          @RequestParam(name = "serviceType", required = false) String serviceType,
+          @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPaymentV2 START ");
