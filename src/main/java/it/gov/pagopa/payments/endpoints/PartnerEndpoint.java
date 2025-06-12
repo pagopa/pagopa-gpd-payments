@@ -23,6 +23,7 @@ import javax.xml.stream.XMLStreamException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
@@ -42,34 +43,37 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paVerifyPaymentNoticeReq")
   @ResponsePayload
   public JAXBElement<PaVerifyPaymentNoticeRes> paVerifyPaymentNotice(
+      @RequestParam("serviceType") String serviceType,
       @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request)
       throws DatatypeConfigurationException, PartnerValidationException {
 
     log.debug(" paVerifyPaymentNotice START ");
     return factory.createPaVerifyPaymentNoticeRes(
-        partnerService.paVerifyPaymentNotice(request.getValue()));
+        partnerService.paVerifyPaymentNotice(request.getValue(), serviceType));
   }
 
   @SoapAction("paGetPayment")
   @PayloadRoot(localPart = "paGetPaymentReq")
   @ResponsePayload
   public JAXBElement<PaGetPaymentRes> paGetPayment(
+      @RequestParam("serviceType") String serviceType,
       @RequestPayload JAXBElement<PaGetPaymentReq> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPayment START ");
-    return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue()));
+    return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue(), serviceType));
   }
 
   @SoapAction("paGetPaymentV2")
   @PayloadRoot(localPart = "paGetPaymentV2Request")
   @ResponsePayload
   public JAXBElement<PaGetPaymentV2Response> paGetPaymentV2(
+      @RequestParam("serviceType") String serviceType,
       @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPaymentV2 START ");
-    return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue()));
+    return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue(), serviceType));
   }
 
   @SoapAction("paSendRT")

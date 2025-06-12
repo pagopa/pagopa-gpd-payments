@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xml.sax.SAXException;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -102,7 +103,7 @@ public class PartnerService {
     private static final String DBERROR = "Error in organization table connection";
 
     @Transactional(readOnly = true)
-    public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
+    public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request, @Nullable String serviceType)
             throws DatatypeConfigurationException, PartnerValidationException {
 
         log.debug(
@@ -111,8 +112,7 @@ public class PartnerService {
         PaymentsModelResponse paymentOption = null;
 
         try {
-            paymentOption =
-                    gpdClient.getPaymentOption(request.getIdPA(), request.getQrCode().getNoticeNumber());
+            paymentOption = getAndValidatePaymentOption(request.getIdPA(), request.getIdStation(), request.getQrCode().getNoticeNumber(), serviceType);
         } catch (FeignException.NotFound e) {
             log.error(
                     "[paVerifyPaymentNotice] GPD Error not found [noticeNumber={}]",
@@ -142,12 +142,12 @@ public class PartnerService {
     }
 
     @Transactional(readOnly = true)
-    public PaGetPaymentRes paGetPayment(PaGetPaymentReq request)
+    public PaGetPaymentRes paGetPayment(PaGetPaymentReq request, @Nullable String serviceType)
             throws DatatypeConfigurationException, PartnerValidationException {
         log.debug(
                 "[paGetPayment] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
         PaymentsModelResponse paymentOption =
-                this.manageGetPaymentRequest(request.getIdPA(), request.getQrCode());
+                this.manageGetPaymentRequest(request.getIdPA(), request.getIdStation(), request.getQrCode(), serviceType);
         log.debug(
                 "[paGetPayment] Response OK generation [noticeNumber={}]",
                 request.getQrCode().getNoticeNumber());
@@ -155,12 +155,12 @@ public class PartnerService {
     }
 
     @Transactional(readOnly = true)
-    public PaGetPaymentV2Response paGetPaymentV2(PaGetPaymentV2Request request)
+    public PaGetPaymentV2Response paGetPaymentV2(PaGetPaymentV2Request request, @Nullable String serviceType)
             throws DatatypeConfigurationException, PartnerValidationException {
         log.debug(
                 "[paGetPaymentV2] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
         PaymentsModelResponse paymentOption =
-                this.manageGetPaymentRequest(request.getIdPA(), request.getQrCode());
+                this.manageGetPaymentRequest(request.getIdPA(), request.getIdStation(), request.getQrCode(), serviceType);
         log.debug(
                 "[paGetPaymentV2] Response OK generation [noticeNumber={}]",
                 request.getQrCode().getNoticeNumber());
@@ -748,14 +748,14 @@ public class PartnerService {
         return debtor;
     }
 
-    private PaymentsModelResponse manageGetPaymentRequest(String idPa, CtQrCode qrCode) {
+    private PaymentsModelResponse manageGetPaymentRequest(String idPa, String station, CtQrCode qrCode, String serviceType) {
 
         log.debug(
                 "[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
         PaymentsModelResponse paymentOption = null;
 
         try {
-            paymentOption = gpdClient.getPaymentOption(idPa, qrCode.getNoticeNumber());
+            paymentOption = getAndValidatePaymentOption(idPa, station, qrCode.getNoticeNumber(), serviceType);
         } catch (FeignException.NotFound e) {
             log.error(
                     "[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]",
@@ -1005,5 +1005,42 @@ public class PartnerService {
             ReceiptEntity receiptEntity)
             throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
         return getReceiptPaymentOption(noticeNumber, idPa, creditorReferenceId, body, receiptEntity);
+    }
+
+    private PaymentsModelResponse getAndValidatePaymentOption(String idPa, String stationId, String noticeNumber, String serviceType) {
+
+        PaymentsModelResponse paymentOption = null;
+        if ("aca".equalsIgnoreCase(serviceType)) {
+
+            // verifica manutenzione_stazione: if stazione esiste e flag standin=false, throw exception
+            ConfigService.StationMaintenance stationInMaintenance = ConfigService.getStationInMaintenance(stationId);
+            if (stationInMaintenance != null && !stationInMaintenance.isStandin()) {
+                throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR); // TODO: change this to valid error
+            }
+
+            // verifica pa_stazione_pa: flag aca=false, throw exception
+            ConfigService.StationCI creditorInstitutionStation = ConfigService.getCreditorInstitutionStation(idPa, stationId);
+            if (creditorInstitutionStation != null && !creditorInstitutionStation.isAca()) {
+                throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR); // TODO: change this to valid error
+            }
+
+            // ricerca PD: se 404, ritorna errore
+            paymentOption = gpdClient.getPaymentOption(idPa, noticeNumber);
+
+            // verifica pa_stazione_pa: flag standin=false, throw exception
+            if (!creditorInstitutionStation.isStandin()) {
+                throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR); // TODO: change this to valid error
+            }
+
+            // check PD: flag pay_stand_in=false, throw exception
+            if (Boolean.FALSE.equals(paymentOption.getPayStandIn())) {
+                throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR); // TODO: change this to valid error
+            }
+
+        } else {
+            paymentOption = gpdClient.getPaymentOption(idPa, noticeNumber);
+        }
+
+        return paymentOption;
     }
 }

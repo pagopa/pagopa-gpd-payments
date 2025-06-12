@@ -60,12 +60,12 @@ class PartnerEndpointTest {
     JAXBElement<PaVerifyPaymentNoticeReq> request =
         factoryUtil.createPaVerifyPaymentNoticeReq(requestBody);
 
-    when(partnerService.paVerifyPaymentNotice(requestBody)).thenReturn(responseBody);
+    when(partnerService.paVerifyPaymentNotice(requestBody, null)).thenReturn(responseBody);
     when(factory.createPaVerifyPaymentNoticeRes(responseBody))
         .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes(responseBody));
 
     // Test execution
-    JAXBElement<PaVerifyPaymentNoticeRes> response = partnerEndpoint.paVerifyPaymentNotice(request);
+    JAXBElement<PaVerifyPaymentNoticeRes> response = partnerEndpoint.paVerifyPaymentNotice(null, request);
 
     // Test postcondiction
     assertThat(response.getValue()).isEqualTo(responseBody);
@@ -79,12 +79,12 @@ class PartnerEndpointTest {
     PaGetPaymentRes responseBody = PaGetPaymentResMock.getMock();
     JAXBElement<PaGetPaymentReq> request = factoryUtil.createPaGetPaymentReq(requestBody);
 
-    when(partnerService.paGetPayment(requestBody)).thenReturn(responseBody);
+    when(partnerService.paGetPayment(requestBody, null)).thenReturn(responseBody);
     when(factory.createPaGetPaymentRes(responseBody))
         .thenReturn(factoryUtil.createPaGetPaymentRes(responseBody));
 
     // Test execution
-    JAXBElement<PaGetPaymentRes> response = partnerEndpoint.paGetPayment(request);
+    JAXBElement<PaGetPaymentRes> response = partnerEndpoint.paGetPayment(null, request);
 
     // Test postcondiction
     assertThat(response.getValue()).isEqualTo(responseBody);
@@ -99,12 +99,12 @@ class PartnerEndpointTest {
     JAXBElement<PaGetPaymentV2Request> request =
         factoryUtil.createPaGetPaymentV2Request(requestBody);
 
-    when(partnerService.paGetPaymentV2(requestBody)).thenReturn(responseBody);
+    when(partnerService.paGetPaymentV2(requestBody, null)).thenReturn(responseBody);
     when(factory.createPaGetPaymentV2Response(responseBody))
         .thenReturn(factoryUtil.createPaGetPaymentV2Response(responseBody));
 
     // Test execution
-    JAXBElement<PaGetPaymentV2Response> response = partnerEndpoint.paGetPaymentV2(request);
+    JAXBElement<PaGetPaymentV2Response> response = partnerEndpoint.paGetPaymentV2(null, request);
 
     // Test postcondiction
     assertThat(response.getValue()).isEqualTo(responseBody);

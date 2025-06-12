@@ -144,7 +144,7 @@ class PartnerServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     // Test execution
-    PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody);
+    PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody, null);
 
     // Test post condition
     assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
@@ -168,7 +168,7 @@ class PartnerServiceTest {
 
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -187,7 +187,7 @@ class PartnerServiceTest {
 
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -211,7 +211,7 @@ class PartnerServiceTest {
     // Test post condition
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -241,7 +241,7 @@ class PartnerServiceTest {
     // Test post condition
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -270,7 +270,7 @@ class PartnerServiceTest {
     // Test post condition
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -305,7 +305,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
+    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody, null);
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
@@ -354,7 +354,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
+    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody, null);
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("63155551414999718");
@@ -402,7 +402,7 @@ class PartnerServiceTest {
 
     try {
       // Test execution
-      partnerService.paGetPayment(requestBody);
+      partnerService.paGetPayment(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -421,7 +421,7 @@ class PartnerServiceTest {
 
     try {
       // Test execution
-      partnerService.paGetPayment(requestBody);
+      partnerService.paGetPayment(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -891,7 +891,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, null);
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
@@ -955,7 +955,7 @@ class PartnerServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentsModelResponse);
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, null);
 
     // Test post condition
     assertEquals(1, responseBody.getData().getTransferList().getTransfer().size());
@@ -1003,7 +1003,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, null);
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
@@ -1092,7 +1092,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, null);
     System.out.println(responseBody.getData().getDueDate());
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("63155551414999718");
@@ -1144,7 +1144,7 @@ class PartnerServiceTest {
 
     try {
       // Test execution
-      partnerService.paGetPaymentV2(requestBody);
+      partnerService.paGetPaymentV2(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -1163,7 +1163,7 @@ class PartnerServiceTest {
 
     try {
       // Test execution
-      partnerService.paGetPaymentV2(requestBody);
+      partnerService.paGetPaymentV2(requestBody, null);
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
