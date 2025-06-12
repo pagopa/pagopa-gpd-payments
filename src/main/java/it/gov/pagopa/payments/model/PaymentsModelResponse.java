@@ -53,4 +53,5 @@ public class PaymentsModelResponse implements Serializable {
   private DebtPositionStatus debtPositionStatus;
   private List<PaymentsTransferModelResponse> transfer;
   private List<PaymentOptionMetadataModel> paymentOptionMetadata;
+  private String serviceType;
 }
