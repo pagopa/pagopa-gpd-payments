@@ -23,6 +23,7 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
+import it.gov.pagopa.payments.utils.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ws.context.MessageContext;
@@ -39,8 +40,6 @@ import org.xml.sax.SAXException;
 @Slf4j
 public class PartnerEndpoint {
 
-  public static final String SERVICE_TYPE_HEADER = "X-Client-Service-Type";
-
   @Autowired private PartnerService partnerService;
 
   @Autowired private ObjectFactory factory;
@@ -49,37 +48,34 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paVerifyPaymentNoticeReq")
   @ResponsePayload
   public JAXBElement<PaVerifyPaymentNoticeRes> paVerifyPaymentNotice(
-      @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request,
-      MessageContext messageContext)
+      @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request)
       throws DatatypeConfigurationException, PartnerValidationException {
 
     log.debug(" paVerifyPaymentNotice START ");
     return factory.createPaVerifyPaymentNoticeRes(
-        partnerService.paVerifyPaymentNotice(request.getValue(), getServiceType()));
+        partnerService.paVerifyPaymentNotice(request.getValue(), CommonUtil.getServiceType()));
   }
 
   @SoapAction("paGetPayment")
   @PayloadRoot(localPart = "paGetPaymentReq")
   @ResponsePayload
   public JAXBElement<PaGetPaymentRes> paGetPayment(
-          @RequestPayload JAXBElement<PaGetPaymentReq> request,
-          MessageContext messageContext)
+          @RequestPayload JAXBElement<PaGetPaymentReq> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPayment START ");
-    return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue(), getServiceType()));
+    return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue(), CommonUtil.getServiceType()));
   }
 
   @SoapAction("paGetPaymentV2")
   @PayloadRoot(localPart = "paGetPaymentV2Request")
   @ResponsePayload
   public JAXBElement<PaGetPaymentV2Response> paGetPaymentV2(
-          @RequestPayload JAXBElement<PaGetPaymentV2Request> request,
-          MessageContext messageContext)
+          @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPaymentV2 START ");
-    return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue(), getServiceType()));
+    return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue(), CommonUtil.getServiceType()));
   }
 
   @SoapAction("paSendRT")
@@ -112,20 +108,5 @@ public class PartnerEndpoint {
     log.debug(" paDemandPaymentNotice START ");
     return factory.createPaDemandPaymentNoticeResponse(
         partnerService.paDemandPaymentNotice(request.getValue()));
-  }
-
-  /**
-   * The function permits to extract the <i>serviceType</i> value from header
-   * <b>X-Caller-Service-Type</b> in request. If no header is found with that
-   * name, the value <i>"GPD"</i> is returned as default.
-   *
-   * @return the service type value
-   */
-  private String getServiceType() {
-    HttpServletRequest servletRequest = ((HttpServletConnection)
-            TransportContextHolder.getTransportContext().getConnection())
-            .getHttpServletRequest();
-    String serviceType = servletRequest.getHeader(SERVICE_TYPE_HEADER);
-    return Objects.requireNonNullElse(serviceType, "GPD");
   }
 }

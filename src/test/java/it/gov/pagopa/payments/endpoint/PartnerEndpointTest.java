@@ -1,6 +1,7 @@
 package it.gov.pagopa.payments.endpoint;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import it.gov.pagopa.payments.endpoints.PartnerEndpoint;
@@ -33,10 +34,12 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
 import it.gov.pagopa.payments.service.PartnerService;
+import it.gov.pagopa.payments.utils.CommonUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.xml.sax.SAXException;
@@ -55,60 +58,75 @@ class PartnerEndpointTest {
   @Test
   void paVerifyPaymentNoticeTest() throws DatatypeConfigurationException {
 
-    // Test preconditions
-    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
-    PaVerifyPaymentNoticeRes responseBody = PaVerifyPaymentNoticeResMock.getMock();
-    JAXBElement<PaVerifyPaymentNoticeReq> request =
-        factoryUtil.createPaVerifyPaymentNoticeReq(requestBody);
+    try (MockedStatic<CommonUtil> mockedCommonUtil = mockStatic(CommonUtil.class)) {
 
-    when(partnerService.paVerifyPaymentNotice(requestBody, null)).thenReturn(responseBody);
-    when(factory.createPaVerifyPaymentNoticeRes(responseBody))
-        .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes(responseBody));
+      mockedCommonUtil.when(CommonUtil::getServiceType).thenReturn("GPD");
 
-    // Test execution
-    JAXBElement<PaVerifyPaymentNoticeRes> response = partnerEndpoint.paVerifyPaymentNotice(request, Mockito.any());
+      // Test preconditions
+      PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+      PaVerifyPaymentNoticeRes responseBody = PaVerifyPaymentNoticeResMock.getMock();
+      JAXBElement<PaVerifyPaymentNoticeReq> request =
+              factoryUtil.createPaVerifyPaymentNoticeReq(requestBody);
 
-    // Test postcondiction
-    assertThat(response.getValue()).isEqualTo(responseBody);
+      when(partnerService.paVerifyPaymentNotice(requestBody, "GPD")).thenReturn(responseBody);
+      when(factory.createPaVerifyPaymentNoticeRes(responseBody))
+              .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes(responseBody));
+
+      // Test execution
+      JAXBElement<PaVerifyPaymentNoticeRes> response = partnerEndpoint.paVerifyPaymentNotice(request);
+
+      // Test postcondiction
+      assertThat(response.getValue()).isEqualTo(responseBody);
+    }
   }
 
   @Test
   void paGetPaymentTest() throws PartnerValidationException, DatatypeConfigurationException {
 
-    // Test preconditions
-    PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
-    PaGetPaymentRes responseBody = PaGetPaymentResMock.getMock();
-    JAXBElement<PaGetPaymentReq> request = factoryUtil.createPaGetPaymentReq(requestBody);
+    try (MockedStatic<CommonUtil> mockedCommonUtil = mockStatic(CommonUtil.class)) {
 
-    when(partnerService.paGetPayment(requestBody, null)).thenReturn(responseBody);
-    when(factory.createPaGetPaymentRes(responseBody))
-        .thenReturn(factoryUtil.createPaGetPaymentRes(responseBody));
+      mockedCommonUtil.when(CommonUtil::getServiceType).thenReturn("GPD");
 
-    // Test execution
-    JAXBElement<PaGetPaymentRes> response = partnerEndpoint.paGetPayment(request, Mockito.any());
+      // Test preconditions
+      PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
+      PaGetPaymentRes responseBody = PaGetPaymentResMock.getMock();
+      JAXBElement<PaGetPaymentReq> request = factoryUtil.createPaGetPaymentReq(requestBody);
 
-    // Test postcondiction
-    assertThat(response.getValue()).isEqualTo(responseBody);
+      when(partnerService.paGetPayment(requestBody, "GPD")).thenReturn(responseBody);
+      when(factory.createPaGetPaymentRes(responseBody))
+              .thenReturn(factoryUtil.createPaGetPaymentRes(responseBody));
+
+      // Test execution
+      JAXBElement<PaGetPaymentRes> response = partnerEndpoint.paGetPayment(request);
+
+      // Test postcondiction
+      assertThat(response.getValue()).isEqualTo(responseBody);
+    }
   }
 
   @Test
   void paGetPaymentV2Test() throws PartnerValidationException, DatatypeConfigurationException {
 
-    // Test preconditions
-    PaGetPaymentV2Request requestBody = PaGetPaymentV2ReqMock.getMock();
-    PaGetPaymentV2Response responseBody = PaGetPaymentV2ResMock.getMock();
-    JAXBElement<PaGetPaymentV2Request> request =
-        factoryUtil.createPaGetPaymentV2Request(requestBody);
+    try (MockedStatic<CommonUtil> mockedCommonUtil = mockStatic(CommonUtil.class)) {
 
-    when(partnerService.paGetPaymentV2(requestBody, null)).thenReturn(responseBody);
-    when(factory.createPaGetPaymentV2Response(responseBody))
-        .thenReturn(factoryUtil.createPaGetPaymentV2Response(responseBody));
+      mockedCommonUtil.when(CommonUtil::getServiceType).thenReturn("GPD");
 
-    // Test execution
-    JAXBElement<PaGetPaymentV2Response> response = partnerEndpoint.paGetPaymentV2(request, Mockito.any());
+      // Test preconditions
+      PaGetPaymentV2Request requestBody = PaGetPaymentV2ReqMock.getMock();
+      PaGetPaymentV2Response responseBody = PaGetPaymentV2ResMock.getMock();
+      JAXBElement<PaGetPaymentV2Request> request =
+              factoryUtil.createPaGetPaymentV2Request(requestBody);
 
-    // Test postcondiction
-    assertThat(response.getValue()).isEqualTo(responseBody);
+      when(partnerService.paGetPaymentV2(requestBody, "GPD")).thenReturn(responseBody);
+      when(factory.createPaGetPaymentV2Response(responseBody))
+              .thenReturn(factoryUtil.createPaGetPaymentV2Response(responseBody));
+
+      // Test execution
+      JAXBElement<PaGetPaymentV2Response> response = partnerEndpoint.paGetPaymentV2(request);
+
+      // Test postcondiction
+      assertThat(response.getValue()).isEqualTo(responseBody);
+    }
   }
 
   @Test
