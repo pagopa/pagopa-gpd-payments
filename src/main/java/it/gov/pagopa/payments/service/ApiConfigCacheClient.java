@@ -9,7 +9,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.web.bind.annotation.*;
 
 @FeignClient(value = "cache", url = "${service.cache.host}", configuration = GPDFeignConfig.class)
-public interface CacheClient {
+public interface ApiConfigCacheClient {
 
     @Retryable(
             exclude = FeignException.FeignClientException.class,
