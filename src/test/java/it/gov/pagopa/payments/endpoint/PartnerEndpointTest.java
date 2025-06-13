@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.xml.sax.SAXException;
 
@@ -65,7 +66,7 @@ class PartnerEndpointTest {
         .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes(responseBody));
 
     // Test execution
-    JAXBElement<PaVerifyPaymentNoticeRes> response = partnerEndpoint.paVerifyPaymentNotice(null, request);
+    JAXBElement<PaVerifyPaymentNoticeRes> response = partnerEndpoint.paVerifyPaymentNotice(request, Mockito.any());
 
     // Test postcondiction
     assertThat(response.getValue()).isEqualTo(responseBody);
@@ -84,7 +85,7 @@ class PartnerEndpointTest {
         .thenReturn(factoryUtil.createPaGetPaymentRes(responseBody));
 
     // Test execution
-    JAXBElement<PaGetPaymentRes> response = partnerEndpoint.paGetPayment(null, request);
+    JAXBElement<PaGetPaymentRes> response = partnerEndpoint.paGetPayment(request, Mockito.any());
 
     // Test postcondiction
     assertThat(response.getValue()).isEqualTo(responseBody);
@@ -104,7 +105,7 @@ class PartnerEndpointTest {
         .thenReturn(factoryUtil.createPaGetPaymentV2Response(responseBody));
 
     // Test execution
-    JAXBElement<PaGetPaymentV2Response> response = partnerEndpoint.paGetPaymentV2(null, request);
+    JAXBElement<PaGetPaymentV2Response> response = partnerEndpoint.paGetPaymentV2(request, Mockito.any());
 
     // Test postcondiction
     assertThat(response.getValue()).isEqualTo(responseBody);

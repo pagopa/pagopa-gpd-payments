@@ -89,6 +89,7 @@ class PartnerXsdValidationTest {
         .post()
         .uri("/partner")
         .header("SOAPAction", "paVerifyPaymentNotice")
+            .header("X-Caller-Service-Type", "GPD")
         .contentType(MediaType.TEXT_XML)
         .bodyValue(request)
         .exchange()
