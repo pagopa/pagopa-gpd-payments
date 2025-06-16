@@ -35,6 +35,7 @@ public class ConfigService {
             .stationCode(station)
             .startDate(nowMinusOneHour)
             .endDate(nowPlusElevenHour)
+            .standin(true)
             .build();
   }
 
