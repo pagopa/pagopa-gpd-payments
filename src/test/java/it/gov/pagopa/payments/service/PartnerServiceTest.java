@@ -48,6 +48,7 @@ import it.gov.pagopa.payments.model.partner.StAmountOption;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
+import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -69,6 +70,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -284,6 +286,181 @@ class PartnerServiceTest {
       }
     }
   }
+
+  @Test
+  void paVerifyPaymentNoticeTestACA() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+    when(factory.createPaVerifyPaymentNoticeRes())
+            .thenReturn(factoryUtil.createPaVerifyPaymentNoticeRes());
+    when(factory.createCtPaymentOptionDescriptionPA())
+            .thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
+    when(factory.createCtPaymentOptionsDescriptionListPA())
+            .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
+
+    PaymentsModelResponse paymentModel =
+            MockUtil.readModelFromFile(
+                    "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+
+    // Test execution
+    PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+
+    // Test post condition
+    assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().isAllCCP()).isFalse();
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getAmount())
+            .isEqualTo(new BigDecimal(1055));
+    assertThat(responseBody.getPaymentList().getPaymentOptionDescription().getOptions())
+            .isEqualTo(StAmountOption.EQ); // de-scoping
+    assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
+    assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
+  }
+
+  @Test
+  void paVerifyPaymentTestACAKONotFound() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+    var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
+
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+    }
+  }
+
+  @Test
+  void paVerifyPaymentTestACAKOMaintenanceStationNotInStandin() throws DatatypeConfigurationException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+    // TODO change this when real cache is implemented
+    try (MockedStatic<ConfigService> mockedConfigService = mockStatic(ConfigService.class)) {
+
+      ConfigService.StationMaintenance stationMaintenance = ConfigService.StationMaintenance.builder().standin(false).build();
+      mockedConfigService.when(() -> ConfigService.getStationInMaintenance(anyString())).thenReturn(stationMaintenance);
+
+      try {
+        // Test execution
+        partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+        fail();
+      } catch (PartnerValidationException ex) {
+        // Test post condition
+        assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      }
+    }
+  }
+
+  @Test
+  void paVerifyPaymentTestACAKOStationNotInACA() throws DatatypeConfigurationException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+    // TODO change this when real cache is implemented
+    try (MockedStatic<ConfigService> mockedConfigService = mockStatic(ConfigService.class)) {
+
+      ConfigService.StationCI stationCI = ConfigService.StationCI.builder().aca(false).build();
+      mockedConfigService.when(() -> ConfigService.getCreditorInstitutionStation(anyString(), anyString())).thenReturn(stationCI);
+
+      try {
+        // Test execution
+        partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+        fail();
+      } catch (PartnerValidationException ex) {
+        // Test post condition
+        assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      }
+    }
+  }
+
+  @Test
+  void paVerifyPaymentTestACAKOPaymentNotACA() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+
+    PaymentsModelResponse paymentModel =
+            MockUtil.readModelFromFile(
+                    "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+    paymentModel.setServiceType("GPD");
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+    }
+  }
+
+  @Test
+  void paVerifyPaymentTestACAKOStationNotInStandin() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+    // TODO change this when real cache is implemented
+    try (MockedStatic<ConfigService> mockedConfigService = mockStatic(ConfigService.class)) {
+
+      ConfigService.StationCI stationCI = ConfigService.StationCI.builder().aca(true).standin(false).build();
+      mockedConfigService.when(() -> ConfigService.getCreditorInstitutionStation(anyString(), anyString())).thenReturn(stationCI);
+
+      PaymentsModelResponse paymentModel =
+              MockUtil.readModelFromFile(
+                      "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+      paymentModel.setServiceType("ACA");
+      when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+
+      try {
+        // Test execution
+        partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+        fail();
+      } catch (PartnerValidationException ex) {
+        // Test post condition
+        assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      }
+    }
+  }
+
+  @Test
+  void paVerifyPaymentTestACAKODebtPositionNotPayableInStandin() throws DatatypeConfigurationException, IOException {
+
+    // Test preconditions
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+
+    PaymentsModelResponse paymentModel =
+            MockUtil.readModelFromFile(
+                    "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+    paymentModel.setServiceType("ACA");
+    paymentModel.setPayStandIn(false);
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+
+    try {
+      // Test execution
+      partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+      fail();
+    } catch (PartnerValidationException ex) {
+      // Test post condition
+      assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+    }
+  }
+
+
 
   @Test
   void paGetPaymentTest()
