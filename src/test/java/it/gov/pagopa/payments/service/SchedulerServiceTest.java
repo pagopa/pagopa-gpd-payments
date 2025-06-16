@@ -121,6 +121,7 @@ class SchedulerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
     doReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class))
@@ -186,6 +187,7 @@ class SchedulerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
     doThrow(FeignException.class)
@@ -251,6 +253,7 @@ class SchedulerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
 

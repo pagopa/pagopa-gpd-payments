@@ -6,8 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
@@ -164,6 +163,7 @@ class PartnerServiceTest {
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
@@ -183,6 +183,7 @@ class PartnerServiceTest {
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
     var e = Mockito.mock(FeignException.FeignClientException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
@@ -398,6 +399,7 @@ class PartnerServiceTest {
     PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
@@ -417,6 +419,7 @@ class PartnerServiceTest {
     PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
     var e = Mockito.mock(FeignException.FeignClientException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
@@ -496,6 +499,7 @@ class PartnerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
 
     var e = Mockito.mock(FeignException.Conflict.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -543,6 +547,7 @@ class PartnerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -646,6 +651,7 @@ class PartnerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222224");
 
     var e = Mockito.mock(RetryableException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -692,6 +698,7 @@ class PartnerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -739,6 +746,7 @@ class PartnerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
 
     var e = Mockito.mock(NullPointerException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -842,6 +850,7 @@ class PartnerServiceTest {
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
 
     var paymentModel =
@@ -1140,6 +1149,7 @@ class PartnerServiceTest {
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
@@ -1159,6 +1169,7 @@ class PartnerServiceTest {
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
     var e = Mockito.mock(FeignException.FeignClientException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
@@ -1238,6 +1249,7 @@ class PartnerServiceTest {
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
 
     var e = Mockito.mock(FeignException.Conflict.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -1285,6 +1297,7 @@ class PartnerServiceTest {
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -1388,6 +1401,7 @@ class PartnerServiceTest {
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222234");
 
     var e = Mockito.mock(RetryableException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -1434,6 +1448,7 @@ class PartnerServiceTest {
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
 
     var e = Mockito.mock(FeignException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -1481,6 +1496,7 @@ class PartnerServiceTest {
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222236");
 
     var e = Mockito.mock(NullPointerException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
@@ -1629,6 +1645,7 @@ class PartnerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
