@@ -61,6 +61,8 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 import lombok.extern.slf4j.Slf4j;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -164,7 +166,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-    var e = Mockito.mock(FeignException.NotFound.class);
+    var e = mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
@@ -184,7 +186,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-    var e = Mockito.mock(FeignException.FeignClientException.class);
+    var e = mock(FeignException.FeignClientException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
@@ -303,6 +305,8 @@ class PartnerServiceTest {
     PaymentsModelResponse paymentModel =
             MockUtil.readModelFromFile(
                     "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+    paymentModel.setServiceType("ACA");
+    paymentModel.setPayStandIn(((git) true));
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     // Test execution
@@ -325,7 +329,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-    var e = Mockito.mock(FeignException.NotFound.class);
+    var e = mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
@@ -500,15 +504,15 @@ class PartnerServiceTest {
     assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v1 the 'richiestaMarcaDaBollo' does not exist
-    org.hamcrest.MatcherAssert.assertThat(
+    MatcherAssert.assertThat(
         responseBody.getData().getTransferList().getTransfer(),
-        org.hamcrest.Matchers.contains(
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPA>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("string"))),
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPA>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("ABC")))));
+        Matchers.contains(
+            Matchers.allOf(
+                Matchers.<CtTransferPA>hasProperty(
+                    "IBAN", Matchers.is("string"))),
+            Matchers.allOf(
+                Matchers.<CtTransferPA>hasProperty(
+                    "IBAN", Matchers.is("ABC")))));
   }
 
   @Test
@@ -558,15 +562,15 @@ class PartnerServiceTest {
     assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v1 the 'richiestaMarcaDaBollo' does not exist
-    org.hamcrest.MatcherAssert.assertThat(
+    MatcherAssert.assertThat(
         responseBody.getData().getTransferList().getTransfer(),
-        org.hamcrest.Matchers.contains(
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPA>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("IT0000000000000000000000000"))),
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPA>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.nullValue()))));
+        Matchers.contains(
+            Matchers.allOf(
+                Matchers.<CtTransferPA>hasProperty(
+                    "IBAN", Matchers.is("IT0000000000000000000000000"))),
+            Matchers.allOf(
+                Matchers.<CtTransferPA>hasProperty(
+                    "IBAN", Matchers.nullValue()))));
   }
 
   @Test
@@ -575,7 +579,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
-    var e = Mockito.mock(FeignException.NotFound.class);
+    var e = mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
@@ -595,7 +599,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
-    var e = Mockito.mock(FeignException.FeignClientException.class);
+    var e = mock(FeignException.FeignClientException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
@@ -675,7 +679,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
 
-    var e = Mockito.mock(FeignException.Conflict.class);
+    var e = mock(FeignException.Conflict.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -723,7 +727,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
 
-    var e = Mockito.mock(FeignException.NotFound.class);
+    var e = mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -827,7 +831,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222224");
 
-    var e = Mockito.mock(RetryableException.class);
+    var e = mock(RetryableException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -874,7 +878,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
-    var e = Mockito.mock(FeignException.class);
+    var e = mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -922,7 +926,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
 
-    var e = Mockito.mock(NullPointerException.class);
+    var e = mock(NullPointerException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -1026,7 +1030,7 @@ class PartnerServiceTest {
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
 
-    var e = Mockito.mock(FeignException.NotFound.class);
+    var e = mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
 
@@ -1094,19 +1098,19 @@ class PartnerServiceTest {
     assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued
-    org.hamcrest.MatcherAssert.assertThat(
+    MatcherAssert.assertThat(
         responseBody.getData().getTransferList().getTransfer(),
-        org.hamcrest.Matchers.contains(
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("string"))),
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("ABC")))));
+        Matchers.contains(
+            Matchers.allOf(
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", Matchers.nullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", Matchers.is("string"))),
+            Matchers.allOf(
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", Matchers.nullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", Matchers.is("ABC")))));
   }
 
   @Test
@@ -1147,12 +1151,12 @@ class PartnerServiceTest {
     assertEquals(1, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued
-    org.hamcrest.MatcherAssert.assertThat(
+    MatcherAssert.assertThat(
         responseBody.getData().getTransferList().getTransfer(),
-        org.hamcrest.Matchers.contains(
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()))));
+        Matchers.contains(
+            Matchers.allOf(
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", Matchers.notNullValue()))));
   }
 
   @Test
@@ -1206,42 +1210,42 @@ class PartnerServiceTest {
     assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued
-    org.hamcrest.MatcherAssert.assertThat(
+    MatcherAssert.assertThat(
         responseBody.getData().getTransferList().getTransfer(),
-        org.hamcrest.Matchers.contains(
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "fiscalCodePA", org.hamcrest.Matchers.is("string")),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("string")),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "metadata", org.hamcrest.Matchers.notNullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+        Matchers.contains(
+            Matchers.allOf(
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "fiscalCodePA", Matchers.is("string")),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", Matchers.nullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", Matchers.is("string")),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "metadata", Matchers.notNullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
                     "metadata",
-                    org.hamcrest.Matchers.<CtMetadata>hasProperty(
-                        "mapEntry", org.hamcrest.Matchers.hasSize(2))),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                    Matchers.<CtMetadata>hasProperty(
+                        "mapEntry", Matchers.hasSize(2))),
+                Matchers.<CtTransferPAV2>hasProperty(
                     "metadata",
-                    org.hamcrest.Matchers.<CtMetadata>hasProperty(
+                    Matchers.<CtMetadata>hasProperty(
                         "mapEntry",
-                        org.hamcrest.Matchers.hasItem(
-                            org.hamcrest.Matchers.<CtMapEntry>hasProperty(
-                                "key", org.hamcrest.Matchers.is("IBANAPPOGGIO")))))),
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "fiscalCodePA", org.hamcrest.Matchers.is("77777777777")),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("ABC")),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "metadata", org.hamcrest.Matchers.notNullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
+                        Matchers.hasItem(
+                            Matchers.<CtMapEntry>hasProperty(
+                                "key", Matchers.is("IBANAPPOGGIO")))))),
+            Matchers.allOf(
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "fiscalCodePA", Matchers.is("77777777777")),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", Matchers.nullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", Matchers.is("ABC")),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "metadata", Matchers.notNullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
                     "metadata",
-                    org.hamcrest.Matchers.<CtMetadata>hasProperty(
-                        "mapEntry", org.hamcrest.Matchers.hasSize(1))))));
+                    Matchers.<CtMetadata>hasProperty(
+                        "mapEntry", Matchers.hasSize(1))))));
   }
 
   @Test
@@ -1304,19 +1308,19 @@ class PartnerServiceTest {
     assertEquals(2, responseBody.getData().getTransferList().getTransfer().size());
 
     // in paGetPayment v2 there is the new 'richiestaMarcaDaBollo' field and it can be valued
-    org.hamcrest.MatcherAssert.assertThat(
+    MatcherAssert.assertThat(
         responseBody.getData().getTransferList().getTransfer(),
-        org.hamcrest.Matchers.contains(
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.nullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.is("IT0000000000000000000000000"))),
-            org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "richiestaMarcaDaBollo", org.hamcrest.Matchers.notNullValue()),
-                org.hamcrest.Matchers.<CtTransferPAV2>hasProperty(
-                    "IBAN", org.hamcrest.Matchers.nullValue()))));
+        Matchers.contains(
+            Matchers.allOf(
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", Matchers.nullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", Matchers.is("IT0000000000000000000000000"))),
+            Matchers.allOf(
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "richiestaMarcaDaBollo", Matchers.notNullValue()),
+                Matchers.<CtTransferPAV2>hasProperty(
+                    "IBAN", Matchers.nullValue()))));
   }
 
   @Test
@@ -1325,7 +1329,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
-    var e = Mockito.mock(FeignException.NotFound.class);
+    var e = mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
@@ -1345,7 +1349,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
-    var e = Mockito.mock(FeignException.FeignClientException.class);
+    var e = mock(FeignException.FeignClientException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
@@ -1425,7 +1429,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
 
-    var e = Mockito.mock(FeignException.Conflict.class);
+    var e = mock(FeignException.Conflict.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -1473,7 +1477,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
 
-    var e = Mockito.mock(FeignException.NotFound.class);
+    var e = mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -1577,7 +1581,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222234");
 
-    var e = Mockito.mock(RetryableException.class);
+    var e = mock(RetryableException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -1624,7 +1628,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
 
-    var e = Mockito.mock(FeignException.class);
+    var e = mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -1672,7 +1676,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222236");
 
-    var e = Mockito.mock(NullPointerException.class);
+    var e = mock(NullPointerException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
@@ -1821,7 +1825,7 @@ class PartnerServiceTest {
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
-    var e = Mockito.mock(FeignException.class);
+    var e = mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
