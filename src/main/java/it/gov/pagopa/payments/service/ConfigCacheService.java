@@ -1,9 +1,11 @@
 package it.gov.pagopa.payments.service;
 
+import feign.FeignException;
 import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
 import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.ConfigDataV1;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,7 @@ import javax.annotation.PostConstruct;
  * Service to manage local instance of the config cache, to contain and update
  * based on retrieved data
  */
+@Slf4j
 @Service
 public class ConfigCacheService {
 
@@ -71,13 +74,26 @@ public class ConfigCacheService {
                         .build();
             }
 
-            ConfigDataV1 configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
-            if (configDataV1.getVersion() == null || configCacheData.getVersion() == null ||
-                    configDataV1.getVersion().compareTo(configCacheData.getVersion()) >= 0) {
+            ConfigDataV1 configDataV1;
+
+            try {
+                configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
+            } catch (FeignException feignException) {
+                log.error("[apiconfig-cache-update] Feign Exception while download cache {}.", feignException.getMessage());
+                return this.configCacheData;
+            }
+
+            if (configDataV1 != null && (configDataV1.getVersion() == null || configCacheData.getVersion() == null ||
+                    configDataV1.getVersion().compareTo(configCacheData.getVersion()) >= 0)) {
+
                 configCacheData.set(configDataV1);
+
+                log.info("[apiconfig-cache-update] Cache version: {}", configDataV1.getVersion());
+
                 if (configDataV1.getVersion() != null) {
                     configCacheData.setVersion(configDataV1.getVersion());
                 }
+
                 configCacheData.setCacheVersion(cacheUpdateEvent != null &&
                         cacheUpdateEvent.getCacheVersion() != null ?
                         cacheUpdateEvent.getCacheVersion() : null);
