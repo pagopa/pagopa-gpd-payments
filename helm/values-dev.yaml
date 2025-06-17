@@ -85,14 +85,17 @@ microservice-chart:
     CRON_JOB_SCHEDULE_RETRY_ENABLED: "true"
     CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 0 0,6,12,18 * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
+    CONFIG_CACHE_EVENTHUB_NAME: "pagopa-d-weu-core-evh-ns04"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-d-connection-string'
     APICONFIG_SUBSCRIPTION_KEY: "gpd-d-apiconfig-subscription-key"
     GPD_SUBSCRIPTION_KEY: "gpd-d-gpd-subscription-key"
     GPS_SUBSCRIPTION_KEY: "gpd-d-gps-subscription-key"
+    CONFIG_CACHE_SUBSCRIPTION_KEY: "config-cache-d-subscription-key"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-d-cosmos-connection-string"
     QUEUE_CONNECTION_STRING: "gpd-payments-d-queue-connection-string"
+    CONFIG_CACHE_EVENTHUB_CONN_STRING: "config-cache-event-hub-connection-string-for-aca-payments"
   keyvault:
     name: "pagopa-d-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"

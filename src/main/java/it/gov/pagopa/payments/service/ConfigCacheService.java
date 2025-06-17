@@ -4,6 +4,7 @@ import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
 import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.ConfigDataV1;
 import lombok.SneakyThrows;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -14,6 +15,7 @@ import javax.annotation.PostConstruct;
 @Service
 public class ConfigCacheService {
 
+    @Autowired
     public ApiConfigCacheClient apiConfigCacheClient;
 
     private ConfigCacheData configCacheData;
@@ -70,7 +72,6 @@ public class ConfigCacheService {
             }
 
             ConfigDataV1 configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
-
             if (configDataV1.getVersion() == null || configCacheData.getVersion() == null ||
                     configDataV1.getVersion().compareTo(configCacheData.getVersion()) >= 0) {
                 configCacheData.set(configDataV1);

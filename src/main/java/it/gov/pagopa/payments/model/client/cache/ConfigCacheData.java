@@ -3,6 +3,8 @@ package it.gov.pagopa.payments.model.client.cache;
 import lombok.*;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,8 +31,12 @@ public class ConfigCacheData {
     private Map<String, MaintenanceStation> activeStationMaintenanceMap;
 
     public void set(ConfigDataV1 configDataV1) {
-        this.setStationCreditorInstitutionMap(configDataV1);
-        this.setStationMaintenanceMap(configDataV1);
+        try {
+            this.setStationCreditorInstitutionMap(configDataV1);
+            this.setStationMaintenanceMap(configDataV1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public boolean isNull() {
@@ -52,8 +58,9 @@ public class ConfigCacheData {
 
         this.activeStationMaintenanceMap = configDataV1.getMaintenanceStationMap().entrySet().stream()
                 .filter(station -> {
-                    String timestampStr = String.valueOf(station.getValue().getEndDate());
-                    double timestamp = Double.parseDouble(timestampStr);
+                    String dateTimeString = String.valueOf(station.getValue().getEndDate());
+                    OffsetDateTime odt = OffsetDateTime.parse(dateTimeString, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                    double timestamp = odt.toInstant().getEpochSecond();
                     return timestamp > now;
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

@@ -4,6 +4,7 @@ import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
 import it.gov.pagopa.payments.service.ConfigCacheService;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -14,6 +15,7 @@ import java.util.function.Consumer;
 @Slf4j
 public class CacheConsumerConfig {
     // todo config application properties
+    @Autowired
     public ConfigCacheService configCacheService;
 
     @Bean("ConfigCacheEventConsumer")
