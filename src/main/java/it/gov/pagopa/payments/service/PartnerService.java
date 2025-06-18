@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xml.sax.SAXException;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -75,6 +76,8 @@ public class PartnerService {
 
     public static final String IBAN_APPOGGIO_KEY = "IBANAPPOGGIO";
 
+    public static final String SERVICE_TYPE_ACA = "ACA";
+
     @Value(value = "${xsd.generic-service}")
     private Resource xsdGenericService;
 
@@ -102,7 +105,7 @@ public class PartnerService {
     private static final String DBERROR = "Error in organization table connection";
 
     @Transactional(readOnly = true)
-    public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request)
+    public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(PaVerifyPaymentNoticeReq request, @Nullable String serviceType)
             throws DatatypeConfigurationException, PartnerValidationException {
 
         log.debug(
@@ -111,14 +114,19 @@ public class PartnerService {
         PaymentsModelResponse paymentOption = null;
 
         try {
-            paymentOption =
-                    gpdClient.getPaymentOption(request.getIdPA(), request.getQrCode().getNoticeNumber());
+            paymentOption = getAndValidatePaymentOption(request.getIdPA(), request.getIdStation(), request.getQrCode().getNoticeNumber(), serviceType);
         } catch (FeignException.NotFound e) {
             log.error(
                     "[paVerifyPaymentNotice] GPD Error not found [noticeNumber={}]",
                     request.getQrCode().getNoticeNumber(),
                     e);
             throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+        } catch (PartnerValidationException e) {
+            log.error(
+                    "[paVerifyPaymentNotice] GPD PartnerValidation Error [noticeNumber={}]",
+                    request.getQrCode().getNoticeNumber(),
+                    e);
+            throw e;
         } catch (Exception e) {
             log.error(
                     "[paVerifyPaymentNotice] GPD Generic Error [noticeNumber={}]",
@@ -142,12 +150,12 @@ public class PartnerService {
     }
 
     @Transactional(readOnly = true)
-    public PaGetPaymentRes paGetPayment(PaGetPaymentReq request)
+    public PaGetPaymentRes paGetPayment(PaGetPaymentReq request, @Nullable String serviceType)
             throws DatatypeConfigurationException, PartnerValidationException {
         log.debug(
                 "[paGetPayment] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
         PaymentsModelResponse paymentOption =
-                this.manageGetPaymentRequest(request.getIdPA(), request.getQrCode());
+                this.manageGetPaymentRequest(request.getIdPA(), request.getIdStation(), request.getQrCode(), serviceType);
         log.debug(
                 "[paGetPayment] Response OK generation [noticeNumber={}]",
                 request.getQrCode().getNoticeNumber());
@@ -155,12 +163,12 @@ public class PartnerService {
     }
 
     @Transactional(readOnly = true)
-    public PaGetPaymentV2Response paGetPaymentV2(PaGetPaymentV2Request request)
+    public PaGetPaymentV2Response paGetPaymentV2(PaGetPaymentV2Request request, @Nullable String serviceType)
             throws DatatypeConfigurationException, PartnerValidationException {
         log.debug(
                 "[paGetPaymentV2] method call [noticeNumber={}]", request.getQrCode().getNoticeNumber());
         PaymentsModelResponse paymentOption =
-                this.manageGetPaymentRequest(request.getIdPA(), request.getQrCode());
+                this.manageGetPaymentRequest(request.getIdPA(), request.getIdStation(), request.getQrCode(), serviceType);
         log.debug(
                 "[paGetPaymentV2] Response OK generation [noticeNumber={}]",
                 request.getQrCode().getNoticeNumber());
@@ -748,20 +756,26 @@ public class PartnerService {
         return debtor;
     }
 
-    private PaymentsModelResponse manageGetPaymentRequest(String idPa, CtQrCode qrCode) {
+    private PaymentsModelResponse manageGetPaymentRequest(String idPa, String station, CtQrCode qrCode, String serviceType) {
 
         log.debug(
                 "[manageGetPaymentRequest] get payment option [noticeNumber={}]", qrCode.getNoticeNumber());
         PaymentsModelResponse paymentOption = null;
 
         try {
-            paymentOption = gpdClient.getPaymentOption(idPa, qrCode.getNoticeNumber());
+            paymentOption = getAndValidatePaymentOption(idPa, station, qrCode.getNoticeNumber(), serviceType);
         } catch (FeignException.NotFound e) {
             log.error(
                     "[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]",
                     qrCode.getNoticeNumber(),
                     e);
             throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+        } catch (PartnerValidationException e) {
+            log.error(
+                    "[manageGetPaymentRequest] GPD PartnerValidation Error [noticeNumber={}]",
+                    qrCode.getNoticeNumber(),
+                    e);
+            throw e;
         } catch (Exception e) {
             log.error(
                     "[manageGetPaymentRequest] GPD Generic Error [noticeNumber={}]",
@@ -1005,5 +1019,65 @@ public class PartnerService {
             ReceiptEntity receiptEntity)
             throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
         return getReceiptPaymentOption(noticeNumber, idPa, creditorReferenceId, body, receiptEntity);
+    }
+
+    private PaymentsModelResponse getAndValidatePaymentOption(String idPa, String stationId, String noticeNumber, String serviceType) {
+
+        PaymentsModelResponse paymentOption;
+        if (SERVICE_TYPE_ACA.equalsIgnoreCase(serviceType)) {
+
+            log.debug("[getAndValidatePaymentOption] Debt position in ACA required to be handled in Stand-In mode [noticeNumber={}]", noticeNumber);
+
+            // check if station is in maintenance and if is required to handle payments in StandIn mode,
+            // otherwise throw exception
+            ConfigService.StationMaintenance stationInMaintenance = ConfigService.getStationInMaintenance(stationId);
+            if (stationInMaintenance != null && !stationInMaintenance.isStandin()) {
+                log.error("[getAndValidatePaymentOption] Station under maintenance but Stand-In mode not enabled [station={}]", stationId);
+                throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+            }
+
+            // check if relation between station and creditor institution permits ACA flow,
+            // otherwise throw exception
+            ConfigService.StationCI creditorInstitutionStation = ConfigService.getCreditorInstitutionStation(idPa, stationId);
+            if (creditorInstitutionStation == null || !creditorInstitutionStation.isAca()) {
+                log.error("[getAndValidatePaymentOption] Station not enabled for ACA payments for this creditor institution [station={}, creditorInstitution={}]",
+                        stationId,
+                        idPa);
+                throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+            }
+
+            // Searching debt position and, if something went wrong, an exception is thrown and
+            // the caller will handle it.
+            paymentOption = gpdClient.getPaymentOption(idPa, noticeNumber);
+
+            // check if the retrieved payment option is related to a debt position generated by ACA
+            if (paymentOption == null || !SERVICE_TYPE_ACA.equalsIgnoreCase(paymentOption.getServiceType())) {
+                log.error("[getAndValidatePaymentOption] Payment not generated by ACA service [noticeNumber={}]", noticeNumber);
+                throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+            }
+
+            // check if relation between station and creditor institution permits StandIn payments,
+            // otherwise throw exception
+            if (!creditorInstitutionStation.isStandin()) {
+                log.error("[getAndValidatePaymentOption] Station not enabled for Stand-In mode for this creditor institution [station={}, creditorInstitution={}]",
+                        stationId,
+                        idPa);
+                throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+            }
+
+            // check if payment was flagged to be paid in StandIn mode, otherwise throw exception
+            if (Boolean.FALSE.equals(paymentOption.getPayStandIn())) {
+                log.error("[getAndValidatePaymentOption] Debt position cannot be paid in Stand-In mode [noticeNumber={}]", noticeNumber);
+                throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+            }
+
+        } else {
+
+            // Searching debt position. If something went wrong, an exception is thrown and
+            // the caller will handle it.
+            paymentOption = gpdClient.getPaymentOption(idPa, noticeNumber);
+        }
+
+        return paymentOption;
     }
 }
