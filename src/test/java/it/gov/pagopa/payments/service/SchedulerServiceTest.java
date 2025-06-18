@@ -20,6 +20,8 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.mock.*;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
+import it.gov.pagopa.payments.service.client.GpdClient;
+import it.gov.pagopa.payments.service.client.GpsClient;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.ClassRule;

@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 @Configuration("CacheEventHandler")
 @Slf4j
 public class CacheConsumerConfig {
-    // todo config application properties
+
     @Autowired
     public ConfigCacheService configCacheService;
 

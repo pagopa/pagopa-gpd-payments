@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.service;
+package it.gov.pagopa.payments.client;
 
 import feign.FeignException;
 import it.gov.pagopa.payments.config.feign.GPDFeignConfig;

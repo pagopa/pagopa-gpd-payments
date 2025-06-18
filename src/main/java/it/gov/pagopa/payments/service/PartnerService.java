@@ -19,6 +19,8 @@ import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.MaintenanceStation;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.model.spontaneous.*;
+import it.gov.pagopa.payments.client.GpdClient;
+import it.gov.pagopa.payments.client.GpsClient;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import it.gov.pagopa.payments.utils.Validator;

@@ -6,8 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -64,11 +64,11 @@ public class ConfigCacheData {
                     double timestamp = odt.toInstant().getEpochSecond();
                     return timestamp > now;
                 })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static void setStationMaintenanceMap(ConfigDataV1 configDataV1) {
-        stationCreditorInstitutionMap = new HashMap<>();
+        stationCreditorInstitutionMap = new ConcurrentHashMap<>();
 
         for (StationCreditorInstitution st : configDataV1.getStationCreditorInstitutionMap().values()) {
             String newKey = st.getCreditorInstitutionCode().concat(st.getStationCode());

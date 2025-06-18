@@ -4,6 +4,7 @@ import feign.FeignException;
 import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
 import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.ConfigDataV1;
+import it.gov.pagopa.payments.client.ApiConfigCacheClient;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

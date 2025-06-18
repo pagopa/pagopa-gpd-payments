@@ -24,6 +24,7 @@ import it.gov.pagopa.payments.model.PaymentsResult;
 import java.util.*;
 
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
+import it.gov.pagopa.payments.service.client.GpdClient;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
