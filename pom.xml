@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.39</version>
+    <version>0.12.43-PAGOPA-3110</version>
     <name>Payments</name>
     <description>Payments</description>
 
@@ -25,6 +25,7 @@
         <azure.storage.table.version>8.6.6</azure.storage.table.version>
         <azure.data.table.version>12.3.18</azure.data.table.version>
         <azure.core.version>1.46.0</azure.core.version>
+        <spring.cloud.stream.kafka>4.3.0</spring.cloud.stream.kafka>
         <springdoc-version>1.6.6</springdoc-version>
     </properties>
 
@@ -54,6 +55,16 @@
             <version>${azure.data.table.version}</version>
         </dependency>
         <!-- End cosmos tables -->
+
+        <!-- Start Kafka for EventHub -->
+        <!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-stream-kafka -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-stream-kafka</artifactId>
+            <version>${spring.cloud.stream.kafka}</version>
+        </dependency>
+        <!-- End Kafka for EventHub -->
+
         <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-bean-validators</artifactId>
