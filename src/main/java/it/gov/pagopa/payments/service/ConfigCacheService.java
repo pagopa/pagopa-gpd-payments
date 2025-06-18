@@ -21,25 +21,23 @@ public class ConfigCacheService {
     @Autowired
     public ApiConfigCacheClient apiConfigCacheClient;
 
-    private ConfigCacheData configCacheData;
-
     @PostConstruct
     public void setConfigCacheData() {
         try {
             getConfigCacheData();
         } catch (Exception e) {
+            log.error("[PostConstruct] Exception while setConfigCacheData: ", e);
         }
     }
 
     /**
      * Provides instance of the local cache data, if not yet provided,
      * it will call the checkAndUpdate method
-     * @return version of local instance of the configCacheData
      */
-    public String getConfigCacheData() {
-        return this.configCacheData != null && !this.configCacheData.isNull() ?
-                this.configCacheData.getCacheVersion() :
-                checkAndUpdateCache(null).getCacheVersion();
+    public void getConfigCacheData() {
+        if (ConfigCacheData.isConfigDataNull()) {
+            checkAndUpdateCache(null);
+        }
     }
 
     /**
@@ -50,28 +48,18 @@ public class ConfigCacheService {
      * the update only when a new cache version is passed through the update event
      *
      * @param cacheUpdateEvent contains version of the update event
-     * @return instance of the configCacheData
      */
     @SneakyThrows
-    public ConfigCacheData checkAndUpdateCache(CacheUpdateEvent cacheUpdateEvent) {
+    public void checkAndUpdateCache(CacheUpdateEvent cacheUpdateEvent) {
 
-        if (configCacheData == null || cacheUpdateEvent == null ||
-                configCacheData.getVersion() == null ||
-                configCacheData.getCacheVersion() == null ||
-                !cacheUpdateEvent.getCacheVersion().equals(configCacheData.getCacheVersion()) ||
-                cacheUpdateEvent.getVersion().compareTo(configCacheData.getVersion()) > 0)
+        if (ConfigCacheData.isConfigDataNull() || cacheUpdateEvent == null ||
+                ConfigCacheData.getVersion() == null ||
+                !cacheUpdateEvent.getCacheVersion().equals(ConfigCacheData.getVersion()) ||
+                cacheUpdateEvent.getVersion().compareTo(ConfigCacheData.getVersion()) > 0)
         {
 
-            if (configCacheData == null) {
-                configCacheData = ConfigCacheData.builder().cacheVersion(
-                                cacheUpdateEvent != null ?
-                                        cacheUpdateEvent.getCacheVersion() :
-                                        null
-                        )
-                        .version(cacheUpdateEvent != null ?
-                                cacheUpdateEvent.getVersion() :
-                                null)
-                        .build();
+            if (ConfigCacheData.isConfigDataNull() && cacheUpdateEvent != null) {
+                ConfigCacheData.setVersion(cacheUpdateEvent.getVersion());
             }
 
             ConfigDataV1 configDataV1;
@@ -80,27 +68,16 @@ public class ConfigCacheService {
                 configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
             } catch (FeignException feignException) {
                 log.error("[apiconfig-cache-update] Feign Exception while download cache {}.", feignException.getMessage());
-                return this.configCacheData;
+                return;
             }
 
-            if (configDataV1 != null && (configDataV1.getVersion() == null || configCacheData.getVersion() == null ||
-                    configDataV1.getVersion().compareTo(configCacheData.getVersion()) >= 0)) {
+            if (configDataV1 != null && (configDataV1.getVersion() == null || ConfigCacheData.getVersion() == null ||
+                    configDataV1.getVersion().compareTo(ConfigCacheData.getVersion()) >= 0)) {
 
-                configCacheData.set(configDataV1);
+                ConfigCacheData.setConfigData(configDataV1);
 
-                log.info("[apiconfig-cache-update] Cache version: {}", configDataV1.getVersion());
-
-                if (configDataV1.getVersion() != null) {
-                    configCacheData.setVersion(configDataV1.getVersion());
-                }
-
-                configCacheData.setCacheVersion(cacheUpdateEvent != null &&
-                        cacheUpdateEvent.getCacheVersion() != null ?
-                        cacheUpdateEvent.getCacheVersion() : null);
+                log.info("[apiconfig-cache-update] Cache version: {}", ConfigCacheData.getVersion());
             }
-
         }
-
-        return this.configCacheData;
     }
 }

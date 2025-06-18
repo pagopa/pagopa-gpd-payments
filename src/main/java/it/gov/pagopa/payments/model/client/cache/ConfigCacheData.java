@@ -1,6 +1,7 @@
 package it.gov.pagopa.payments.model.client.cache;
 
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -9,11 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Slf4j
 public class ConfigCacheData {
 
     @Data
@@ -25,38 +22,42 @@ public class ConfigCacheData {
         private boolean standin;
     }
 
-    private String cacheVersion;
-    private String version;
-    private Map<String, StationCI> stationCreditorInstitutionMap;
-    private Map<String, MaintenanceStation> activeStationMaintenanceMap;
+    @Getter
+    @Setter
+    private static String version;
+    private static Map<String, StationCI> stationCreditorInstitutionMap;
+    private static Map<String, MaintenanceStation> activeStationMaintenanceMap;
 
-    public void set(ConfigDataV1 configDataV1) {
+    public static void setConfigData(ConfigDataV1 configDataV1) {
         try {
-            this.setStationCreditorInstitutionMap(configDataV1);
-            this.setStationMaintenanceMap(configDataV1);
+            if (configDataV1.getVersion() != null) {
+                version = configDataV1.getVersion();
+            }
+            setStationCreditorInstitutionMap(configDataV1);
+            setStationMaintenanceMap(configDataV1);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Exception while setConfigCacheData: ", e);
         }
     }
 
-    public boolean isNull() {
-        return this.stationCreditorInstitutionMap == null ||
-                this.activeStationMaintenanceMap == null;
+    public static boolean isConfigDataNull() {
+        return stationCreditorInstitutionMap == null ||
+                activeStationMaintenanceMap == null;
     }
 
-    public MaintenanceStation getStationInMaintenance(String stationCode) {
-        return this.activeStationMaintenanceMap.get(stationCode);
+    public static MaintenanceStation getStationInMaintenance(String stationCode) {
+        return activeStationMaintenanceMap.get(stationCode);
     }
 
-    public StationCI getCreditorInstitutionStation(String creditorInstitution, String station) {
-        return this.stationCreditorInstitutionMap.get(creditorInstitution.concat(station));
+    public static StationCI getCreditorInstitutionStation(String creditorInstitution, String station) {
+        return stationCreditorInstitutionMap.get(creditorInstitution.concat(station));
     }
 
-    private void setStationCreditorInstitutionMap(ConfigDataV1 configDataV1) {
+    private static void setStationCreditorInstitutionMap(ConfigDataV1 configDataV1) {
         // Filters all stations for which maintenance is over
         long now = Instant.now().getEpochSecond();
 
-        this.activeStationMaintenanceMap = configDataV1.getMaintenanceStationMap().entrySet().stream()
+        activeStationMaintenanceMap = configDataV1.getMaintenanceStationMap().entrySet().stream()
                 .filter(station -> {
                     String dateTimeString = String.valueOf(station.getValue().getEndDate());
                     OffsetDateTime odt = OffsetDateTime.parse(dateTimeString, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
@@ -66,8 +67,8 @@ public class ConfigCacheData {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private void setStationMaintenanceMap(ConfigDataV1 configDataV1) {
-        this.stationCreditorInstitutionMap = new HashMap<>();
+    private static void setStationMaintenanceMap(ConfigDataV1 configDataV1) {
+        stationCreditorInstitutionMap = new HashMap<>();
 
         for (StationCreditorInstitution st : configDataV1.getStationCreditorInstitutionMap().values()) {
             String newKey = st.getCreditorInstitutionCode().concat(st.getStationCode());
@@ -77,7 +78,7 @@ public class ConfigCacheData {
                     .aca(st.getAca())
                     .standin(st.getStandin())
                     .build();
-            this.stationCreditorInstitutionMap.put(newKey, stationCI);
+            stationCreditorInstitutionMap.put(newKey, stationCI);
         }
     }
 }

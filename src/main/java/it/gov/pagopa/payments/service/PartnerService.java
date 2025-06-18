@@ -15,6 +15,8 @@ import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.model.*;
+import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
+import it.gov.pagopa.payments.model.client.cache.MaintenanceStation;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.model.spontaneous.*;
 import it.gov.pagopa.payments.utils.CommonUtil;
@@ -100,7 +102,8 @@ public class PartnerService {
     private QueueClient queueClient;
 
     @Autowired
-    private CustomizedMapper customizedModelMapper;
+    private CustomizedMapper customizedModelMapper;;
+
 
     private static final String DBERROR = "Error in organization table connection";
 
@@ -1030,15 +1033,15 @@ public class PartnerService {
 
             // check if station is in maintenance and if is required to handle payments in StandIn mode,
             // otherwise throw exception
-            ConfigService.StationMaintenance stationInMaintenance = ConfigService.getStationInMaintenance(stationId);
-            if (stationInMaintenance != null && !stationInMaintenance.isStandin()) {
+            MaintenanceStation stationInMaintenance = ConfigCacheData.getStationInMaintenance(stationId);
+            if (stationInMaintenance != null && !stationInMaintenance.getIsStandin()) {
                 log.error("[getAndValidatePaymentOption] Station under maintenance but Stand-In mode not enabled [station={}]", stationId);
                 throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
             }
 
             // check if relation between station and creditor institution permits ACA flow,
             // otherwise throw exception
-            ConfigService.StationCI creditorInstitutionStation = ConfigService.getCreditorInstitutionStation(idPa, stationId);
+            ConfigCacheData.StationCI creditorInstitutionStation = ConfigCacheData.getCreditorInstitutionStation(idPa, stationId);
             if (creditorInstitutionStation == null || !creditorInstitutionStation.isAca()) {
                 log.error("[getAndValidatePaymentOption] Station not enabled for ACA payments for this creditor institution [station={}, creditorInstitution={}]",
                         stationId,

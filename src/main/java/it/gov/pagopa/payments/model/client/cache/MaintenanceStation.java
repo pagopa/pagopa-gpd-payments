@@ -26,7 +26,7 @@ public class MaintenanceStation implements Serializable {
     private OffsetDateTime endDate;
 
     @JsonProperty(value = "standin", required = true)
-    private Boolean standin;
+    private Boolean isStandin;
 
     @JsonIgnore
     public String getIdentifier() {
