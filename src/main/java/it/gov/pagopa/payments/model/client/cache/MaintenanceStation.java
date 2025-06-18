@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MaintenanceStation implements Serializable {

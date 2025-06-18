@@ -29,6 +29,8 @@ import it.gov.pagopa.payments.mock.PaGetPaymentReqMock;
 import it.gov.pagopa.payments.mock.PaSendRTReqMock;
 import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeReqMock;
 import it.gov.pagopa.payments.model.*;
+import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
+import it.gov.pagopa.payments.model.client.cache.MaintenanceStation;
 import it.gov.pagopa.payments.model.partner.CtMapEntry;
 import it.gov.pagopa.payments.model.partner.CtMetadata;
 import it.gov.pagopa.payments.model.partner.CtTransferPA;
@@ -47,8 +49,8 @@ import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
 import it.gov.pagopa.payments.model.partner.StAmountOption;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
-import it.gov.pagopa.payments.service.client.GpdClient;
-import it.gov.pagopa.payments.service.client.GpsClient;
+import it.gov.pagopa.payments.client.GpdClient;
+import it.gov.pagopa.payments.client.GpsClient;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import java.io.IOException;
@@ -348,11 +350,10 @@ class PartnerServiceTest {
     // Test preconditions
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-    // TODO change this when real cache is implemented
-    try (MockedStatic<ConfigService> mockedConfigService = mockStatic(ConfigService.class)) {
+    try (MockedStatic<ConfigCacheData> mockedConfigData = mockStatic(ConfigCacheData.class)) {
 
-      ConfigService.StationMaintenance stationMaintenance = ConfigService.StationMaintenance.builder().standin(false).build();
-      mockedConfigService.when(() -> ConfigService.getStationInMaintenance(anyString())).thenReturn(stationMaintenance);
+      MaintenanceStation stationMaintenance = MaintenanceStation.builder().isStandin(false).build();
+      mockedConfigData.when(() -> ConfigCacheData.getStationInMaintenance(anyString())).thenReturn(stationMaintenance);
 
       try {
         // Test execution
@@ -371,11 +372,10 @@ class PartnerServiceTest {
     // Test preconditions
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-    // TODO change this when real cache is implemented
-    try (MockedStatic<ConfigService> mockedConfigService = mockStatic(ConfigService.class)) {
+    try (MockedStatic<ConfigCacheData> mockedConfigData = mockStatic(ConfigCacheData.class)) {
 
-      ConfigService.StationCI stationCI = ConfigService.StationCI.builder().aca(false).build();
-      mockedConfigService.when(() -> ConfigService.getCreditorInstitutionStation(anyString(), anyString())).thenReturn(stationCI);
+      ConfigCacheData.StationCI stationCI = ConfigCacheData.StationCI.builder().aca(false).build();
+      mockedConfigData.when(() -> ConfigCacheData.getCreditorInstitutionStation(anyString(), anyString())).thenReturn(stationCI);
 
       try {
         // Test execution
@@ -417,11 +417,10 @@ class PartnerServiceTest {
     // Test preconditions
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
-    // TODO change this when real cache is implemented
-    try (MockedStatic<ConfigService> mockedConfigService = mockStatic(ConfigService.class)) {
+    try (MockedStatic<ConfigCacheData> mockedConfigData = mockStatic(ConfigCacheData.class)) {
 
-      ConfigService.StationCI stationCI = ConfigService.StationCI.builder().aca(true).standin(false).build();
-      mockedConfigService.when(() -> ConfigService.getCreditorInstitutionStation(anyString(), anyString())).thenReturn(stationCI);
+      ConfigCacheData.StationCI stationCI = ConfigCacheData.StationCI.builder().aca(true).standin(false).build();
+      mockedConfigData.when(() -> ConfigCacheData.getCreditorInstitutionStation(anyString(), anyString())).thenReturn(stationCI);
 
       PaymentsModelResponse paymentModel =
               MockUtil.readModelFromFile(
