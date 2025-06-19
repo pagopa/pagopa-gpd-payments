@@ -28,6 +28,12 @@ public class ConfigCacheData {
     private static Map<String, StationCI> stationCreditorInstitutionMap;
     private static Map<String, MaintenanceStation> activeStationMaintenanceMap;
 
+    // Private constructor to hide the implicit public one: utility class is a class that only has static members,
+    // hence it should not be instantiated.
+    private ConfigCacheData() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static void setConfigData(ConfigDataV1 configDataV1) {
         try {
             if (configDataV1.getVersion() != null) {

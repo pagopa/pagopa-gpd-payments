@@ -104,7 +104,7 @@ public class PartnerService {
     private QueueClient queueClient;
 
     @Autowired
-    private CustomizedMapper customizedModelMapper;;
+    private CustomizedMapper customizedModelMapper;
 
 
     private static final String DBERROR = "Error in organization table connection";

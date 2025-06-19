@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @Slf4j
 @SpringBootTest
-public class ConfigCacheConsumerTest {
+class ConfigCacheConsumerTest {
     @InjectMocks
     private CacheConsumerConfig cacheConsumerConfig;
 

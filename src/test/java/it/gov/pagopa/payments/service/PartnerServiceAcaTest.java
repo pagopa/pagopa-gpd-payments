@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @Slf4j
 @SpringBootTest
-public class PartnerServiceAcaTest {
+class PartnerServiceAcaTest {
 
     @InjectMocks
     private PartnerService partnerService;
@@ -89,7 +89,7 @@ public class PartnerServiceAcaTest {
     }
 
     @Test
-    void paVerifyPaymentTestACAKONotFound() throws DatatypeConfigurationException, IOException {
+    void paVerifyPaymentTestACAKONotFound() throws DatatypeConfigurationException {
 
         // Test preconditions
         PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();

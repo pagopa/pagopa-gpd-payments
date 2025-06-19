@@ -19,7 +19,7 @@ import feign.FeignException;
 @ExtendWith(MockitoExtension.class)
 @Slf4j
 @SpringBootTest
-public class ConfigCacheServiceTest {
+class ConfigCacheServiceTest {
 
     @InjectMocks
     private ConfigCacheService configCacheService;

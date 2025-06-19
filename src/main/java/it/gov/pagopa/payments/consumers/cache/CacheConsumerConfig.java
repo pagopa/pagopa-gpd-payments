@@ -11,14 +11,14 @@ import org.springframework.messaging.Message;
 
 import java.util.function.Consumer;
 
-@Configuration("CacheEventHandler")
+@Configuration("cacheEventHandler")
 @Slf4j
 public class CacheConsumerConfig {
 
     @Autowired
     public ConfigCacheService configCacheService;
 
-    @Bean("ConfigCacheEventConsumer")
+    @Bean("configCacheEventConsumer")
     @NonNull
     public Consumer<Message<CacheUpdateEvent>> consumerCacheEvent() {
         return this::handleCacheEvent;
@@ -28,6 +28,7 @@ public class CacheConsumerConfig {
         try {
             configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload());
         } catch (Exception e) {
+            log.error("[configCacheEventConsumer] Exception while handleCacheEvent: ", e);
             throw e;
         }
     }

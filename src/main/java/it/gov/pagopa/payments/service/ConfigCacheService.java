@@ -19,8 +19,12 @@ import javax.annotation.PostConstruct;
 @Service
 public class ConfigCacheService {
 
-    @Autowired
     public ApiConfigCacheClient apiConfigCacheClient;
+
+    @Autowired
+    public ConfigCacheService(ApiConfigCacheClient apiConfigCacheClient) {
+        this.apiConfigCacheClient = apiConfigCacheClient;
+    }
 
     @PostConstruct
     public void setConfigCacheData() {
