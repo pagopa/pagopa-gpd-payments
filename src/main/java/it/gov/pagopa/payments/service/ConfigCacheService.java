@@ -26,6 +26,7 @@ public class ConfigCacheService {
     public void setConfigCacheData() {
         try {
             getConfigCacheData();
+            log.info("[PostConstruct] Successful getConfigCacheData, version: {}", ConfigCacheData.getVersion());
         } catch (Exception e) {
             log.error("[PostConstruct] Exception while setConfigCacheData: ", e);
         }

@@ -24,7 +24,7 @@ public class CacheConsumerConfig {
         return this::handleCacheEvent;
     }
 
-    private void handleCacheEvent(Message<CacheUpdateEvent> cacheEventMessage) {
+    public void handleCacheEvent(Message<CacheUpdateEvent> cacheEventMessage) {
         try {
             configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload());
         } catch (Exception e) {

@@ -8,9 +8,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CacheUpdateEvent {
-    // todo add docs
+
     private String cacheVersion;
     private String version;
     private String timestamp;
-
 }
