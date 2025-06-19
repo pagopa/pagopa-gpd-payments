@@ -46,11 +46,15 @@ public class ConfigCacheData {
     }
 
     public static MaintenanceStation getStationInMaintenance(String stationCode) {
-        return activeStationMaintenanceMap.get(stationCode);
+        if(activeStationMaintenanceMap == null)
+            return null;
+        else return activeStationMaintenanceMap.get(stationCode);
     }
 
     public static StationCI getCreditorInstitutionStation(String creditorInstitution, String station) {
-        return stationCreditorInstitutionMap.get(creditorInstitution.concat(station));
+        if(stationCreditorInstitutionMap == null)
+            return null;
+        else return stationCreditorInstitutionMap.get(creditorInstitution.concat(station));
     }
 
     private static void setStationCreditorInstitutionMap(ConfigDataV1 configDataV1) {
