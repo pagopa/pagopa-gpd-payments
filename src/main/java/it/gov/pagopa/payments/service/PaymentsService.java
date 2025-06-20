@@ -14,13 +14,13 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptModelResponse;
 import it.gov.pagopa.payments.model.*;
+import it.gov.pagopa.payments.client.GpdClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotBlank;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j

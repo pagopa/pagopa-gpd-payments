@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Objects;
 import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -17,10 +19,15 @@ import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 
 import lombok.experimental.UtilityClass;
+import org.springframework.ws.transport.context.TransportContextHolder;
+import org.springframework.ws.transport.http.HttpServletConnection;
 import org.xml.sax.SAXException;
 
 @UtilityClass
 public class CommonUtil {
+
+  public static final String SERVICE_TYPE_HEADER = "X-Client-Service-Type";
+
   /**
    * @param xml file XML to validate
    * @param xsdUrl url of XSD
@@ -66,5 +73,20 @@ public class CommonUtil {
    */
   public static String deNull(Object value) {
     return Optional.ofNullable(value).orElse("").toString();
+  }
+
+  /**
+   * The function permits to extract the <i>serviceType</i> value from header
+   * <b>X-Caller-Service-Type</b> in request. If no header is found with that
+   * name, the value <i>"GPD"</i> is returned as default.
+   *
+   * @return the service type value
+   */
+  public static String getServiceType() {
+    HttpServletRequest servletRequest = ((HttpServletConnection)
+            TransportContextHolder.getTransportContext().getConnection())
+            .getHttpServletRequest();
+    String serviceType = servletRequest.getHeader(SERVICE_TYPE_HEADER);
+    return Objects.requireNonNullElse(serviceType, "GPD");
   }
 }
