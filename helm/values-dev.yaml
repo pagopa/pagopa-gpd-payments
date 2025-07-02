@@ -92,10 +92,10 @@ microservice-chart:
     APICONFIG_SUBSCRIPTION_KEY: "gpd-d-apiconfig-subscription-key"
     GPD_SUBSCRIPTION_KEY: "gpd-d-gpd-subscription-key"
     GPS_SUBSCRIPTION_KEY: "gpd-d-gps-subscription-key"
-    CONFIG_CACHE_SUBSCRIPTION_KEY: "gpd-d-config-cache-subscription-key"
+    CONFIG_CACHE_SUBSCRIPTION_KEY: "gpd-d-config-cache-subkey"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-d-cosmos-connection-string"
     QUEUE_CONNECTION_STRING: "gpd-payments-d-queue-connection-string"
-    CONFIG_CACHE_EVENTHUB_CONN_STRING: "config-cache-event-hub-connection-string-for-aca-payments"
+    CONFIG_CACHE_EVENTHUB_CONN_STRING: "config-cache-event-hub-connection-string-for-aca-payments-rx"
   keyvault:
     name: "pagopa-d-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
