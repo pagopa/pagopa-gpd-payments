@@ -31,7 +31,10 @@ import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -1052,11 +1055,19 @@ public class PartnerService {
       // check if station is in maintenance and if is required to handle payments in StandIn mode,
       // otherwise throw exception
       MaintenanceStation stationInMaintenance = ConfigCacheData.getStationInMaintenance(stationId);
+
       if (stationInMaintenance != null && !stationInMaintenance.getIsStandin()) {
-        log.error(
-            "[getAndValidatePaymentOption] Station under maintenance but Stand-In mode not enabled [station={}]",
-            stationId);
-        throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+        OffsetDateTime startDatetime = OffsetDateTime.parse(
+                String.valueOf(stationInMaintenance.getStartDate()),
+                DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+        // check if station maintenance is in progress, ie started
+        if(Instant.now().toEpochMilli() > startDatetime.toInstant().toEpochMilli()) {
+          log.error(
+                  "[getAndValidatePaymentOption] Station under maintenance but Stand-In mode not enabled [station={}]",
+                  stationId);
+          throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
+        }
       }
 
       // check if relation between station and creditor institution permits ACA flow,

@@ -63,32 +63,43 @@ public class ConfigCacheData {
         else return stationCreditorInstitutionMap.get(creditorInstitution.concat(station));
     }
 
-    private static void setStationCreditorInstitutionMap(ConfigDataV1 configDataV1) {
-        // Filters all stations for which maintenance is over
+    private static void setStationMaintenanceMap(ConfigDataV1 configDataV1) {
+        // Filter out all stations for which maintenance is over (pruning now > end)
         long now = Instant.now().getEpochSecond();
+        try {
+            activeStationMaintenanceMap = configDataV1.getMaintenanceStationMap().entrySet().stream()
+                    .filter(station -> {
+                        String endDateString = String.valueOf(station.getValue().getEndDate());
+                        OffsetDateTime endDatetime = OffsetDateTime.parse(endDateString, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                        double endTimestamp = endDatetime.toInstant().getEpochSecond();
 
-        activeStationMaintenanceMap = configDataV1.getMaintenanceStationMap().entrySet().stream()
-                .filter(station -> {
-                    String dateTimeString = String.valueOf(station.getValue().getEndDate());
-                    OffsetDateTime odt = OffsetDateTime.parse(dateTimeString, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-                    double timestamp = odt.toInstant().getEpochSecond();
-                    return timestamp > now;
-                })
-                .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
+                        return endTimestamp > now;
+                    })
+                    .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
+        } catch (Exception e) {
+            log.error("Exception while set active StationMaintenance Map: ", e);
+            // reset activeStationMaintenanceMap
+            activeStationMaintenanceMap = null;
+        }
     }
 
-    private static void setStationMaintenanceMap(ConfigDataV1 configDataV1) {
+    private static void setStationCreditorInstitutionMap(ConfigDataV1 configDataV1) {
         stationCreditorInstitutionMap = new ConcurrentHashMap<>();
-
-        for (StationCreditorInstitution st : configDataV1.getStationCreditorInstitutionMap().values()) {
-            String newKey = st.getCreditorInstitutionCode().concat(st.getStationCode());
-            StationCI stationCI = StationCI.builder()
-                    .stationCode(st.getStationCode())
-                    .creditorInstitution(st.getCreditorInstitutionCode())
-                    .aca(st.getAca())
-                    .standin(st.getStandin())
-                    .build();
-            stationCreditorInstitutionMap.put(newKey, stationCI);
+        try {
+            for (StationCreditorInstitution st : configDataV1.getStationCreditorInstitutionMap().values()) {
+                String newKey = st.getCreditorInstitutionCode().concat(st.getStationCode());
+                StationCI stationCI = StationCI.builder()
+                        .stationCode(st.getStationCode())
+                        .creditorInstitution(st.getCreditorInstitutionCode())
+                        .aca(st.getAca())
+                        .standin(st.getStandin())
+                        .build();
+                stationCreditorInstitutionMap.put(newKey, stationCI);
+            }
+        } catch (Exception e) {
+            log.error("Exception while set StationCreditorInstitution Map: ", e);
+            // reset stationCreditorInstitutionMap
+            stationCreditorInstitutionMap = null;
         }
     }
 }
