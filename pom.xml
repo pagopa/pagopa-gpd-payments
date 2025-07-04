@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.44-2-PAGOPA-3110</version>
+    <version>0.12.44-3-PAGOPA-3110</version>
     <name>Payments</name>
     <description>Payments</description>
 
