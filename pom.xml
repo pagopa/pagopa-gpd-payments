@@ -62,7 +62,6 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-stream-kafka</artifactId>
             <version>${spring.cloud.stream.kafka}</version>
-            <scope>test</scope>
         </dependency>
         <!-- End Kafka for EventHub -->
 
