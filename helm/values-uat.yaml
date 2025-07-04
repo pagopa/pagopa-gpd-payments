@@ -78,6 +78,7 @@ microservice-chart:
     API_CONFIG_HOST: "https://api.uat.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.uat.platform.pagopa.it/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.uat.platform.pagopa.it/gpd/api/v1"
+    API_CONFIG_CACHE_HOST: "https://api.uat.platform.pagopa.it/api-config-cache/p/v1"
     QUEUE_NAME: "gpd-receipt-poison-queue"
     DEQUEUE_LIMIT: "5"
     QUEUE_SEND_INVISIBILITY_TIME: "120"

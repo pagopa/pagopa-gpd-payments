@@ -26,7 +26,7 @@ public class CacheConsumerConfig {
 
     public void handleCacheEvent(Message<CacheUpdateEvent> cacheEventMessage) {
         try {
-            log.error("[ConfigCacheEventConsumer] Consume new cache event {}", cacheEventMessage);
+            log.info("[ConfigCacheEventConsumer] Consume new cache event {}", cacheEventMessage);
             configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload());
         } catch (Exception e) {
             log.error("[ConfigCacheEventConsumer] Exception while handleCacheEvent: ", e);
