@@ -133,7 +133,7 @@ class PartnerServiceAcaTest {
                 fail();
             } catch (PartnerValidationException ex) {
                 // Test post condition
-                assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+                assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
             }
         }
     }
@@ -178,7 +178,7 @@ class PartnerServiceAcaTest {
             fail();
         } catch (PartnerValidationException ex) {
             // Test post condition
-            assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+            assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
         }
     }
 
