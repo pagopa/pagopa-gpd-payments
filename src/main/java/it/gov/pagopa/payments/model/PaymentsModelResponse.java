@@ -21,6 +21,7 @@ public class PaymentsModelResponse implements Serializable {
   private long amount;
   private String description;
   private Boolean isPartialPayment;
+  private Boolean payStandIn;
   private LocalDateTime dueDate;
   private LocalDateTime retentionDate;
   private LocalDateTime paymentDate;
@@ -52,4 +53,5 @@ public class PaymentsModelResponse implements Serializable {
   private DebtPositionStatus debtPositionStatus;
   private List<PaymentsTransferModelResponse> transfer;
   private List<PaymentOptionMetadataModel> paymentOptionMetadata;
+  private String serviceType;
 }

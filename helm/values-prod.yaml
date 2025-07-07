@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.39"
+    tag: "0.12.44-3-PAGOPA-3110"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -78,6 +78,7 @@ microservice-chart:
     API_CONFIG_HOST: "https://api.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.platform.pagopa.it/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.platform.pagopa.it/gpd/api/v1"
+    API_CONFIG_CACHE_HOST: "https://api.platform.pagopa.it/api-config-cache/p/v1"
     QUEUE_NAME: "gpd-receipt-poison-queue"
     DEQUEUE_LIMIT: "5"
     QUEUE_SEND_INVISIBILITY_TIME: "120"
@@ -85,14 +86,17 @@ microservice-chart:
     CRON_JOB_SCHEDULE_RETRY_ENABLED: "true"
     CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 0 0,6,12,18 * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
+    CONFIG_CACHE_EVENTHUB_NAME: "pagopa-p-weu-core-evh-ns04"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-p-connection-string'
     APICONFIG_SUBSCRIPTION_KEY: "gpd-p-apiconfig-subscription-key"
     GPD_SUBSCRIPTION_KEY: "gpd-p-gpd-subscription-key"
     GPS_SUBSCRIPTION_KEY: "gpd-p-gps-subscription-key"
+    CONFIG_CACHE_SUBSCRIPTION_KEY: "gpd-p-config-cache-subkey"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-p-cosmos-connection-string"
     QUEUE_CONNECTION_STRING: "gpd-payments-p-queue-connection-string"
+    CONFIG_CACHE_EVENTHUB_CONN_STRING: "config-cache-event-hub-connection-string-for-aca-payments-rx"
   keyvault:
     name: "pagopa-p-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
