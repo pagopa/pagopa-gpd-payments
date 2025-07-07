@@ -15,8 +15,12 @@ import java.util.function.Consumer;
 @Slf4j
 public class CacheConsumerConfig {
 
-    @Autowired
     public ConfigCacheService configCacheService;
+
+    @Autowired
+    public CacheConsumerConfig(ConfigCacheService configCacheService) {
+        this.configCacheService = configCacheService;
+    }
 
     @Bean("ConfigCacheEventConsumer")
     @NonNull
