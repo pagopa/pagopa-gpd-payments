@@ -17,6 +17,7 @@ public class PaymentOptionModelResponse implements Serializable {
   private String nav;
   private String iuv;
   private String organizationFiscalCode;
+  private String serviceType;
   private long amount;
   private String description;
   private Boolean isPartialPayment;

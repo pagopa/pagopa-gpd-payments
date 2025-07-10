@@ -987,11 +987,12 @@ public class PartnerService {
       PaymentOptionModel body,
       ReceiptEntity receiptEntity)
       throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
-    PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
+    PaymentOptionModelResponse paymentOption;
     try {
-      paymentOption = gpdClient.receiptPaymentOption(idPa, noticeNumber, body);
-      // creates the PAID receipt
-      if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
+      paymentOption = gpdClient.sendPaymentOptionReceipt(idPa, noticeNumber, body);
+      // Saving the receipt if the PaymentOption is in the PO_PAID status and service type isn't ACA,
+      // includes all other service types ie GPD, WISP.
+      if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus()) && !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA)) {
         this.saveReceipt(receiptEntity);
       }
     } catch (FeignException.Conflict e) {
