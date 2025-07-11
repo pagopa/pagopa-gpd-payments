@@ -834,6 +834,8 @@ public class PartnerService {
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
 
+    boolean isStandIn = request.getReceipt().isStandIn() != null ? request.getReceipt().isStandIn() : false;
+
     LocalDateTime paymentDateTime =
         request.getReceipt().getPaymentDateTime() != null
             ? request
@@ -858,7 +860,7 @@ public class PartnerService {
         request.getReceipt().getNoticeNumber(),
         request.getIdPA(),
         request.getReceipt().getCreditorReferenceId(),
-        request.getReceipt().isStandIn(),
+        isStandIn,
         body,
         receiptEntity);
   }
@@ -889,6 +891,8 @@ public class PartnerService {
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
 
+    boolean isStandIn = request.getReceipt().isStandIn() != null ? request.getReceipt().isStandIn() : false;
+
     LocalDateTime paymentDateTime =
         request.getReceipt().getPaymentDateTime() != null
             ? request
@@ -914,7 +918,7 @@ public class PartnerService {
         request.getReceipt().getNoticeNumber(),
         request.getIdPA(),
         request.getReceipt().getCreditorReferenceId(),
-        request.getReceipt().isStandIn(),
+        isStandIn,
         body,
         receiptEntity);
   }

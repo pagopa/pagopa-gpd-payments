@@ -102,7 +102,12 @@ public class SchedulerService {
         String paymentMethod = node.getElementsByTagName("paymentMethod").item(0).getTextContent();
         String fee = node.getElementsByTagName("fee").item(0).getTextContent();
         String entityUniqueIdentifierValue = node.getElementsByTagName("entityUniqueIdentifierValue").item(0).getTextContent();
-        String standInString = node.getElementsByTagName("standIn").item(0).getTextContent();
+
+        String standInString = "false";
+        NodeList standInNodeList = node.getElementsByTagName("standIn");
+        if(standInNodeList.getLength() > 0) {
+            standInString = standInNodeList.item(0).getTextContent();
+        }
 
         ReceiptEntity receiptEntity = new ReceiptEntity(idPA, creditorReferenceId);
         receiptEntity.setDebtor(entityUniqueIdentifierValue);
