@@ -141,6 +141,7 @@ export function getDebtPosition(iupd, iuv_1, iuv_2, iuv_3, due_date, retention_d
     phone: "333-123456789",
     companyName: "companyName",
     officeName: "officeName",
+    switchToExpired: false,
     paymentOption: [
       {
         iuv: iuv_1,

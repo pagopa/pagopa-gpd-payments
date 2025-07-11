@@ -1,12 +1,12 @@
 {
   "environment": [
     {
-      "env": "local",
-      "soap_payments_host": "http://localhost:8080",
-      "rest_payments_host": "http://localhost:8080",
+      "env": "dev",
+      "soap_payments_host": "https://weudev.gps.internal.dev.platform.pagopa.it/pagopa-gpd-payments/partner",
+      "rest_payments_host": "https://api.dev.platform.pagopa.it/gpd/payments-receipts-service/v1",
       "gps_host": "https://api.dev.platform.pagopa.it/spontaneous-payments-service/v1",
       "donation_host": "https://api.dev.platform.pagopa.it/gps/donation-service/v1",
-      "gpd_host": "https://api.dev.platform.pagopa.it/gpd/debt-positions-service/v1",
+      "gpd_host": "https://weudev.gps.internal.dev.platform.pagopa.it/pagopa-gpd-core",
       "id_broker_pa": "15376371009",
       "id_station": "15376371009_01",
       "id_pa": "77777777777",

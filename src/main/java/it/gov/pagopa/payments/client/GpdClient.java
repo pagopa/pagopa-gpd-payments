@@ -33,7 +33,7 @@ public interface GpdClient {
   @PostMapping(
       value = "/organizations/{organizationfiscalcode}/paymentoptions/{nav}/pay",
       consumes = MediaType.APPLICATION_JSON_VALUE)
-  PaymentOptionModelResponse receiptPaymentOption(
+  PaymentOptionModelResponse sendPaymentOptionReceipt(
       @PathVariable("organizationfiscalcode") String organizationFiscalCode,
       @PathVariable("nav") String nav,
       @RequestBody PaymentOptionModel body);
