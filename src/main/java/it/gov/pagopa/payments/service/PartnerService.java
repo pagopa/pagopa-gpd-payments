@@ -996,7 +996,7 @@ public class PartnerService {
       PaymentOptionModel body,
       ReceiptEntity receiptEntity)
       throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
-    PaymentOptionModelResponse paymentOption = null;
+    PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.sendPaymentOptionReceipt(idPa, noticeNumber, body);
       boolean isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
@@ -1013,7 +1013,7 @@ public class PartnerService {
             noticeNumber,
             e);
         boolean receiptNotFoundInStorage = this.getReceipt(idPa, creditorReferenceId) == null;
-        boolean isNotACAorIsStandIn = paymentOption != null && (!paymentOption.getServiceType().equals(SERVICE_TYPE_ACA) || isStandIn);
+        boolean isNotACAorIsStandIn = paymentOption.getServiceType() != null && (!paymentOption.getServiceType().equals(SERVICE_TYPE_ACA) || isStandIn);
         if (receiptNotFoundInStorage && isNotACAorIsStandIn) {
           // if no receipt is not found, or it's a {GPD,WISP} payment, or it's an ACA payments paid in stand-in,
           // the receipt will be saved in the storage with the PAID status.
