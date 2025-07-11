@@ -128,7 +128,7 @@ class SchedulerServiceTest {
             .thenThrow(e);
     doReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class))
             .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -194,7 +194,7 @@ class SchedulerServiceTest {
             .thenThrow(e);
     doThrow(FeignException.class)
             .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);

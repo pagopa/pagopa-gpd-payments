@@ -102,6 +102,7 @@ public class SchedulerService {
         String paymentMethod = node.getElementsByTagName("paymentMethod").item(0).getTextContent();
         String fee = node.getElementsByTagName("fee").item(0).getTextContent();
         String entityUniqueIdentifierValue = node.getElementsByTagName("entityUniqueIdentifierValue").item(0).getTextContent();
+        String standInString = node.getElementsByTagName("standIn").item(0).getTextContent();
 
         ReceiptEntity receiptEntity = new ReceiptEntity(idPA, creditorReferenceId);
         receiptEntity.setDebtor(entityUniqueIdentifierValue);
@@ -124,6 +125,7 @@ public class SchedulerService {
                     noticeNumber,
                     idPA,
                     creditorReferenceId,
+                    Boolean.parseBoolean(standInString),
                     body,
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
