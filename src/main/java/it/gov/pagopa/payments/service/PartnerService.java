@@ -1003,7 +1003,7 @@ public class PartnerService {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.sendPaymentOptionReceipt(idPa, noticeNumber, body);
-      boolean isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
+      boolean isNotACA = paymentOption.getServiceType() != null && !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
       // Saving the receipt if the PaymentOption is in the PO_PAID status and service type isn't ACA,
       // includes all other service types ie GPD, WISP. ACA receipts are saved only if they are stand-in payments.
       if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus()) && (isNotACA || isStandIn)) {
