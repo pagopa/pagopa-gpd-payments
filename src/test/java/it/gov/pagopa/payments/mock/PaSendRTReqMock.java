@@ -79,6 +79,7 @@ public class PaSendRTReqMock {
     receipt.setDebtor(debtor);
     receipt.setPaymentDateTime(
             DatatypeFactory.newInstance().newXMLGregorianCalendar(LocalDateTime.now().toString()));
+    receipt.setStandIn(false);
 
     PaSendRTReq mock = new PaSendRTReq();
     mock.setIdBrokerPA("77777777777");
