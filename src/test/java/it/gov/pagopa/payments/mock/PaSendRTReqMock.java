@@ -20,6 +20,7 @@ public class PaSendRTReqMock {
     receipt.setPaymentMethod("creditCard");
     receipt.setPSPCompanyName("Intesa San Paolo");
     receipt.setFee(BigDecimal.valueOf(2));
+    receipt.setStandIn(false);
     receipt.setPaymentDateTime(
         DatatypeFactory.newInstance().newXMLGregorianCalendar(LocalDateTime.now().toString()));
 
