@@ -2,11 +2,11 @@
   "environment": [
     {
       "env": "uat",
-      "soap_payments_host": "https://api.uat.platform.pagopa.it/gpd-payments/api/v1",
+      "soap_payments_host": "https://weuuat.gps.internal.uat.platform.pagopa.it/pagopa-gpd-payments/partner",
       "rest_payments_host": "https://api.uat.platform.pagopa.it/gpd/payments-receipts-service/v1",
       "gps_host": "https://api.uat.platform.pagopa.it/spontaneous-payments-service/v1",
       "donation_host": "https://api.uat.platform.pagopa.it/gps/donation-service/v1",
-      "gpd_host": "https://api.uat.platform.pagopa.it/gpd/debt-positions-service/v1",
+      "gpd_host": "https://weuuat.gps.internal.uat.platform.pagopa.it/pagopa-gpd-core",
       "id_broker_pa": "15376371009",
       "id_station": "15376371009_01",
       "id_pa": "77777777777",

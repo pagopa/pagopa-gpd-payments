@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.45</version>
+    <version>0.12.46-PAGOPA-3112</version>
     <name>Payments</name>
     <description>Payments</description>
 
@@ -203,7 +203,7 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.30</version>
-            <optional>true</optional>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.modelmapper</groupId>

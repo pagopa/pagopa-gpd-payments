@@ -29,8 +29,6 @@ import it.gov.pagopa.payments.mock.PaGetPaymentReqMock;
 import it.gov.pagopa.payments.mock.PaSendRTReqMock;
 import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeReqMock;
 import it.gov.pagopa.payments.model.*;
-import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
-import it.gov.pagopa.payments.model.client.cache.MaintenanceStation;
 import it.gov.pagopa.payments.model.partner.CtMapEntry;
 import it.gov.pagopa.payments.model.partner.CtMetadata;
 import it.gov.pagopa.payments.model.partner.CtTransferPA;
@@ -73,7 +71,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -457,7 +454,7 @@ class PartnerServiceTest {
 
     when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -505,7 +502,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.Conflict.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -553,7 +550,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -609,7 +606,7 @@ class PartnerServiceTest {
         MockUtil.readModelFromFile(
             "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(paymentOption);
 
     try {
@@ -657,7 +654,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(RetryableException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -704,7 +701,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -752,7 +749,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(NullPointerException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1207,7 +1204,7 @@ class PartnerServiceTest {
 
     when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -1255,7 +1252,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.Conflict.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1303,7 +1300,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1359,7 +1356,7 @@ class PartnerServiceTest {
         MockUtil.readModelFromFile(
             "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(paymentOption);
 
     try {
@@ -1407,7 +1404,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(RetryableException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1454,7 +1451,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1502,7 +1499,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(NullPointerException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1550,7 +1547,7 @@ class PartnerServiceTest {
 
     when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -1601,7 +1598,7 @@ class PartnerServiceTest {
 
     when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -1651,7 +1648,7 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {

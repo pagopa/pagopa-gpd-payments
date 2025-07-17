@@ -35,6 +35,7 @@ import javax.xml.stream.XMLStreamException;
 
 import it.gov.pagopa.payments.service.PartnerService;
 import it.gov.pagopa.payments.utils.CommonUtil;
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -191,5 +192,24 @@ class PartnerEndpointTest {
 
     // Test postcondiction
     assertThat(response.getValue()).isEqualTo(responseBody);
+  }
+
+  @Test
+  void paDemandNoticePaymentTestException()
+          throws DatatypeConfigurationException, XMLStreamException, ParserConfigurationException,
+          IOException, SAXException {
+
+    // Test preconditions
+    PaDemandPaymentNoticeRequest requestBody = PaDemandNoticePaymentReqMock.getMock();
+    PaDemandPaymentNoticeResponse responseBody = PaDemandNoticePaymentResMock.getMock();
+    JAXBElement<PaDemandPaymentNoticeRequest> request =
+            factoryUtil.createPaDemandPaymentNoticeRequest(requestBody);
+
+    when(partnerService.paDemandPaymentNotice(requestBody)).thenReturn(responseBody);
+    when(factory.createPaDemandPaymentNoticeResponse(responseBody))
+            .thenThrow(PartnerValidationException.class);
+
+    // Test execution and assertion check
+    Assert.assertThrows(PartnerValidationException.class, () -> partnerEndpoint.paDemandPaymentNotice(request));
   }
 }

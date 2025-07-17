@@ -124,11 +124,11 @@ class SchedulerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
     doReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class))
             .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -190,11 +190,11 @@ class SchedulerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
     doThrow(FeignException.class)
             .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -256,7 +256,7 @@ class SchedulerServiceTest {
 
     var e = Mockito.mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
 
     try {
