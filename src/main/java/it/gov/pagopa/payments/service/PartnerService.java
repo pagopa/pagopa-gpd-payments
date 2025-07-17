@@ -1005,8 +1005,9 @@ public class PartnerService {
       paymentOption = gpdClient.sendPaymentOptionReceipt(idPa, noticeNumber, body);
 
       boolean isNotACA = true; // default SERVICE_TYPE_GPD
-      if(paymentOption.getServiceType() != null)
+      if(paymentOption.getServiceType() != null) {
         isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
+      }
 
       // Saving the receipt if the PaymentOption is in the PO_PAID status and service type isn't ACA,
       // includes all other service types ie GPD, WISP. ACA receipts are saved only if they are stand-in payments.
@@ -1023,11 +1024,12 @@ public class PartnerService {
         boolean receiptNotFoundInStorage = this.getReceipt(idPa, creditorReferenceId) == null;
 
         boolean isNotACA = true; // default SERVICE_TYPE_GPD
-        if(paymentOption.getServiceType() != null)
+        if(paymentOption.getServiceType() != null) {
           isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
+        }
 
         if (receiptNotFoundInStorage && (isNotACA || isStandIn)) {
-          // if no receipt is not found, or it's a {GPD,WISP} payment, or it's an ACA payments paid in stand-in,
+          // if receipt is not found, or it's a {GPD,WISP} payment, or it's an ACA payments paid in stand-in,
           // the receipt will be saved in the storage with the PAID status.
           this.saveReceipt(receiptEntity);
         }
