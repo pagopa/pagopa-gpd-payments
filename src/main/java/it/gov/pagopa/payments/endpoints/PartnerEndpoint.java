@@ -14,26 +14,23 @@ import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
 import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
+import it.gov.pagopa.payments.service.primitive.DemandPayService;
 import it.gov.pagopa.payments.service.PartnerService;
 import java.io.IOException;
-import java.util.Objects;
-import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
+import it.gov.pagopa.payments.service.primitive.ReceiveRTService;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
 import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 import org.springframework.ws.soap.server.endpoint.annotation.SoapAction;
-import org.springframework.ws.transport.context.TransportContextHolder;
-import org.springframework.ws.transport.http.HttpServletConnection;
 import org.xml.sax.SAXException;
 
 @Endpoint
@@ -107,6 +104,6 @@ public class PartnerEndpoint {
 
     log.debug(" paDemandPaymentNotice START ");
     return factory.createPaDemandPaymentNoticeResponse(
-        partnerService.paDemandPaymentNotice(request.getValue()));
+            partnerService.paDemandPaymentNotice(request.getValue()));
   }
 }

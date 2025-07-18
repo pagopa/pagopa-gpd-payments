@@ -15,7 +15,7 @@ import it.gov.pagopa.payments.model.ReceiptModelResponse;
 
 import java.util.ArrayList;
 
-import it.gov.pagopa.payments.service.PaymentsService;
+import it.gov.pagopa.payments.service.ReceiptService;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +37,7 @@ class PaymentsControllerTest {
 
   @InjectMocks private PaymentsController paymentsController;
 
-  @Mock private PaymentsService paymentsService;
+  @Mock private ReceiptService receiptService;
 
   @ClassRule @Container
   public static GenericContainer<?> azurite =
@@ -61,7 +61,7 @@ class PaymentsControllerTest {
     // precondition
     ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
     receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
+    when(receiptService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
         .thenReturn(receipt);
 
     ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
@@ -74,7 +74,7 @@ class PaymentsControllerTest {
     // precondition
     ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
     receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
+    when(receiptService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
             .thenReturn(receipt);
 
     ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
@@ -85,7 +85,7 @@ class PaymentsControllerTest {
   void getReceiptByIUV_404() throws Exception {
     // precondition
     doThrow(new AppException(AppError.RECEIPT_NOT_FOUND, "111", "222"))
-        .when(paymentsService)
+        .when(receiptService)
         .getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class));
     try {
       paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
@@ -100,7 +100,7 @@ class PaymentsControllerTest {
     // precondition
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
     receipts.setResults(new ArrayList<>());
-    when(paymentsService.getOrganizationReceipts(
+    when(receiptService.getOrganizationReceipts(
             anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
         .thenReturn(receipts);
 
@@ -116,7 +116,7 @@ class PaymentsControllerTest {
     // precondition
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
     receipts.setResults(new ArrayList<>());
-    when(paymentsService.getOrganizationReceipts(
+    when(receiptService.getOrganizationReceipts(
             anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
             .thenReturn(receipts);
 

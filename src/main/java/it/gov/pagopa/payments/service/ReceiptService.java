@@ -24,7 +24,7 @@ import java.util.*;
 
 @Service
 @Slf4j
-public class PaymentsService {
+public class ReceiptService {
 
     public static final String STATUS_PROPERTY = "status";
 
@@ -36,7 +36,7 @@ public class PaymentsService {
     @Autowired
     private GpdClient gpdClient;
 
-    public PaymentsService(GpdClient gpdClient, TableClient tableClient) {
+    public ReceiptService(GpdClient gpdClient, TableClient tableClient) {
         this.gpdClient = gpdClient;
         this.tableClient = tableClient;
     }

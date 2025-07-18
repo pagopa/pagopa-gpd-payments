@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.utils;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -88,5 +89,13 @@ public class CommonUtil {
             .getHttpServletRequest();
     String serviceType = servletRequest.getHeader(SERVICE_TYPE_HEADER);
     return Objects.requireNonNullElse(serviceType, "GPD");
+  }
+
+  public static long getFeeInCent(BigDecimal fee) {
+    long feeInCent = 0;
+    if (null != fee) {
+      feeInCent = fee.multiply(BigDecimal.valueOf(100)).longValue();
+    }
+    return feeInCent;
   }
 }

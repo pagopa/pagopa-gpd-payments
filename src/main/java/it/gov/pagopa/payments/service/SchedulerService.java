@@ -10,6 +10,8 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
+import it.gov.pagopa.payments.service.primitive.ReceiveRTService;
+import it.gov.pagopa.payments.utils.CommonUtil;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +59,7 @@ public class SchedulerService {
     QueueClient queueClient;
 
     @Autowired
-    PartnerService partnerService;
+    ReceiveRTService receiveRtService;
 
     public void retryFailedPaSendRT() {
         XPathFactory xPathfactory = XPathFactory.newInstance();
@@ -122,11 +124,11 @@ public class SchedulerService {
                         .paymentDate(localPaymentDateTime)
                         .pspCompany(PSPCompanyName)
                         .paymentMethod(paymentMethod)
-                        .fee(String.valueOf(partnerService.getFeeInCent(new BigDecimal(fee))))
+                        .fee(String.valueOf(CommonUtil.getFeeInCent(new BigDecimal(fee))))
                         .build();
 
         try {
-            partnerService.getReceiptPaymentOptionScheduler(
+            receiveRtService.setPaidPaymentOption(
                     noticeNumber,
                     idPA,
                     creditorReferenceId,

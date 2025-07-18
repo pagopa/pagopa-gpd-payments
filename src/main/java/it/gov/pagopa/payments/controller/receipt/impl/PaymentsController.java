@@ -6,7 +6,7 @@ import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
-import it.gov.pagopa.payments.service.PaymentsService;
+import it.gov.pagopa.payments.service.ReceiptService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ public class PaymentsController implements IPaymentsController {
 
   @Autowired private ModelMapper modelMapper;
 
-  @Autowired private PaymentsService paymentsService;
+  @Autowired private ReceiptService receiptService;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(
@@ -52,7 +52,7 @@ public class PaymentsController implements IPaymentsController {
             ? new ArrayList<>(Arrays.asList(segregationCodes.split(",")))
             : null;
     ReceiptEntity receipt =
-        paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv, segCodesList);
+        receiptService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv, segCodesList);
     return new ResponseEntity<>(receipt.getDocument(), HttpStatus.OK);
   }
 
@@ -88,7 +88,7 @@ public class PaymentsController implements IPaymentsController {
             ? new ArrayList<>(Arrays.asList(segregationCodes.split(",")))
             : null;
     PaymentsResult<ReceiptModelResponse> receipts =
-        paymentsService.getOrganizationReceipts(
+        receiptService.getOrganizationReceipts(
             organizationFiscalCode,
             debtor,
             service,
