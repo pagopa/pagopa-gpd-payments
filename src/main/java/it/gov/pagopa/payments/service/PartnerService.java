@@ -90,8 +90,12 @@ public class PartnerService {
   @Value(value = "${azure.queue.send.invisibilityTime}")
   private Long queueSendInvisibilityTime;
 
-  @Value(value = "${stations.SuppressedNotFoundErrors}")
-  private List<String> stationsWithSuppressedNotFoundErrors;
+  @Value(value = "${suppressedErrors.stations}")
+  private List<String> stationsWithSuppressedErrors;
+
+  // PaaErrorEnum.java fault codes subset
+  @Value(value = "${suppressedErrors.values}")
+  private List<String> suppressedErrorsValues;
 
   @Autowired private ObjectFactory factory;
 
@@ -220,8 +224,8 @@ public class PartnerService {
           throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
       }
     } catch (PartnerValidationException e) {
-      // Re-throw the exception unless it's a PAA_PAGAMENTO_SCONOSCIUTO error from station included in the suppression list.
-      if (!e.getError().equals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO) || !stationsWithSuppressedNotFoundErrors.contains(request.getIdStation())) {
+      // Re-throw the exception unless it's a suppressed fault code error from station included in the suppression list.
+      if (!suppressedErrorsValues.contains(e.getError().getFaultCode()) || !stationsWithSuppressedErrors.contains(request.getIdStation())) {
         throw e;
       }
     }
