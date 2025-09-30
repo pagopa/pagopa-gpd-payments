@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.List;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
@@ -447,7 +448,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("34");
@@ -495,7 +496,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
@@ -543,7 +544,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
@@ -597,7 +598,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock(iuv);
@@ -647,7 +648,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222224");
@@ -695,7 +696,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
@@ -742,7 +743,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
@@ -799,7 +800,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
@@ -846,7 +847,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
@@ -882,7 +883,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -948,7 +949,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -994,7 +995,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockTransferTypePAGOPA();
@@ -1083,7 +1084,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -1197,7 +1198,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222231");
@@ -1245,7 +1246,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
@@ -1293,7 +1294,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
@@ -1347,7 +1348,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2(iuv);
@@ -1397,7 +1398,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222234");
@@ -1445,7 +1446,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
 
@@ -1492,7 +1493,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222236");
@@ -1540,7 +1541,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222239");
@@ -1591,7 +1592,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222240");
@@ -1642,7 +1643,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 

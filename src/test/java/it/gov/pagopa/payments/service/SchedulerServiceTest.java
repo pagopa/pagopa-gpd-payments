@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -108,7 +109,7 @@ class SchedulerServiceTest {
                             gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper));
+                            customizedModelMapper, List.of(), List.of()));
 
     var schedService =
             spy(
@@ -174,7 +175,7 @@ class SchedulerServiceTest {
                             gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper));
+                            customizedModelMapper, List.of(), List.of()));
 
     var schedService =
             spy(
@@ -240,7 +241,7 @@ class SchedulerServiceTest {
                             gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper));
+                            customizedModelMapper, List.of(), List.of()));
 
     var schedService =
             spy(

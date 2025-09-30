@@ -90,13 +90,6 @@ public class PartnerService {
   @Value(value = "${azure.queue.send.invisibilityTime}")
   private Long queueSendInvisibilityTime;
 
-  @Value(value = "${suppressedErrors.stations}")
-  private List<String> stationsWithSuppressedErrors;
-
-  // PaaErrorEnum.java fault codes subset
-  @Value(value = "${suppressedErrors.values}")
-  private List<String> suppressedErrorsValues;
-
   @Autowired private ObjectFactory factory;
 
   @Autowired private GpdClient gpdClient;
@@ -108,6 +101,13 @@ public class PartnerService {
   @Autowired private QueueClient queueClient;
 
   @Autowired private CustomizedMapper customizedModelMapper;
+
+  @Value(value = "${suppressedErrors.stations}")
+  private List<String> stationsWithSuppressedErrors;
+
+  // PaaErrorEnum.java fault codes subset
+  @Value(value = "${suppressedErrors.values}")
+  private List<String> suppressedErrorsValues;
 
   private static final String DBERROR = "Error in organization table connection";
 
