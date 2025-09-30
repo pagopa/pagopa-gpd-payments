@@ -90,6 +90,9 @@ public class PartnerService {
   @Value(value = "${azure.queue.send.invisibilityTime}")
   private Long queueSendInvisibilityTime;
 
+  @Value(value = "${stations.SuppressedNotFoundErrors}")
+  private List<String> stationsWithSuppressedNotFoundErrors;
+
   @Autowired private ObjectFactory factory;
 
   @Autowired private GpdClient gpdClient;
@@ -206,15 +209,21 @@ public class PartnerService {
 
   @Transactional
   public PaSendRTV2Response paSendRTV2(PaSendRTV2Request request) {
+    try {
+      PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
 
-    PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
-
-    if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-      log.error(
-          "[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]",
-          paymentOption.getStatus(),
-          request.getReceipt().getNoticeNumber());
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+      if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
+          log.error(
+                  "[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]",
+                  paymentOption.getStatus(),
+                  request.getReceipt().getNoticeNumber());
+          throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+      }
+    } catch (PartnerValidationException e) {
+      // Re-throw the exception unless it's a PAA_PAGAMENTO_SCONOSCIUTO error from station included in the suppression list.
+      if (!e.getError().equals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO) || !stationsWithSuppressedNotFoundErrors.contains(request.getIdStation())) {
+        throw e;
+      }
     }
 
     log.debug(
@@ -1004,7 +1013,8 @@ public class PartnerService {
     try {
       paymentOption = gpdClient.sendPaymentOptionReceipt(idPa, noticeNumber, body);
 
-      boolean isNotACA = true; // default SERVICE_TYPE_GPD
+      // To exclude receipts from being saved, it is necessary to know if a PD is not ACA.
+      boolean isNotACA = true; // default GPD -> it isn't ACA
       if(paymentOption.getServiceType() != null) {
         isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
       }
@@ -1023,7 +1033,7 @@ public class PartnerService {
             e);
         boolean receiptNotFoundInStorage = this.getReceipt(idPa, creditorReferenceId) == null;
 
-        boolean isNotACA = true; // default SERVICE_TYPE_GPD
+        boolean isNotACA = true; // default GPD -> it isn't ACA
         if(paymentOption.getServiceType() != null) {
           isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
         }

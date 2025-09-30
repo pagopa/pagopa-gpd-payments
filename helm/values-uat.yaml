@@ -87,6 +87,8 @@ microservice-chart:
     CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 0 0,6,12,18 * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
     CONFIG_CACHE_EVENTHUB_NAME: "pagopa-u-weu-core-evh-ns04"
+    # List of stations for which "Not Found" errors are ignored: response override with "OK".
+    SUPPRESSED_NOT_FOUND_ERRORS_STATIONS: "15376371009_11"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-u-connection-string'
