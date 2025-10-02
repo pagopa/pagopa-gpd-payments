@@ -230,7 +230,7 @@ public class PartnerService {
       if (!stationsWithSuppressedErrors.contains(request.getIdStation()) || !suppressedErrorsValues.contains(e.getError().getFaultCode())) {
         throw e;
       } else {
-        log.warn("[paSendRTV2] Suppressed error '{}' from station '{}' for [noticeNumber={}].",
+        log.debug("[paSendRTV2] Suppressed error '{}' from station '{}' for [noticeNumber={}].",
                 e.getError().getFaultCode(),
                 request.getIdStation(),
                 noticeNumber);
