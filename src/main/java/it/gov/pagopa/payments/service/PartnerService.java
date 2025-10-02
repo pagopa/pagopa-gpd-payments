@@ -213,6 +213,8 @@ public class PartnerService {
 
   @Transactional
   public PaSendRTV2Response paSendRTV2(PaSendRTV2Request request) {
+    String noticeNumber = request.getReceipt().getNoticeNumber();
+
     try {
       PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
 
@@ -220,18 +222,22 @@ public class PartnerService {
           log.error(
                   "[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]",
                   paymentOption.getStatus(),
-                  request.getReceipt().getNoticeNumber());
+                  noticeNumber);
           throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
       }
     } catch (PartnerValidationException e) {
       // Re-throw the exception unless it's a suppressed fault code error from station included in the suppression list.
-      if (!suppressedErrorsValues.contains(e.getError().getFaultCode()) || !stationsWithSuppressedErrors.contains(request.getIdStation())) {
+      if (!stationsWithSuppressedErrors.contains(request.getIdStation()) || !suppressedErrorsValues.contains(e.getError().getFaultCode())) {
         throw e;
+      } else {
+        log.warn("[paSendRTV2] Suppressed error '{}' from station '{}' for [noticeNumber={}].",
+                e.getError().getFaultCode(),
+                request.getIdStation(),
+                noticeNumber);
       }
     }
 
-    log.debug(
-        "[paSendRTV2] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
+    log.debug("[paSendRTV2] Generate Response [noticeNumber={}]", noticeNumber);
     // status is always equals to PO_PAID
     return generatePaSendRTV2Response();
   }
