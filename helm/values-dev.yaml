@@ -87,6 +87,9 @@ microservice-chart:
     CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 0 0,6,12,18 * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
     CONFIG_CACHE_EVENTHUB_NAME: "pagopa-d-weu-core-evh-ns04"
+    # List of stations for which SUPPRESSED_ERRORS_VALUES are ignored: response override with "OK".
+    SUPPRESSED_ERRORS_STATIONS: "15376371009_11"
+    SUPPRESSED_ERRORS_VALUES: "PAA_PAGAMENTO_SCONOSCIUTO,PAA_RECEIPT_DUPLICATA"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-d-connection-string'

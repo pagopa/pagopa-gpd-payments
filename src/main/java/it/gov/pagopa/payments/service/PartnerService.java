@@ -102,6 +102,13 @@ public class PartnerService {
 
   @Autowired private CustomizedMapper customizedModelMapper;
 
+  @Value(value = "${suppressedErrors.stations}")
+  private List<String> stationsWithSuppressedErrors;
+
+  // PaaErrorEnum.java fault codes subset
+  @Value(value = "${suppressedErrors.values}")
+  private List<String> suppressedErrorsValues;
+
   private static final String DBERROR = "Error in organization table connection";
 
   @Transactional(readOnly = true)
@@ -206,19 +213,31 @@ public class PartnerService {
 
   @Transactional
   public PaSendRTV2Response paSendRTV2(PaSendRTV2Request request) {
+    String noticeNumber = request.getReceipt().getNoticeNumber();
 
-    PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
+    try {
+      PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
 
-    if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-      log.error(
-          "[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]",
-          paymentOption.getStatus(),
-          request.getReceipt().getNoticeNumber());
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+      if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
+          log.error(
+                  "[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]",
+                  paymentOption.getStatus(),
+                  noticeNumber);
+          throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+      }
+    } catch (PartnerValidationException e) {
+      // Re-throw the exception unless it's a suppressed fault code error from station included in the suppression list.
+      if (!stationsWithSuppressedErrors.contains(request.getIdStation()) || !suppressedErrorsValues.contains(e.getError().getFaultCode())) {
+        throw e;
+      } else {
+        log.debug("[paSendRTV2] Suppressed error '{}' from station '{}' for [noticeNumber={}].",
+                e.getError().getFaultCode(),
+                request.getIdStation(),
+                noticeNumber);
+      }
     }
 
-    log.debug(
-        "[paSendRTV2] Generate Response [noticeNumber={}]", request.getReceipt().getNoticeNumber());
+    log.debug("[paSendRTV2] Generate Response [noticeNumber={}]", noticeNumber);
     // status is always equals to PO_PAID
     return generatePaSendRTV2Response();
   }
@@ -1004,7 +1023,8 @@ public class PartnerService {
     try {
       paymentOption = gpdClient.sendPaymentOptionReceipt(idPa, noticeNumber, body);
 
-      boolean isNotACA = true; // default SERVICE_TYPE_GPD
+      // To exclude receipts from being saved, it is necessary to know if a PD is not ACA.
+      boolean isNotACA = true; // default GPD -> it isn't ACA
       if(paymentOption.getServiceType() != null) {
         isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
       }
@@ -1023,7 +1043,7 @@ public class PartnerService {
             e);
         boolean receiptNotFoundInStorage = this.getReceipt(idPa, creditorReferenceId) == null;
 
-        boolean isNotACA = true; // default SERVICE_TYPE_GPD
+        boolean isNotACA = true; // default GPD -> it isn't ACA
         if(paymentOption.getServiceType() != null) {
           isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
         }
