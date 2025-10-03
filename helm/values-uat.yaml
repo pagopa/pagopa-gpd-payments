@@ -2,6 +2,11 @@ microservice-chart:
   namespace: "gps"
   nameOverride: ""
   fullnameOverride: ""
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
     tag: "0.12.33"
@@ -22,6 +27,7 @@ microservice-chart:
     periodSeconds: 10
   deployment:
     create: true
+    replicas: 1 # (default) same as HPA minReplica
   service:
     create: true
     type: ClusterIP
