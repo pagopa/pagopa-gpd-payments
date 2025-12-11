@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.service;
+package it.gov.pagopa.payments.client;
 
 import feign.FeignException;
 import it.gov.pagopa.payments.config.feign.GPDFeignConfig;
@@ -33,7 +33,7 @@ public interface GpdClient {
   @PostMapping(
       value = "/organizations/{organizationfiscalcode}/paymentoptions/{nav}/pay",
       consumes = MediaType.APPLICATION_JSON_VALUE)
-  PaymentOptionModelResponse receiptPaymentOption(
+  PaymentOptionModelResponse sendPaymentOptionReceipt(
       @PathVariable("organizationfiscalcode") String organizationFiscalCode,
       @PathVariable("nav") String nav,
       @RequestBody PaymentOptionModel body);

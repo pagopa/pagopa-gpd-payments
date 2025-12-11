@@ -20,6 +20,8 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.mock.*;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
+import it.gov.pagopa.payments.client.GpdClient;
+import it.gov.pagopa.payments.client.GpsClient;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.ClassRule;
@@ -45,6 +47,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -106,7 +109,7 @@ class SchedulerServiceTest {
                             gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper));
+                            customizedModelMapper, List.of(), List.of()));
 
     var schedService =
             spy(
@@ -121,11 +124,12 @@ class SchedulerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
     doReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class))
             .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -171,7 +175,7 @@ class SchedulerServiceTest {
                             gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper));
+                            customizedModelMapper, List.of(), List.of()));
 
     var schedService =
             spy(
@@ -186,11 +190,12 @@ class SchedulerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
     doThrow(FeignException.class)
             .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
 
     try {
       CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
@@ -236,7 +241,7 @@ class SchedulerServiceTest {
                             gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper));
+                            customizedModelMapper, List.of(), List.of()));
 
     var schedService =
             spy(
@@ -251,7 +256,8 @@ class SchedulerServiceTest {
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), nullable(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
             .thenThrow(e);
 
     try {

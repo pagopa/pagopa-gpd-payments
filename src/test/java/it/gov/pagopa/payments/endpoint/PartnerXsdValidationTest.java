@@ -33,7 +33,7 @@ class PartnerXsdValidationTest {
   @Test
   void shouldGenericErrorWithPaVerifyPaymentNoticeTest() throws DatatypeConfigurationException {
 
-    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any()))
+    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any(), Mockito.any()))
         .thenThrow(DatatypeConfigurationException.class);
 
     String request =
@@ -55,7 +55,7 @@ class PartnerXsdValidationTest {
   void shouldGenericErrorExceptionWithPaVerifyPaymentNoticeTest()
       throws PartnerValidationException, DatatypeConfigurationException {
 
-    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any()))
+    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any(), Mockito.any()))
         .thenThrow(RuntimeException.class);
 
     String request =
@@ -79,7 +79,7 @@ class PartnerXsdValidationTest {
 
     PaVerifyPaymentNoticeRes responseBody = PaVerifyPaymentNoticeResMock.getMock();
 
-    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any())).thenReturn(responseBody);
+    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any(), Mockito.any())).thenReturn(responseBody);
 
     String request =
         "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\""

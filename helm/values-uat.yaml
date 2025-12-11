@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.33"
+    tag: "0.12.51-PIDM-1277-riduz-log"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -53,14 +53,14 @@ microservice-chart:
   resources:
     requests:
       memory: "512Mi"
-      cpu: "0.5"
+      cpu: "0.3"
     limits:
       memory: "768Mi"
       cpu: "0.5"
   autoscaling:
     enable: true
     minReplica: 1
-    maxReplica: 3
+    maxReplica: 1
     pollingInterval: 10 # seconds
     cooldownPeriod: 50 # seconds
     triggers:
@@ -86,6 +86,7 @@ microservice-chart:
     API_CONFIG_HOST: "https://api.uat.platform.pagopa.it/apiconfig/auth/api/v1"
     GPS_HOST: "https://api.uat.platform.pagopa.it/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.uat.platform.pagopa.it/gpd/api/v1"
+    API_CONFIG_CACHE_HOST: "https://api.uat.platform.pagopa.it/api-config-cache/p/v1"
     QUEUE_NAME: "gpd-receipt-poison-queue"
     DEQUEUE_LIMIT: "5"
     QUEUE_SEND_INVISIBILITY_TIME: "120"
@@ -93,14 +94,20 @@ microservice-chart:
     CRON_JOB_SCHEDULE_RETRY_ENABLED: "true"
     CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 0 0,6,12,18 * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
+    CONFIG_CACHE_EVENTHUB_NAME: "pagopa-u-weu-core-evh-ns04"
+    # List of stations for which "Not Found" or "Duplicated Receipt" errors are ignored: response override with "OK".
+    SUPPRESSED_ERRORS_STATIONS: "15376371009_11"
+    SUPPRESSED_ERRORS_VALUES: "PAA_PAGAMENTO_SCONOSCIUTO,PAA_RECEIPT_DUPLICATA"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-u-connection-string'
     APICONFIG_SUBSCRIPTION_KEY: "gpd-u-apiconfig-subscription-key"
     GPD_SUBSCRIPTION_KEY: "gpd-u-gpd-subscription-key"
     GPS_SUBSCRIPTION_KEY: "gpd-u-gps-subscription-key"
+    CONFIG_CACHE_SUBSCRIPTION_KEY: "gpd-u-config-cache-subkey"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-u-cosmos-connection-string"
     QUEUE_CONNECTION_STRING: "gpd-payments-u-queue-connection-string"
+    CONFIG_CACHE_EVENTHUB_CONN_STRING: "config-cache-event-hub-connection-string-for-aca-payments-rx"
   keyvault:
     name: "pagopa-u-gps-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"

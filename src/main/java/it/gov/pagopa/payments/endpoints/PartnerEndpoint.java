@@ -16,18 +16,24 @@ import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
 import it.gov.pagopa.payments.service.PartnerService;
 import java.io.IOException;
+import java.util.Objects;
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
+import it.gov.pagopa.payments.utils.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
 import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 import org.springframework.ws.soap.server.endpoint.annotation.SoapAction;
+import org.springframework.ws.transport.context.TransportContextHolder;
+import org.springframework.ws.transport.http.HttpServletConnection;
 import org.xml.sax.SAXException;
 
 @Endpoint
@@ -47,29 +53,29 @@ public class PartnerEndpoint {
 
     log.debug(" paVerifyPaymentNotice START ");
     return factory.createPaVerifyPaymentNoticeRes(
-        partnerService.paVerifyPaymentNotice(request.getValue()));
+        partnerService.paVerifyPaymentNotice(request.getValue(), CommonUtil.getServiceType()));
   }
 
   @SoapAction("paGetPayment")
   @PayloadRoot(localPart = "paGetPaymentReq")
   @ResponsePayload
   public JAXBElement<PaGetPaymentRes> paGetPayment(
-      @RequestPayload JAXBElement<PaGetPaymentReq> request)
+          @RequestPayload JAXBElement<PaGetPaymentReq> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPayment START ");
-    return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue()));
+    return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue(), CommonUtil.getServiceType()));
   }
 
   @SoapAction("paGetPaymentV2")
   @PayloadRoot(localPart = "paGetPaymentV2Request")
   @ResponsePayload
   public JAXBElement<PaGetPaymentV2Response> paGetPaymentV2(
-      @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
+          @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
     log.debug(" paGetPaymentV2 START ");
-    return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue()));
+    return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue(), CommonUtil.getServiceType()));
   }
 
   @SoapAction("paSendRT")
@@ -87,7 +93,7 @@ public class PartnerEndpoint {
   public JAXBElement<PaSendRTV2Response> paSendRTV2(
       @RequestPayload JAXBElement<PaSendRTV2Request> request) {
 
-    log.debug(" paSendRTV2 START ");
+    log.debug("paSendRTV2 START ");
     return factory.createPaSendRTV2Response(partnerService.paSendRTV2(request.getValue()));
   }
 

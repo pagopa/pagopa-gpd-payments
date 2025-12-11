@@ -6,8 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
@@ -48,12 +47,15 @@ import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
 import it.gov.pagopa.payments.model.partner.StAmountOption;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
+import it.gov.pagopa.payments.client.GpdClient;
+import it.gov.pagopa.payments.client.GpsClient;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.List;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
@@ -144,7 +146,7 @@ class PartnerServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     // Test execution
-    PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody);
+    PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody, "GPD");
 
     // Test post condition
     assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
@@ -164,11 +166,12 @@ class PartnerServiceTest {
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -183,11 +186,12 @@ class PartnerServiceTest {
     PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
 
     var e = Mockito.mock(FeignException.FeignClientException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -211,7 +215,7 @@ class PartnerServiceTest {
     // Test post condition
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -241,7 +245,7 @@ class PartnerServiceTest {
     // Test post condition
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -270,7 +274,7 @@ class PartnerServiceTest {
     // Test post condition
     try {
       // Test execution
-      partnerService.paVerifyPaymentNotice(requestBody);
+      partnerService.paVerifyPaymentNotice(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -294,6 +298,7 @@ class PartnerServiceTest {
     when(factory.createPaGetPaymentRes()).thenReturn(factoryUtil.createPaGetPaymentRes());
     when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
@@ -304,7 +309,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
+    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody, "GPD");
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
@@ -342,6 +347,7 @@ class PartnerServiceTest {
     when(factory.createPaGetPaymentRes()).thenReturn(factoryUtil.createPaGetPaymentRes());
     when(factory.createCtPaymentPA()).thenReturn(factoryUtil.createCtPaymentPA());
     when(factory.createCtSubject()).thenReturn(factoryUtil.createCtSubject());
+    when(factory.createCtMetadata()).thenReturn(factoryUtil.createCtMetadata());
     when(factory.createCtEntityUniqueIdentifier())
         .thenReturn(factoryUtil.createCtEntityUniqueIdentifier());
     when(factory.createCtTransferListPA()).thenReturn(factoryUtil.createCtTransferListPA());
@@ -352,7 +358,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody);
+    PaGetPaymentRes responseBody = partnerService.paGetPayment(requestBody, "GPD");
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("63155551414999718");
@@ -396,11 +402,12 @@ class PartnerServiceTest {
     PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
       // Test execution
-      partnerService.paGetPayment(requestBody);
+      partnerService.paGetPayment(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -415,11 +422,12 @@ class PartnerServiceTest {
     PaGetPaymentReq requestBody = PaGetPaymentReqMock.getMock();
 
     var e = Mockito.mock(FeignException.FeignClientException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
       // Test execution
-      partnerService.paGetPayment(requestBody);
+      partnerService.paGetPayment(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -440,14 +448,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("34");
 
     when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -488,13 +496,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
 
     var e = Mockito.mock(FeignException.Conflict.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -535,13 +544,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
 
     var e = Mockito.mock(FeignException.NotFound.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -588,7 +598,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock(iuv);
@@ -597,7 +607,7 @@ class PartnerServiceTest {
         MockUtil.readModelFromFile(
             "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(paymentOption);
 
     try {
@@ -638,13 +648,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222224");
 
     var e = Mockito.mock(RetryableException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -685,12 +696,13 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -731,13 +743,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
 
     var e = Mockito.mock(NullPointerException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -787,7 +800,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
@@ -834,12 +847,13 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
 
     var paymentModel =
@@ -869,7 +883,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -889,7 +903,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, "GPD");
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
@@ -935,7 +949,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -953,7 +967,7 @@ class PartnerServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentsModelResponse);
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, "GPD");
 
     // Test post condition
     assertEquals(1, responseBody.getData().getTransferList().getTransfer().size());
@@ -981,7 +995,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockTransferTypePAGOPA();
@@ -1001,7 +1015,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, "GPD");
 
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("11111111112222222");
@@ -1070,7 +1084,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -1090,7 +1104,7 @@ class PartnerServiceTest {
                 "gpd/getPaymentOptionWithIncompleteAddress.json", PaymentsModelResponse.class));
 
     // Test execution
-    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody);
+    PaGetPaymentV2Response responseBody = pService.paGetPaymentV2(requestBody, "GPD");
     System.out.println(responseBody.getData().getDueDate());
     // Test post condition
     assertThat(responseBody.getData().getCreditorReferenceId()).isEqualTo("63155551414999718");
@@ -1138,11 +1152,12 @@ class PartnerServiceTest {
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
     var e = Mockito.mock(FeignException.NotFound.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
       // Test execution
-      partnerService.paGetPaymentV2(requestBody);
+      partnerService.paGetPaymentV2(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -1157,11 +1172,12 @@ class PartnerServiceTest {
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
 
     var e = Mockito.mock(FeignException.FeignClientException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenThrow(e);
 
     try {
       // Test execution
-      partnerService.paGetPaymentV2(requestBody);
+      partnerService.paGetPaymentV2(requestBody, "GPD");
       fail();
     } catch (PartnerValidationException ex) {
       // Test post condition
@@ -1182,14 +1198,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222231");
 
     when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -1230,13 +1246,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
 
     var e = Mockito.mock(FeignException.Conflict.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1277,13 +1294,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
 
     var e = Mockito.mock(FeignException.NotFound.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1330,7 +1348,7 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2(iuv);
@@ -1339,7 +1357,7 @@ class PartnerServiceTest {
         MockUtil.readModelFromFile(
             "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class);
     paymentOption.setStatus(PaymentOptionStatus.valueOf(status));
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(paymentOption);
 
     try {
@@ -1380,13 +1398,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222234");
 
     var e = Mockito.mock(RetryableException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1427,12 +1446,13 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
 
     var e = Mockito.mock(FeignException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1473,13 +1493,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222236");
 
     var e = Mockito.mock(NullPointerException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
@@ -1520,14 +1541,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222239");
 
     when(factory.createPaSendRTV2Response()).thenReturn(factoryUtil.createPaSendRTV2Response());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -1571,14 +1592,14 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222240");
 
     when(factory.createPaSendRTRes()).thenReturn(factoryUtil.createPaSendRTRes());
 
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenReturn(
             MockUtil.readModelFromFile(
                 "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class));
@@ -1622,12 +1643,13 @@ class PartnerServiceTest {
                 gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper));
+                customizedModelMapper, List.of(), List.of()));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
     var e = Mockito.mock(FeignException.class);
-    when(gpdClient.receiptPaymentOption(anyString(), anyString(), any(PaymentOptionModel.class)))
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(e);
 
     try {
