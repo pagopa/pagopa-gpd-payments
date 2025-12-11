@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.50"
+    tag: "0.12.51-PIDM-1277-riduz-log"
     pullPolicy: Always
   livenessProbe:
     httpGet:
