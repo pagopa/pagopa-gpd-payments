@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.51-PIDM-1277-riduz-log</version>
+    <version>0.12.52</version>
     <name>Payments</name>
     <description>Payments</description>
 

@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.12.51-PIDM-1277-riduz-log"
+    "version": "0.12.52"
   },
   "servers": [
     {
