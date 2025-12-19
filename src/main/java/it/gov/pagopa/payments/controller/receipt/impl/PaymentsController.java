@@ -57,7 +57,7 @@ public class PaymentsController implements IPaymentsController {
   }
 
   @Override
-  public ResponseEntity<PaymentsResult<ReceiptModelResponse>> getOrganizationReceipts(
+  public ResponseEntity<PaymentsResult> getOrganizationReceipts(
       String organizationFiscalCode,
       int pageNum,
       int pageSize,
@@ -87,7 +87,7 @@ public class PaymentsController implements IPaymentsController {
         segregationCodes != null
             ? new ArrayList<>(Arrays.asList(segregationCodes.split(",")))
             : null;
-    PaymentsResult<ReceiptModelResponse> receipts =
+    PaymentsResult receipts =
         paymentsService.getOrganizationReceipts(
             organizationFiscalCode,
             debtor,
