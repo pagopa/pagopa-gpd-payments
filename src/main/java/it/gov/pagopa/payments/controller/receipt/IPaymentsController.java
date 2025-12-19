@@ -137,7 +137,7 @@ public interface IPaymentsController {
     @GetMapping(
             value = "/payments/{organizationfiscalcode}/receipts",
             produces = {MediaType.APPLICATION_JSON_VALUE})
-    ResponseEntity<PaymentsResult<ReceiptModelResponse>> getOrganizationReceipts(
+    ResponseEntity<PaymentsResult> getOrganizationReceipts(
             @Parameter(
                     description = "Organization fiscal code, the fiscal code of the Organization.",
                     required = true)

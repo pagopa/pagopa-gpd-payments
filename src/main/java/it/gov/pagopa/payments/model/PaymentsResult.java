@@ -1,11 +1,12 @@
 package it.gov.pagopa.payments.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
-public class PaymentsResult<T> {
+public class PaymentsResult {
 
   /** Holds the current page number. */
   private int currentPageNumber;
@@ -16,7 +17,8 @@ public class PaymentsResult<T> {
   /** Holds the number of the pages. */
   private int totalPages;
 
-  /** Holds the ArrayList of results. */
-  private List<T> results;
+  /** Holds the ArrayList of receipts. */
+  @JsonProperty("receipts_list")
+  private List<ReceiptModelResponse> receiptsList;
 
 }

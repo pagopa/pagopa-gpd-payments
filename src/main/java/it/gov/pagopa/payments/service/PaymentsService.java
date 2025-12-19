@@ -41,7 +41,7 @@ public class PaymentsService {
         this.tableClient = tableClient;
     }
 
-    public PaymentsResult<ReceiptModelResponse> getOrganizationReceipts(
+    public PaymentsResult getOrganizationReceipts(
             @NotBlank String organizationFiscalCode,
             String debtor,
             String service,
@@ -222,9 +222,9 @@ public class PaymentsService {
         return String.format("%s ge '%s' and %s lt '%s'", field, startsWith, field, startWithEnd);
     }
 
-    private PaymentsResult<ReceiptModelResponse> setReceiptsOutput(List<ReceiptModelResponse> listOfEntity, int totalPages, int pageNumber) {
-        PaymentsResult<ReceiptModelResponse> result = new PaymentsResult<>();
-        result.setResults(listOfEntity);
+    private PaymentsResult setReceiptsOutput(List<ReceiptModelResponse> listOfEntity, int totalPages, int pageNumber) {
+        PaymentsResult result = new PaymentsResult();
+        result.setReceiptsList(listOfEntity);
         result.setLength(listOfEntity.size());
         result.setCurrentPageNumber(pageNumber);
         result.setTotalPages(totalPages);
