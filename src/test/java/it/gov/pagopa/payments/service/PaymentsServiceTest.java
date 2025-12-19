@@ -21,6 +21,11 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mock.MockUtil;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
 import it.gov.pagopa.payments.model.PaymentsResult;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
@@ -89,7 +94,7 @@ class PaymentsServiceTest {
       properties.put(DEBTOR_PROPERTY, "debtor" + i);
       properties.put(DOCUMENT_PROPERTY, "XML" + i);
       properties.put(STATUS_PROPERTY, Status.PAID.name());
-      properties.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+      properties.put(PAYMENT_DATE_PROPERTY, Instant.now().minus(1, ChronoUnit.DAYS));
       tableEntity.setProperties(properties);
       tableClientConfiguration().createEntity(tableEntity);
     }
@@ -99,7 +104,7 @@ class PaymentsServiceTest {
       properties.put(DEBTOR_PROPERTY, "debtor" + i);
       properties.put(DOCUMENT_PROPERTY, "XML" + i);
       properties.put(STATUS_PROPERTY, Status.CREATED.name());
-      properties.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+      properties.put(PAYMENT_DATE_PROPERTY, Instant.now().minus(1, ChronoUnit.DAYS));
       tableEntity.setProperties(properties);
       tableClientConfiguration().createEntity(tableEntity);
     }
@@ -187,11 +192,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
                 "org123456", null, null, null, null, 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(15, res.getResults().size());
+    assertEquals(15, res.getReceiptsList().size());
   }
 
   @Test
@@ -200,11 +205,11 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("02"));
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
             "org123456", null, null, null, null, 0, 100, validSegregationCodes, null);
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
   }
 
   @Test
@@ -213,11 +218,11 @@ class PaymentsServiceTest {
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("02", "03"));
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
             "org123456", null, null, null, null, 0, 100, validSegregationCodes, null);
     assertNotNull(res);
-    assertEquals(2, res.getResults().size());
+    assertEquals(2, res.getReceiptsList().size());
   }
 
   @Test
@@ -226,11 +231,11 @@ class PaymentsServiceTest {
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
     ArrayList<String> validSegregationCodes = new ArrayList<>();
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
             paymentsService.getOrganizationReceipts(
                     "org123456", null, null, null, null, 0, 100, validSegregationCodes, null);
     assertNotNull(res);
-    assertEquals(15, res.getResults().size());
+    assertEquals(15, res.getReceiptsList().size());
   }
 
 
@@ -239,10 +244,10 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 4, null, null);
     assertNotNull(res);
-    assertEquals(4, res.getResults().size());
+    assertEquals(4, res.getReceiptsList().size());
   }
 
   @Test
@@ -264,11 +269,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
             "org123456", "debtor5", null, null, null, 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -277,11 +282,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
                 "org123456", null, "05", null, null, 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -290,11 +295,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
                 "org123456", null, "11", null, null, 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -308,11 +313,11 @@ class PaymentsServiceTest {
         MockUtil.readModelFromFile("gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
                 "org123456", null, "11", null, null, 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(0, res.getResults().size());
+    assertEquals(0, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -321,11 +326,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
             paymentsService.getOrganizationReceipts(
                     "org123456", null, null, null, null, 0, 100, null, "03");
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -334,11 +339,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
             paymentsService.getOrganizationReceipts(
                     "org123456", null, null, null, null, 0, 100, null, "de");
     assertNotNull(res);
-    assertEquals(15, res.getResults().size());
+    assertEquals(15, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -347,11 +352,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
-            "org123456", "debtor5", "05", "2021-09-30", "2023-10-02", 0, 100, null, null);
+            "org123456", "debtor5", "05", LocalDate.now().minusDays(2).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -360,17 +365,17 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
             spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
             paymentsService.getOrganizationReceipts(
-                    "org123456", "debtor5", "05", "2021-09-30", null, 0, 100, null, null);
+                    "org123456", "debtor5", "05", LocalDate.now().minusDays(2).format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), null, 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
 
     res = paymentsService.getOrganizationReceipts(
-                    "org123456", "debtor5", "05", null, "2023-10-02", 0, 100, null, null);
+                    "org123456", "debtor5", "05", null, LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")), 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(1, res.getResults().size());
+    assertEquals(1, res.getReceiptsList().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
@@ -379,11 +384,11 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         spy(new PaymentsService(gpdClient, tableClientConfiguration()));
 
-    PaymentsResult<ReceiptModelResponse> res =
+    PaymentsResult res =
         paymentsService.getOrganizationReceipts(
             "org123456", "debtor15", null, null, null, 0, 100, null, null);
     assertNotNull(res);
-    assertEquals(0, res.getResults().size());
+    assertEquals(0, res.getReceiptsList().size());
   }
 
   @Test
@@ -467,15 +472,15 @@ class PaymentsServiceTest {
     receipts.add(re1);
     receipts.add(re2);
     receipts.add(re3);
-    PaymentsResult<ReceiptModelResponse> mock = new PaymentsResult<>();
+    PaymentsResult mock = new PaymentsResult();
     mock.setCurrentPageNumber(0);
     mock.setLength(receipts.size());
-    mock.setResults(receipts);
+    mock.setReceiptsList(receipts);
 
     List<ReceiptModelResponse> result =
         paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
 
-    assertEquals(mock.getResults().size(), result.size());
+    assertEquals(mock.getReceiptsList().size(), result.size());
   }
 
   @Test
@@ -503,10 +508,10 @@ class PaymentsServiceTest {
     receipts.add(re1);
     receipts.add(re2);
     receipts.add(re3);
-    PaymentsResult<ReceiptModelResponse> mock = new PaymentsResult<>();
+    PaymentsResult mock = new PaymentsResult();
     mock.setCurrentPageNumber(0);
     mock.setLength(receipts.size());
-    mock.setResults(receipts);
+    mock.setReceiptsList(receipts);
 
     // GPD risponde sempre UNPAID
     PaymentsModelResponse paymentModel =
