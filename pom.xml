@@ -23,7 +23,7 @@
         <java.version>17</java.version>
         <azure.functions.java.library.version>1.4.2</azure.functions.java.library.version>
         <azure.storage.table.version>8.6.6</azure.storage.table.version>
-        <azure.data.table.version>12.3.18</azure.data.table.version>
+        <azure.data.table.version>12.5.8</azure.data.table.version>
         <azure.core.version>1.46.0</azure.core.version>
         <spring.cloud.stream.kafka>4.3.0</spring.cloud.stream.kafka>
         <springdoc-version>1.6.6</springdoc-version>
