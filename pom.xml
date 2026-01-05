@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.53-upgrade-azure-data-tables</version>
+    <version>0.12.53-1-upgrade-azure-data-tables</version>
     <name>Payments</name>
     <description>Payments</description>
 
