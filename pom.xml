@@ -23,8 +23,7 @@
         <java.version>17</java.version>
         <azure.functions.java.library.version>1.4.2</azure.functions.java.library.version>
         <azure.storage.table.version>8.6.6</azure.storage.table.version>
-        <azure.data.table.version>12.3.18</azure.data.table.version>
-        <azure.core.version>1.46.0</azure.core.version>
+        <azure.sdk.bom.version>1.3.5</azure.sdk.bom.version>
         <spring.cloud.stream.kafka>4.3.0</spring.cloud.stream.kafka>
         <springdoc-version>1.6.6</springdoc-version>
     </properties>
@@ -47,12 +46,10 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
-            <version>${azure.core.version}</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-data-tables</artifactId>
-            <version>${azure.data.table.version}</version>
         </dependency>
         <!-- End cosmos tables -->
 
@@ -258,7 +255,6 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-queue</artifactId>
-            <version>12.20.2</version>
         </dependency>
     </dependencies>
 
@@ -271,6 +267,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+			<dependency>
+				<groupId>com.azure</groupId>
+				<artifactId>azure-sdk-bom</artifactId>
+				<version>${azure.sdk.bom.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -352,7 +355,7 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>target/generated-sources</source>
+                                <source>target/generated-sources/jaxb</source>
                             </sources>
                         </configuration>
                     </execution>
