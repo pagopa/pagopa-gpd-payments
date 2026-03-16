@@ -201,8 +201,8 @@ async function readStationInfo(bundle, stationId, brokerId) {
     if (response.status === 404) {
         toRefresh = true;
         const ip = process.env.ip;
-        const body = buildApiConfigServiceCreationStationRequest(stationId, brokerId, ip);
-        response = await createStation(body);
+        const stationBody = buildApiConfigServiceCreationStationRequest(stationId, brokerId, ip);
+        response = await createStation(stationBody);
 
         // 409 = already exists / idempotent bootstrap
         if (response.status === 409) {
@@ -220,27 +220,49 @@ async function readStationInfo(bundle, stationId, brokerId) {
 
     response = await readECStationAssociation(stationId, bundle.organizationCode);
 
-    if (response.status === 404) {
-        toRefresh = true;
-        const body = buildApiConfigServiceCreationECStationAssociation(stationId);
-        response = await createECStationAssociation(bundle.organizationCode, body);
-
-        // If association create conflicts, re-read the association
-        if (response.status === 409) {
-            response = await readECStationAssociation(stationId, bundle.organizationCode);
-        }
+    // association already exists and is readable
+    if (response.status === 200) {
+        bundle.debtPosition.iuvPrefix =
+            response.data.segregation_code < 10
+                ? `0${response.data.segregation_code}`
+                : `${response.data.segregation_code}`;
+        return;
     }
 
+    // association missing: create it, but do not require immediate readability
+    if (response.status === 404) {
+        toRefresh = true;
+
+        const associationBody = buildApiConfigServiceCreationECStationAssociation(stationId);
+        const createResponse = await createECStationAssociation(bundle.organizationCode, associationBody);
+
+        console.log("createECStationAssociation status:", createResponse?.status);
+        console.log("createECStationAssociation data:", JSON.stringify(createResponse?.data));
+
+        // 201 = created now
+        // 409 = already exists
+        assertAcceptedStatuses(
+            createResponse,
+            [201, 409],
+            "create EC-station association"
+        );
+
+        // Use the segregation code from the request body when the association has just been created
+        // or when the backend reports a conflict but the relation is logically already there.
+        bundle.debtPosition.iuvPrefix =
+            associationBody.segregation_code < 10
+                ? `0${associationBody.segregation_code}`
+                : `${associationBody.segregation_code}`;
+
+        return;
+    }
+
+    // any other status is unexpected
     assertAcceptedStatuses(
         response,
-        [200, 201],
-        "read/create EC-station association"
+        [200],
+        "read EC-station association"
     );
-
-    bundle.debtPosition.iuvPrefix =
-        response.data.segregation_code < 10
-            ? `0${response.data.segregation_code}`
-            : `${response.data.segregation_code}`;
 }
 
 async function readInvalidCreditorInstitutionInfo(bundle) {
