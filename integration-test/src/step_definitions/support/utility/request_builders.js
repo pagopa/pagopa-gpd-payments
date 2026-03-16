@@ -1,7 +1,7 @@
 const { addDays, buildStringFromDate, makeidNumber, makeidMix,  } = require("./helpers");
 
 function buildDynamicIban() {
-    return `IT${makeidNumber(2)}${makeidMix(1)}${makeidNumber(22)}`;
+    return `IT${makeidNumber(2)}${makeidMix(1).toUpperCase()}${makeidNumber(22)}`;
 }
 
 function buildGPSServiceCreationRequest(serviceId, donation_host) {

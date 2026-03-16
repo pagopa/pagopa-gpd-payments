@@ -12,6 +12,13 @@ function gpdHealthCheck() {
 }
 
 async function createDebtPosition(orgId, body) {
+    console.log("[GPD] createDebtPosition request", {
+        orgId,
+        iupd: body?.iupd,
+        iuv: body?.paymentOption?.[0]?.iuv,
+        iban: body?.paymentOption?.[0]?.transfer?.[0]?.iban
+    });
+
     const response = await post(
         gpd_host + `/organizations/${orgId}/debtpositions`,
         body,
@@ -25,15 +32,15 @@ async function createDebtPosition(orgId, body) {
     );
 
     if (!response) {
-        throw new Error(
-            `createDebtPosition returned no response for orgId=${orgId}`
-        );
+        throw new Error(`createDebtPosition returned no response for orgId=${orgId}`);
     }
 
     return response;
 }
 
 async function publishDebtPosition(orgId, iupd) {
+    console.log("[GPD] publishDebtPosition request", { orgId, iupd });
+
     const response = await post(
         gpd_host + `/organizations/${orgId}/debtpositions/${iupd}/publish`,
         "",
@@ -47,9 +54,7 @@ async function publishDebtPosition(orgId, iupd) {
     );
 
     if (!response) {
-        throw new Error(
-            `publishDebtPosition returned no response for orgId=${orgId}, iupd=${iupd}`
-        );
+        throw new Error(`publishDebtPosition returned no response for orgId=${orgId}, iupd=${iupd}`);
     }
 
     return response;
