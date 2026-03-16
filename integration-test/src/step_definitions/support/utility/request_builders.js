@@ -1,5 +1,8 @@
 const { addDays, buildStringFromDate, makeidNumber, makeidMix,  } = require("./helpers");
 
+function buildDynamicIban() {
+    return `IT${makeidNumber(2)}${makeidMix(1)}${makeidNumber(22)}`;
+}
 
 function buildGPSServiceCreationRequest(serviceId, donation_host) {
     return {
@@ -422,14 +425,14 @@ function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
 	}
 	
 	function buildApiConfigServiceCreationIbansRequest(dueDate, validityDate){
-		return {
-			  "description": "Riscossione Tributi",
-			  "due_date": dueDate,
-			  "iban": "IT99C0222211111000000000000",
-			  "is_active": true,
-			  "labels": [],
-			  "validity_date": validityDate
-		};
+	    return {
+	          "description": "Riscossione Tributi",
+	          "due_date": dueDate,
+	          "iban": buildDynamicIban(),
+	          "is_active": true,
+	          "labels": [],
+	          "validity_date": validityDate
+	    };
 	}
 	
 	function buildApiConfigServiceCreationBrokerRequest(brokerCode){
