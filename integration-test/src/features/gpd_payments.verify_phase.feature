@@ -4,9 +4,9 @@ Feature: All about Verify Phase on Debt Position Payments workflow
     Given Payments running
     And GPD running
     And ApiConfig running
-    And the creditor institution "77777777777"
-    And the creditor institution broker "15376371009"
-    And the station "15376371009_01" for the broker "15376371009"
+    And the configured creditor institution
+    And the configured creditor institution broker
+    And the configured station
     And if necessary, refresh the configuration and wait 30 seconds
     And a valid debt position
 

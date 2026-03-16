@@ -31,6 +31,17 @@ const { createOrganizationInfo, createServiceInfo, sendInvalidDemandPaymentNotic
 const { gpdSessionBundle, gpsSessionBundle } = require('./utility/data');
 const { getValidBundle } = require('./utility/helpers');
 
+const TEST_CREDITOR_INSTITUTION = process.env.test_creditor_institution;
+const TEST_BROKER = process.env.test_broker;
+const TEST_STATION = process.env.test_station;
+
+if (!TEST_CREDITOR_INSTITUTION || !TEST_BROKER || !TEST_STATION) {
+    throw new Error(
+        "Missing required test environment variables: " +
+        "test_creditor_institution, test_broker, test_station"
+    );
+}
+
 // increase cucumber promise timeout
 setDefaultTimeout(120000);
 
@@ -54,6 +65,16 @@ Given('the creditor institution {string}', (orgId) => readCreditorInstitutionInf
 Given('the creditor institution broker {string}', (brokerId) => readCreditorInstitutionBrokerInfo(gpdSessionBundle, brokerId));
 Given('the station {string} for the broker {string}', (stationId, brokerId) => readStationInfo(gpdSessionBundle, stationId, brokerId));
 Given('if necessary, refresh the configuration and wait {int} seconds', async (timeout) => {await refreshNodeConfig(timeout)});
+Given('the default creditor institution', () => {
+    return readCreditorInstitutionInfo(gpdSessionBundle, TEST_CREDITOR_INSTITUTION);
+});
+Given('the default creditor institution broker', () => {
+    return readCreditorInstitutionBrokerInfo(gpdSessionBundle, TEST_BROKER);
+});
+Given('the default station', () => {
+    return readStationInfo(gpdSessionBundle, TEST_STATION, TEST_BROKER);
+});
+
 
 
 /* 
