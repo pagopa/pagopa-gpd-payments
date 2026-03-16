@@ -162,7 +162,7 @@ async function createMissingIban(bundle) {
     toRefresh = true;
 
 	const now = new Date();
-	const validityDate = new Date(now.getTime() + 15 * 1000).toISOString(); // +15 seconds
+	const validityDate = new Date(now.getTime() + 90 * 1000).toISOString(); // +90 seconds
 	const dueDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // +7 days
 
 	const body = buildApiConfigServiceCreationIbansRequest(dueDate, validityDate);
@@ -347,13 +347,18 @@ async function sendGetPaymentV2Request(bundle) {
 
 // N.B.: even by launching the configuration refresh, if it was necessary to create a new IBAN, this will not be visible until the validity date is reached
 async function refreshNodeConfig(timeout) {
-    if (toRefresh){
-		let response = await refreshConfig();
-		assert.strictEqual(response.status, 200);
-		toRefresh = false;
-		console.log("--> execution test is stopped for ["+timeout+"] seconds to update the cache. Please wait..");
-		await new Promise(resolve => setTimeout(resolve, timeout * 1000));
-		console.log("--> end of the wait, test execution resumes.");
+    if (toRefresh) {
+        let response = await refreshConfig();
+        assert.strictEqual(response.status, 200);
+        toRefresh = false;
+
+        // We need to wait not only for cache refresh, but also for the newly created IBAN
+        // to become valid. ApiConfig requires a future validity_date, so use a larger buffer.
+        const effectiveTimeoutSeconds = Math.max(timeout, 95);
+
+        console.log("--> execution test is stopped for [" + effectiveTimeoutSeconds + "] seconds to update the cache and wait for IBAN validity. Please wait..");
+        await new Promise(resolve => setTimeout(resolve, effectiveTimeoutSeconds * 1000));
+        console.log("--> end of the wait, test execution resumes.");
     }
 }
 
