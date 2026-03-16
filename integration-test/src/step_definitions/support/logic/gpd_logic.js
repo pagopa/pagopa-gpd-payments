@@ -60,9 +60,24 @@ async function assertPaymentTokenExistence(bundle) {
 
 async function executeDebtPositionCreationAndPublishing(bundle) {
     bundle.debtPosition = buildDebtPositionDynamicData(bundle);
-    let response = await createDebtPosition(bundle.organizationCode, buildCreateDebtPositionRequest(bundle.debtPosition, bundle.payer));
+
+    let response = await createDebtPosition(
+        bundle.organizationCode,
+        buildCreateDebtPositionRequest(bundle.debtPosition, bundle.payer)
+    );
+
+    assert.ok(
+        response,
+        `createDebtPosition returned no response for organizationCode=${bundle.organizationCode}`
+    );
     assert.strictEqual(response.status, 201);
+
     response = await publishDebtPosition(bundle.organizationCode, bundle.debtPosition.iupd);
+
+    assert.ok(
+        response,
+        `publishDebtPosition returned no response for organizationCode=${bundle.organizationCode}, iupd=${bundle.debtPosition.iupd}`
+    );
     assert.strictEqual(response.status, 200);
 }
 
