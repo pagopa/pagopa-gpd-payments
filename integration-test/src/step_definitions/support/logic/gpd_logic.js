@@ -44,6 +44,13 @@ const {
 
 let toRefresh = false;
 
+function assertAcceptedStatuses(response, acceptedStatuses, operationName) {
+    assert.ok(
+        acceptedStatuses.includes(response?.status),
+        `${operationName} returned unexpected status=${response?.status}, data=${JSON.stringify(response?.data)}`
+    );
+}
+
 
 async function assertPaymentTokenExistence(bundle) {
     let paymentTokenRegExp = /<paymentToken>([a-z0-9]+)<\/paymentToken>/
@@ -66,7 +73,7 @@ async function executeDebtPositionVerification(bundle) {
 }
 
 async function executeDebtPositionVerificationAndActivation(bundle) {
-    sendVerifyPaymentNoticeRequest(bundle);
+    await sendVerifyPaymentNoticeRequest(bundle);
     assert.strictEqual(bundle.responseToCheck.status, 200);
     assert.match(bundle.responseToCheck.data, /<outcome>OK<\/outcome>/);
     bundle.responseToCheck = await activatePaymentNotice(buildActivatePaymentNoticeRequest(bundle, bundle.organizationCode));
@@ -75,17 +82,26 @@ async function executeDebtPositionVerificationAndActivation(bundle) {
 }
 
 async function readCreditorInstitutionBrokerInfo(bundle, brokerId) {
-	let status = 200;
     let response = await readCreditorInstitutionBroker(brokerId);
+
     // if the test broker does not exist, it is created
-    if (response.status == 404){
-	   toRefresh = true;
-	   // new expected state check
-	   status = 201;
-	   let body = buildApiConfigServiceCreationBrokerRequest(brokerId);
-	   response = await createCreditorInstitutionBroker(body);
-	}
-    assert.strictEqual(response.status, status);
+    if (response.status === 404) {
+        toRefresh = true;
+        const body = buildApiConfigServiceCreationBrokerRequest(brokerId);
+        response = await createCreditorInstitutionBroker(body);
+
+        // 201 = created, 409 = already exists / idempotent bootstrap
+        if (response.status === 409) {
+            response = await readCreditorInstitutionBroker(brokerId);
+        }
+    }
+
+    assertAcceptedStatuses(
+        response,
+        [200, 201],
+        "read/create creditor institution broker"
+    );
+
     bundle.brokerCode = brokerId;
 }
 
@@ -129,44 +145,110 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
 async function createMissingIban(bundle) {
     toRefresh = true;
+
     const body = buildApiConfigServiceCreationIbansRequest(
         new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
         new Date(new Date().setDate(new Date().getDate() + 1)).toISOString()
     );
-    const response = await createCreditorInstitutionIbans(bundle.organizationCode, body);
-    assert.strictEqual(response.status, 201);
-    return response;
+
+    let response = await createCreditorInstitutionIbans(bundle.organizationCode, body);
+
+    console.log("createCreditorInstitutionIbans status:", response?.status);
+    console.log("createCreditorInstitutionIbans data:", JSON.stringify(response?.data));
+
+    // 201 = created
+    // 409 = already exists
+    assertAcceptedStatuses(
+        response,
+        [201, 409],
+        "create creditor institution iban"
+    );
+
+    if (response.status === 201 && response?.data?.iban) {
+        return response;
+    }
+
+    // If 409, try to read back the ibans again
+    response = await readCreditorInstitutionIbans(bundle.organizationCode);
+
+    console.log("readCreditorInstitutionIbans after create status:", response?.status);
+    console.log("readCreditorInstitutionIbans after create data:", JSON.stringify(response?.data));
+
+    const data = response?.data;
+    const ibansEnhanced =
+        data?.ibans_enhanced ??
+        data?.ibansEnhanced ??
+        (Array.isArray(data) ? data : []);
+
+    if (response.status === 200 && Array.isArray(ibansEnhanced) && ibansEnhanced.length > 0) {
+        return {
+            status: 200,
+            data: {
+                iban: ibansEnhanced[0].iban
+            }
+        };
+    }
+
+    throw new Error(
+        `Unable to resolve iban after create conflict. status=${response?.status}, data=${JSON.stringify(response?.data)}`
+    );
 }
 
 async function readStationInfo(bundle, stationId, brokerId) {
-	let status = 200;
     let response = await readStation(stationId);
+
     // if the station does not exist, it is created
-    if (response.status == 404){
-	   toRefresh = true;
-	   status = 201;
-	   const ip   = process.env.ip;
-	   let body = buildApiConfigServiceCreationStationRequest(stationId, brokerId, ip);
-	   response = await createStation(body);
+    if (response.status === 404) {
+        toRefresh = true;
+        const ip = process.env.ip;
+        const body = buildApiConfigServiceCreationStationRequest(stationId, brokerId, ip);
+        response = await createStation(body);
+
+        // 409 = already exists / idempotent bootstrap
+        if (response.status === 409) {
+            response = await readStation(stationId);
+        }
     }
-    assert.strictEqual(response.status, status);
+
+    assertAcceptedStatuses(
+        response,
+        [200, 201],
+        "read/create station"
+    );
+
     bundle.stationCode = stationId;
+
     response = await readECStationAssociation(stationId, bundle.organizationCode);
-    if (response.status == 404){
-	   toRefresh = true;
-	   body = buildApiConfigServiceCreationECStationAssociation(stationId);
-	   response = await createECStationAssociation(bundle.organizationCode, body);
-	}
-    assert.ok(response.status == 201 || response.status == 200);
-    bundle.debtPosition.iuvPrefix = response.data.segregation_code < 10 ? `0${response.data.segregation_code}` : `${response.data.segregation_code}`;
+
+    if (response.status === 404) {
+        toRefresh = true;
+        const body = buildApiConfigServiceCreationECStationAssociation(stationId);
+        response = await createECStationAssociation(bundle.organizationCode, body);
+
+        // If association create conflicts, re-read the association
+        if (response.status === 409) {
+            response = await readECStationAssociation(stationId, bundle.organizationCode);
+        }
+    }
+
+    assertAcceptedStatuses(
+        response,
+        [200, 201],
+        "read/create EC-station association"
+    );
+
+    bundle.debtPosition.iuvPrefix =
+        response.data.segregation_code < 10
+            ? `0${response.data.segregation_code}`
+            : `${response.data.segregation_code}`;
 }
 
 async function readInvalidCreditorInstitutionInfo(bundle) {
-    readAndValidateCreditorInstitutionInfo(bundle, process.env.invalid_creditor_institution, 404);
+    await readAndValidateCreditorInstitutionInfo(bundle, process.env.invalid_creditor_institution, 404);
 }
 
 async function readValidCreditorInstitutionInfo(bundle) {
-    readAndCreateCreditorInstitutionInfo(bundle, bundle.organizationCode, 200);
+    await readAndCreateCreditorInstitutionInfo(bundle, bundle.organizationCode, 200);
 }
 
 async function readAndValidateCreditorInstitutionInfo(bundle, organizationCode, status) {
@@ -175,18 +257,27 @@ async function readAndValidateCreditorInstitutionInfo(bundle, organizationCode, 
     assert.strictEqual(response.status, status);
 }
 
-async function readAndCreateCreditorInstitutionInfo(bundle, organizationCode, status) {
+async function readAndCreateCreditorInstitutionInfo(bundle, organizationCode, expectedReadStatus) {
     bundle.debtPosition.fiscalCode = organizationCode;
     let response = await readCreditorInstitution(bundle.debtPosition.fiscalCode);
+
     // if the Creditor Institution does not exist, it is created
-    if (response.status == 404){
-	   toRefresh = true;
-	   // new expected state check
-	   status = 201;
-	   let body = buildApiConfigServiceCreationCIRequest(organizationCode);
-	   response = await createCreditorInstitution(body);
-	}
-    assert.strictEqual(response.status, status);
+    if (response.status === 404) {
+        toRefresh = true;
+        const body = buildApiConfigServiceCreationCIRequest(organizationCode);
+        response = await createCreditorInstitution(body);
+
+        // 409 = already exists / idempotent bootstrap
+        if (response.status === 409) {
+            response = await readCreditorInstitution(bundle.debtPosition.fiscalCode);
+        }
+    }
+
+    assertAcceptedStatuses(
+        response,
+        [expectedReadStatus, 200, 201],
+        "read/create creditor institution"
+    );
 }
 
 async function sendActivatePaymentNoticeRequest(bundle) {
