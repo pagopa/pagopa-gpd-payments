@@ -32,7 +32,7 @@ const { gpdSessionBundle, gpsSessionBundle } = require('./utility/data');
 const { getValidBundle } = require('./utility/helpers');
 
 // increase cucumber promise timeout
-setDefaultTimeout(45000);
+setDefaultTimeout(120000);
 
 
 /* 
