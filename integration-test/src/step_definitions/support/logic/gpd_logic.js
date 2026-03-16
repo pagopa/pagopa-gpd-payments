@@ -92,51 +92,50 @@ async function readCreditorInstitutionBrokerInfo(bundle, brokerId) {
 async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
     await readAndCreateCreditorInstitutionInfo(bundle, creditorInstitutionId, 200);
     bundle.organizationCode = creditorInstitutionId;
-    await readValidCreditorInstitutionInfo(bundle, creditorInstitutionId, 200);
-    response = await readCreditorInstitutionIbans(bundle.organizationCode);
-	
-	console.log("readCreditorInstitutionIbans status:", response?.status);
-	console.log("readCreditorInstitutionIbans data:", JSON.stringify(response?.data));
-    // if there is no iban connected to the CI, it is created
-	assert.strictEqual(response.status, 200);
+    await readValidCreditorInstitutionInfo(bundle);
 
-	const data = response?.data;
-	const ibansEnhanced =
-	    data?.ibans_enhanced ??
-	    data?.ibansEnhanced ??
-	    (Array.isArray(data) ? data : undefined);
+    let response = await readCreditorInstitutionIbans(bundle.organizationCode);
 
-	assert.ok(
-	    Array.isArray(ibansEnhanced),
-	    `Unexpected response from readCreditorInstitutionIbans: ${JSON.stringify(data)}`
-	);
+    console.log("readCreditorInstitutionIbans status:", response?.status);
+    console.log("readCreditorInstitutionIbans data:", JSON.stringify(response?.data));
 
-	if (ibansEnhanced.length === 0) {
-	   toRefresh = true;
-	   let body = buildApiConfigServiceCreationIbansRequest(
-	      new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
-	      new Date(new Date().setDate(new Date().getDate() + 1)).toISOString()
-	   );
-	   response = await createCreditorInstitutionIbans(bundle.organizationCode, body);
-	   assert.strictEqual(response.status, 201);
-	   bundle.debtPosition.iban = response.data.iban;
-	} else {
-	   assert.ok(ibansEnhanced[0] !== undefined);
-	   bundle.debtPosition.iban = ibansEnhanced[0].iban;
-	}
-	
-	/*
-    if (response.data.ibans_enhanced.length == 0) {
-	   toRefresh = true;
-	   let body = buildApiConfigServiceCreationIbansRequest(new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(), 
-	   new Date(new Date().setDate(new Date().getDate() + 1)).toISOString());
-	   response = await createCreditorInstitutionIbans(bundle.organizationCode, body);
-	   assert.strictEqual(response.status, 201);
-	   bundle.debtPosition.iban = response.data.iban;
+    if (response.status === 404) {
+        response = await createMissingIban(bundle);
+        bundle.debtPosition.iban = response.data.iban;
+        return;
+    }
+
+    assert.strictEqual(response.status, 200);
+
+    const data = response?.data;
+    const ibansEnhanced =
+        data?.ibans_enhanced ??
+        data?.ibansEnhanced ??
+        (Array.isArray(data) ? data : []);
+
+    assert.ok(
+        Array.isArray(ibansEnhanced),
+        `Unexpected response from readCreditorInstitutionIbans: ${JSON.stringify(data)}`
+    );
+
+    if (ibansEnhanced.length === 0) {
+        response = await createMissingIban(bundle);
+        bundle.debtPosition.iban = response.data.iban;
     } else {
-	   assert.ok(response.data.ibans_enhanced[0] !== undefined);
-       bundle.debtPosition.iban = response.data.ibans_enhanced[0].iban;
-    }*/
+        assert.ok(ibansEnhanced[0] !== undefined);
+        bundle.debtPosition.iban = ibansEnhanced[0].iban;
+    }
+}
+
+async function createMissingIban(bundle) {
+    toRefresh = true;
+    const body = buildApiConfigServiceCreationIbansRequest(
+        new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
+        new Date(new Date().setDate(new Date().getDate() + 1)).toISOString()
+    );
+    const response = await createCreditorInstitutionIbans(bundle.organizationCode, body);
+    assert.strictEqual(response.status, 201);
+    return response;
 }
 
 async function readStationInfo(bundle, stationId, brokerId) {
