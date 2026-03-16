@@ -164,6 +164,10 @@ async function createMissingIban(bundle) {
 	const now = new Date();
 	const validityDate = new Date(now.getTime() + 90 * 1000).toISOString(); // +90 seconds
 	const dueDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // +7 days
+	
+	console.log("createMissingIban now:", now.toISOString());
+	console.log("createMissingIban validityDate:", validityDate);
+	console.log("createMissingIban dueDate:", dueDate);
 
 	const body = buildApiConfigServiceCreationIbansRequest(dueDate, validityDate);
 
