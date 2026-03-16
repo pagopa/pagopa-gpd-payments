@@ -161,11 +161,9 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 async function createMissingIban(bundle) {
     toRefresh = true;
 
-	const now = new Date();
-	const validityDate = new Date(now.getTime() + 90 * 1000).toISOString(); // +90 seconds
-	const dueDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // +7 days
+	const validityDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString();
+	const dueDate = new Date(new Date().setDate(new Date().getDate() + 7)).toISOString();
 	
-	console.log("createMissingIban now:", now.toISOString());
 	console.log("createMissingIban validityDate:", validityDate);
 	console.log("createMissingIban dueDate:", dueDate);
 
