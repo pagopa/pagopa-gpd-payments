@@ -4,6 +4,10 @@ function buildDynamicIban() {
     return `IT${makeidNumber(2)}${makeidMix(1).toUpperCase()}${makeidNumber(22)}`;
 }
 
+function buildDynamicSegregationCode() {
+    return Math.floor(Math.random() * 99) + 1;
+}
+
 function buildGPSServiceCreationRequest(serviceId, donation_host) {
     return {
         "id": serviceId,
@@ -487,15 +491,15 @@ function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
 		};
 	}
 	
-	function buildApiConfigServiceCreationECStationAssociation(stationCode){
-		return {
-			  "application_code": 3,
-			  "aux_digit": 3,
-			  "broadcast": true,
-			  "mod4": true,
-			  "segregation_code": 47,
-			  "station_code": stationCode
-			};
+	function buildApiConfigServiceCreationECStationAssociation(stationCode, segregationCode){
+	    return {
+	          "application_code": 3,
+	          "aux_digit": 3,
+	          "broadcast": true,
+	          "mod4": true,
+	          "segregation_code": segregationCode,
+	          "station_code": stationCode
+	        };
 	}
 
 
@@ -515,5 +519,6 @@ module.exports = {
     buildApiConfigServiceCreationIbansRequest,
     buildApiConfigServiceCreationBrokerRequest,
     buildApiConfigServiceCreationStationRequest,
-    buildApiConfigServiceCreationECStationAssociation
+    buildApiConfigServiceCreationECStationAssociation,
+	buildDynamicSegregationCode
 }

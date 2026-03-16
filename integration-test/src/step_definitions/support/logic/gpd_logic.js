@@ -38,7 +38,8 @@ const {
     buildApiConfigServiceCreationIbansRequest,
     buildApiConfigServiceCreationBrokerRequest,
     buildApiConfigServiceCreationStationRequest,
-    buildApiConfigServiceCreationECStationAssociation 
+    buildApiConfigServiceCreationECStationAssociation,
+	buildDynamicSegregationCode 
 } = require("../utility/request_builders");
 
 
@@ -212,17 +213,50 @@ async function createMissingIban(bundle) {
     );
 }
 
+
+async function createMissingEcStationAssociation(bundle, stationId) {
+    toRefresh = true;
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+        const segregationCode = buildDynamicSegregationCode();
+        const associationBody = buildApiConfigServiceCreationECStationAssociation(
+            stationId,
+            segregationCode
+        );
+
+        const response = await createECStationAssociation(bundle.organizationCode, associationBody);
+
+        console.log("createECStationAssociation status:", response?.status);
+        console.log("createECStationAssociation data:", JSON.stringify(response?.data));
+        console.log("createECStationAssociation segregationCode:", segregationCode);
+
+        if (response?.status === 201) {
+            bundle.debtPosition.iuvPrefix =
+                segregationCode < 10 ? `0${segregationCode}` : `${segregationCode}`;
+            return response;
+        }
+
+        if (response?.status !== 409) {
+            throw new Error(
+                `Unexpected createECStationAssociation status=${response?.status}, data=${JSON.stringify(response?.data)}`
+            );
+        }
+    }
+
+    throw new Error(
+        `Unable to create EC-station association for station=${stationId}, org=${bundle.organizationCode}: all attempted segregation codes were already used`
+    );
+}
+
 async function readStationInfo(bundle, stationId, brokerId) {
     let response = await readStation(stationId);
 
-    // if the station does not exist, it is created
     if (response.status === 404) {
         toRefresh = true;
         const ip = process.env.ip;
         const stationBody = buildApiConfigServiceCreationStationRequest(stationId, brokerId, ip);
         response = await createStation(stationBody);
 
-        // 409 = already exists / idempotent bootstrap
         if (response.status === 409) {
             response = await readStation(stationId);
         }
@@ -238,48 +272,20 @@ async function readStationInfo(bundle, stationId, brokerId) {
 
     response = await readECStationAssociation(stationId, bundle.organizationCode);
 
-    // association already exists and is readable
     if (response.status === 200) {
+        const segregationCode = response.data.segregation_code;
         bundle.debtPosition.iuvPrefix =
-            response.data.segregation_code < 10
-                ? `0${response.data.segregation_code}`
-                : `${response.data.segregation_code}`;
+            segregationCode < 10 ? `0${segregationCode}` : `${segregationCode}`;
         return;
     }
 
-    // association missing: create it, but do not require immediate readability
     if (response.status === 404) {
-        toRefresh = true;
-
-        const associationBody = buildApiConfigServiceCreationECStationAssociation(stationId);
-        const createResponse = await createECStationAssociation(bundle.organizationCode, associationBody);
-
-        console.log("createECStationAssociation status:", createResponse?.status);
-        console.log("createECStationAssociation data:", JSON.stringify(createResponse?.data));
-
-        // 201 = created now
-        // 409 = already exists
-        assertAcceptedStatuses(
-            createResponse,
-            [201, 409],
-            "create EC-station association"
-        );
-
-        // Use the segregation code from the request body when the association has just been created
-        // or when the backend reports a conflict but the relation is logically already there.
-        bundle.debtPosition.iuvPrefix =
-            associationBody.segregation_code < 10
-                ? `0${associationBody.segregation_code}`
-                : `${associationBody.segregation_code}`;
-
+        await createMissingEcStationAssociation(bundle, stationId);
         return;
     }
 
-    // any other status is unexpected
-    assertAcceptedStatuses(
-        response,
-        [200],
-        "read EC-station association"
+    throw new Error(
+        `read EC-station association returned unexpected status=${response?.status}, data=${JSON.stringify(response?.data)}`
     );
 }
 
@@ -321,7 +327,9 @@ async function readAndCreateCreditorInstitutionInfo(bundle, organizationCode, ex
 }
 
 async function sendActivatePaymentNoticeRequest(bundle) {
-    bundle.responseToCheck = await activatePaymentNotice(buildActivatePaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode));
+    bundle.responseToCheck = await activatePaymentNotice(
+        buildActivatePaymentNoticeRequest(bundle, bundle.organizationCode)
+    );
 }
 
 async function sendSendPaymentOutcomeRequest(bundle) {
@@ -329,14 +337,20 @@ async function sendSendPaymentOutcomeRequest(bundle) {
 }
 
 async function sendSendRTRequest(bundle) {
-    bundle.responseToCheck = await sendRT(buildSendRTRequest(bundle, bundle.debtPosition.fiscalCode));
+    bundle.responseToCheck = await sendRT(
+        buildSendRTRequest(bundle, bundle.organizationCode)
+    );
 }
 async function sendSendRTV2Request(bundle) {
-    bundle.responseToCheck = await sendRTV2(buildSendRTRequest(bundle, bundle.debtPosition.fiscalCode));
+    bundle.responseToCheck = await sendRTV2(
+        buildSendRTRequest(bundle, bundle.organizationCode)
+    );
 }
 
 async function sendVerifyPaymentNoticeRequest(bundle) {
-    bundle.responseToCheck = await verifyPaymentNotice(buildVerifyPaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode));
+    bundle.responseToCheck = await verifyPaymentNotice(
+        buildVerifyPaymentNoticeRequest(bundle, bundle.organizationCode)
+    );
 }
 
 async function sendGetPaymentRequest(bundle) {

@@ -1,7 +1,6 @@
-const { get, post } = require("../utility/axios_common");
+const {get, post} = require("../utility/axios_common");
 
 const gpd_host = process.env.gpd_host;
-const GPD_TIMEOUT_MS = 60000;
 
 function gpdHealthCheck() {
     return get(gpd_host + `/info`, {
@@ -11,7 +10,30 @@ function gpdHealthCheck() {
     });
 }
 
-async function createDebtPosition(orgId, body) {
+async function postWithRetry(url, body, config, operationName, maxAttempts = 3) {
+    let lastResponse;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        lastResponse = await post(url, body, config);
+
+        if (lastResponse && lastResponse.status < 500) {
+            return lastResponse;
+        }
+
+        console.log(`[GPD] ${operationName} attempt ${attempt}/${maxAttempts} failed`, {
+            status: lastResponse?.status,
+            data: lastResponse?.data
+        });
+
+        if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+    }
+
+    return lastResponse;
+}
+
+function createDebtPosition(orgId, body) {
     console.log("[GPD] createDebtPosition request", {
         orgId,
         iupd: body?.iupd,
@@ -19,45 +41,35 @@ async function createDebtPosition(orgId, body) {
         iban: body?.paymentOption?.[0]?.transfer?.[0]?.iban
     });
 
-    const response = await post(
+    return postWithRetry(
         gpd_host + `/organizations/${orgId}/debtpositions`,
         body,
         {
-            timeout: GPD_TIMEOUT_MS,
+            timeout: 15000,
             headers: {
                 "Ocp-Apim-Subscription-Key": process.env.SUBKEY,
                 "Content-Type": "application/json"
             }
-        }
+        },
+        "createDebtPosition"
     );
-
-    if (!response) {
-        throw new Error(`createDebtPosition returned no response for orgId=${orgId}`);
-    }
-
-    return response;
 }
 
-async function publishDebtPosition(orgId, iupd) {
+function publishDebtPosition(orgId, iupd) {
     console.log("[GPD] publishDebtPosition request", { orgId, iupd });
 
-    const response = await post(
+    return postWithRetry(
         gpd_host + `/organizations/${orgId}/debtpositions/${iupd}/publish`,
         "",
         {
-            timeout: GPD_TIMEOUT_MS,
+            timeout: 15000,
             headers: {
                 "Ocp-Apim-Subscription-Key": process.env.SUBKEY,
                 "Content-Type": "application/json"
             }
-        }
+        },
+        "publishDebtPosition"
     );
-
-    if (!response) {
-        throw new Error(`publishDebtPosition returned no response for orgId=${orgId}, iupd=${iupd}`);
-    }
-
-    return response;
 }
 
 module.exports = {
