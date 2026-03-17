@@ -2,8 +2,8 @@ let gpsSessionBundle = {
     isExecuting: false,
     responseToCheck: undefined,
     organizationCode: undefined,
-    brokerCode: "15376371009",
-    stationCode: "15376371009_01",
+	brokerCode: process.env.test_broker,
+	stationCode: process.env.test_station,
     serviceCode: undefined,
     serviceData: undefined,
 }
@@ -37,6 +37,7 @@ let gpdSessionBundle = {
         applicationDate: undefined,
         transferDate: undefined,
     },
+	// Static sample payer used to build deterministic test debt positions.
     payer: {
         name: "Michele Ventimiglia",
         fiscalCode: "VNTMHL76M09H501D",

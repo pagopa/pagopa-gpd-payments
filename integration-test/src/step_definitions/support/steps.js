@@ -30,7 +30,18 @@ const { assertAmount, assertFaultCode, assertOutcome, assertStatusCode, executeA
 const { createOrganizationInfo, createServiceInfo, sendInvalidDemandPaymentNoticeRequest, sendValidDemandPaymentNoticeRequest } = require('./logic/gps_logic');
 const { gpdSessionBundle, gpsSessionBundle } = require('./utility/data');
 const { getValidBundle } = require('./utility/helpers');
+const {
+    sendGetOrganizationReceiptsRequest,
+    sendGetOrganizationReceiptsFilteredByIuvRequest,
+    sendGetReceiptByIuvRequest,
+    assertReceiptsResponseContainsIuv,
+    assertReceiptDetailContainsIuv,
+	assertReceiptsResponseContainsResults,
+	assertReceiptsResponseIsValid
+} = require('./logic/payments_receipts_logic');
 
+// Preconfigured entities used by GPD tests in shared environments.
+// They allow the feature files to stay environment-agnostic.
 const TEST_CREDITOR_INSTITUTION = process.env.test_creditor_institution;
 const TEST_BROKER = process.env.test_broker;
 const TEST_STATION = process.env.test_station;
@@ -134,6 +145,39 @@ Then('the client receives a KO with the {string} fault code error', (fault) => a
 Then('the payment token is extracted', () => assertPaymentTokenExistence(getValidBundle(gpdSessionBundle, gpsSessionBundle)));
 Then('the client retrieves the payment amount {string} in the response', (amount) => assertPaymentAmount(getValidBundle(gpdSessionBundle, gpsSessionBundle), amount));
 Then('the client retrieves the IBANs in the response', () => assertIbanInTransferList(getValidBundle(gpdSessionBundle, gpsSessionBundle)));
+
+/*
+ * Payments receipts REST API section.
+ * These steps validate the optimized receipts endpoints without hardcoding
+ * environment-specific organization/station values in the feature files.
+ */
+
+When('the client sends the GetOrganizationReceiptsRequest', () =>
+    sendGetOrganizationReceiptsRequest(gpdSessionBundle)
+);
+
+When('the client sends the GetOrganizationReceipts filtered by IUV request', () =>
+    sendGetOrganizationReceiptsFilteredByIuvRequest(gpdSessionBundle)
+);
+
+When('the client sends the GetReceiptByIUVRequest', () =>
+    sendGetReceiptByIuvRequest(gpdSessionBundle)
+);
+
+
+Then('the receipts response contains the created IUV', () =>
+    assertReceiptsResponseContainsIuv(getValidBundle(gpdSessionBundle, gpsSessionBundle))
+);
+
+Then('the receipt detail contains the created IUV', () =>
+    assertReceiptDetailContainsIuv(getValidBundle(gpdSessionBundle, gpsSessionBundle))
+);
+
+Then('the receipts response contains results', () => assertReceiptsResponseContainsResults(getValidBundle(gpdSessionBundle, gpsSessionBundle)));
+
+Then('the receipts response is valid', function () {
+    assertReceiptsResponseIsValid(gpdSessionBundle);
+});
 
 
 

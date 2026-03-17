@@ -2,6 +2,15 @@ const {get, post} = require("../utility/axios_common");
 
 const gpd_host = process.env.gpd_host;
 
+const ENABLE_DEBUG = process.env.ENABLE_DEBUG === "true";
+
+function debugLog(message, payload) {
+    if (!ENABLE_DEBUG) {
+        return;
+    }
+    console.log(message, payload);
+}
+
 function gpdHealthCheck() {
     return get(gpd_host + `/info`, {
         headers: {
@@ -20,7 +29,7 @@ async function postWithRetry(url, body, config, operationName, maxAttempts = 3) 
             return lastResponse;
         }
 
-        console.log(`[GPD] ${operationName} attempt ${attempt}/${maxAttempts} failed`, {
+        debugLog(`[GPD] ${operationName} attempt ${attempt}/${maxAttempts} failed`, {
             status: lastResponse?.status,
             data: lastResponse?.data
         });
@@ -34,7 +43,7 @@ async function postWithRetry(url, body, config, operationName, maxAttempts = 3) 
 }
 
 function createDebtPosition(orgId, body) {
-    console.log("[GPD] createDebtPosition request", {
+    debugLog("[GPD] createDebtPosition request", {
         orgId,
         iupd: body?.iupd,
         iuv: body?.paymentOption?.[0]?.iuv,
@@ -56,7 +65,7 @@ function createDebtPosition(orgId, body) {
 }
 
 function publishDebtPosition(orgId, iupd) {
-    console.log("[GPD] publishDebtPosition request", { orgId, iupd });
+    debugLog("[GPD] publishDebtPosition request", { orgId, iupd });
 
     return postWithRetry(
         gpd_host + `/organizations/${orgId}/debtpositions/${iupd}/publish`,

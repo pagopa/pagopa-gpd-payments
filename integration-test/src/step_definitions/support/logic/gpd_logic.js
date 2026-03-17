@@ -40,6 +40,21 @@ const {
 
 let toRefresh = false;
 
+const ENABLE_DEBUG = process.env.ENABLE_DEBUG === "true";
+
+function debugLog(message, payload) {
+    if (!ENABLE_DEBUG) {
+        return;
+    }
+
+    if (payload === undefined) {
+        console.log(message);
+        return;
+    }
+
+    console.log(message, payload);
+}
+
 function assertAcceptedStatuses(response, acceptedStatuses, operationName) {
     assert.ok(
         acceptedStatuses.includes(response?.status),
@@ -84,16 +99,39 @@ async function executeDebtPositionVerification(bundle) {
 }
 
 async function executeDebtPositionVerificationAndActivation(bundle) {
-    bundle.responseToCheck = await verifyPaymentNotice(
-        buildVerifyPaymentNoticeRequest(bundle, bundle.organizationCode)
+    const verifyRequest = buildVerifyPaymentNoticeRequest(bundle, bundle.organizationCode);
+    debugLog("[GPD] verifyPaymentNotice request", verifyRequest);
+
+    bundle.responseToCheck = await verifyPaymentNotice(verifyRequest);
+
+    debugLog("[GPD] verifyPaymentNotice response", {
+        status: bundle.responseToCheck?.status,
+        data: bundle.responseToCheck?.data
+    });
+
+    assert.strictEqual(
+        bundle.responseToCheck.status,
+        200,
+        `verifyPaymentNotice failed. status=${bundle.responseToCheck?.status}, data=${JSON.stringify(bundle.responseToCheck?.data)}`
     );
-    assert.strictEqual(bundle.responseToCheck.status, 200);
     assert.match(bundle.responseToCheck.data, /<outcome>OK<\/outcome>/);
 
-    bundle.responseToCheck = await activatePaymentNotice(
-        buildActivatePaymentNoticeRequest(bundle, bundle.organizationCode)
+    const activateRequest = buildActivatePaymentNoticeRequest(bundle, bundle.organizationCode);
+    debugLog("[GPD] activatePaymentNotice request", activateRequest);
+
+    bundle.responseToCheck = await activatePaymentNotice(activateRequest);
+
+    debugLog("[GPD] activatePaymentNotice response", {
+        status: bundle.responseToCheck?.status,
+        data: bundle.responseToCheck?.data,
+        headers: bundle.responseToCheck?.headers
+    });
+
+    assert.strictEqual(
+        bundle.responseToCheck.status,
+        200,
+        `activatePaymentNotice failed. status=${bundle.responseToCheck?.status}, data=${JSON.stringify(bundle.responseToCheck?.data)}`
     );
-    assert.strictEqual(bundle.responseToCheck.status, 200);
     assert.match(bundle.responseToCheck.data, /<outcome>OK<\/outcome>/);
 }
 
@@ -131,11 +169,11 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
     console.log("readCreditorInstitutionIbans status:", response?.status);
     console.log("readCreditorInstitutionIbans data:", JSON.stringify(response?.data));
 
-    if (response.status === 404) {
-        response = await createMissingIban(bundle);
-        bundle.debtPosition.iban = response.data.iban;
-        return;
-    }
+	if (response.status === 404) {
+	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
+	    console.log("readCreditorInstitutionIbans returned 404, using configured static IBAN:", bundle.debtPosition.iban);
+	    return;
+	}
 
     assert.strictEqual(response.status, 200);
 
@@ -150,67 +188,14 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
         `Unexpected response from readCreditorInstitutionIbans: ${JSON.stringify(data)}`
     );
 
-    if (ibansEnhanced.length === 0) {
-        response = await createMissingIban(bundle);
-        bundle.debtPosition.iban = response.data.iban;
-    } else {
-        assert.ok(ibansEnhanced[0] !== undefined);
-        bundle.debtPosition.iban = ibansEnhanced[0].iban;
-    }
-}
-
-async function createMissingIban(bundle) {
-    toRefresh = true;
-
-	const validityDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString();
-	const dueDate = new Date(new Date().setDate(new Date().getDate() + 7)).toISOString();
-	
-	console.log("createMissingIban validityDate:", validityDate);
-	console.log("createMissingIban dueDate:", dueDate);
-
-	const body = buildApiConfigServiceCreationIbansRequest(dueDate, validityDate);
-
-    let response = await createCreditorInstitutionIbans(bundle.organizationCode, body);
-
-    console.log("createCreditorInstitutionIbans status:", response?.status);
-    console.log("createCreditorInstitutionIbans data:", JSON.stringify(response?.data));
-
-    // 201 = created
-    // 409 = already exists
-    assertAcceptedStatuses(
-        response,
-        [201, 409],
-        "create creditor institution iban"
-    );
-
-    if (response.status === 201 && response?.data?.iban) {
-        return response;
-    }
-
-    // If 409, try to read back the ibans again
-    response = await readCreditorInstitutionIbans(bundle.organizationCode);
-
-    console.log("readCreditorInstitutionIbans after create status:", response?.status);
-    console.log("readCreditorInstitutionIbans after create data:", JSON.stringify(response?.data));
-
-    const data = response?.data;
-    const ibansEnhanced =
-        data?.ibans_enhanced ??
-        data?.ibansEnhanced ??
-        (Array.isArray(data) ? data : []);
-
-    if (response.status === 200 && Array.isArray(ibansEnhanced) && ibansEnhanced.length > 0) {
-        return {
-            status: 200,
-            data: {
-                iban: ibansEnhanced[0].iban
-            }
-        };
-    }
-
-    throw new Error(
-        `Unable to resolve iban after create conflict. status=${response?.status}, data=${JSON.stringify(response?.data)}`
-    );
+	if (ibansEnhanced.length === 0) {
+	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
+	    console.log("readCreditorInstitutionIbans returned empty list, using configured static IBAN:", bundle.debtPosition.iban);
+	} else {
+	    assert.ok(ibansEnhanced[0] !== undefined);
+	    bundle.debtPosition.iban = process.env.test_iban || ibansEnhanced[0].iban;
+	    console.log("using IBAN for debt position:", bundle.debtPosition.iban);
+	}
 }
 
 async function readStationInfo(bundle, stationId, brokerId) {
@@ -287,7 +272,7 @@ async function readAndCreateCreditorInstitutionInfo(bundle, organizationCode, ex
 
 async function sendActivatePaymentNoticeRequest(bundle) {
     bundle.responseToCheck = await activatePaymentNotice(
-        buildActivatePaymentNoticeRequest(bundle, bundle.organizationCode)
+        buildActivatePaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode)
     );
 }
 
@@ -297,18 +282,18 @@ async function sendSendPaymentOutcomeRequest(bundle) {
 
 async function sendSendRTRequest(bundle) {
     bundle.responseToCheck = await sendRT(
-        buildSendRTRequest(bundle, bundle.organizationCode)
+        buildSendRTRequest(bundle, bundle.debtPosition.fiscalCode)
     );
 }
 async function sendSendRTV2Request(bundle) {
     bundle.responseToCheck = await sendRTV2(
-        buildSendRTRequest(bundle, bundle.organizationCode)
+        buildSendRTRequest(bundle, bundle.debtPosition.fiscalCode)
     );
 }
 
 async function sendVerifyPaymentNoticeRequest(bundle) {
     bundle.responseToCheck = await verifyPaymentNotice(
-        buildVerifyPaymentNoticeRequest(bundle, bundle.organizationCode)
+        buildVerifyPaymentNoticeRequest(bundle, bundle.debtPosition.fiscalCode)
     );
 }
 
@@ -320,7 +305,6 @@ async function sendGetPaymentV2Request(bundle) {
     bundle.responseToCheck = await getPaymentV2(buildGetPaymentV2Req(bundle, bundle.debtPosition.fiscalCode));
 }
 
-// N.B.: even by launching the configuration refresh, if it was necessary to create a new IBAN, this will not be visible until the validity date is reached
 async function refreshNodeConfig(timeout) {
     if (toRefresh) {
         const response = await refreshConfig();

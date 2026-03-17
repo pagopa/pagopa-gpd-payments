@@ -1,4 +1,4 @@
-Feature: All about Activate Phase on Debt Position Payments workflow
+Feature: Get Payment phase on Debt Position Payments workflow
 
   Background:
     Given Payments running

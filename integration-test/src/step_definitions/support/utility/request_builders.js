@@ -1,7 +1,7 @@
-const { addDays, buildStringFromDate, makeidNumber, makeidMix,  } = require("./helpers");
+const { addDays, buildStringFromDate, makeidNumber, makeidMix  } = require("./helpers");
 
-function buildDynamicIban() {
-    return `IT${makeidNumber(2)}${makeidMix(1).toUpperCase()}${makeidNumber(22)}`;
+function getTestIban() {
+    return process.env.test_iban || "IT30N0103076271000001823603";
 }
 
 function buildGPSServiceCreationRequest(serviceId, donation_host) {
@@ -167,34 +167,34 @@ function buildVerifyPaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
         </Envelope>`;
 }
 
+// Builds the Nodo activatePaymentNotice V2 SOAP request.
 function buildActivatePaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
     const pspId = gpdSessionBundle.debtPosition.pspId;
     const pspBrokerId = gpdSessionBundle.debtPosition.pspBrokerId;
     const pspChannelId = gpdSessionBundle.debtPosition.pspChannelId;
-    //const fiscalCode = gpdSessionBundle.debtPosition.fiscalCode;
-    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
+    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`;
     const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
     const idempotency = gpdSessionBundle.debtPosition.idempotency;
     const pspPassword = process.env.pspPassword;
 
     return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/node/nodeForPsp.xsd">
-        <soapenv:Header/>
-        <soapenv:Body>
-            <nod:activatePaymentNoticeReq>
-                <idPSP>${pspId}</idPSP>
-                <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
-                <idChannel>${pspChannelId}</idChannel>
-                <password>${pspPassword}</password>
-                <idempotencyKey>${idempotency}</idempotencyKey>
-                <qrCode>
-                    <fiscalCode>${fiscalCode}</fiscalCode>
-                    <noticeNumber>${noticeNumber}</noticeNumber>
-                </qrCode>
-                <expirationTime>6000</expirationTime>
-                <amount>${amount}</amount>
-            </nod:activatePaymentNoticeReq>
-        </soapenv:Body>
-    </soapenv:Envelope>`;
+    <soapenv:Header />
+    <soapenv:Body>
+        <nod:activatePaymentNoticeV2Request>
+            <idPSP>${pspId}</idPSP>
+            <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
+            <idChannel>${pspChannelId}</idChannel>
+            <password>${pspPassword}</password>
+            <idempotencyKey>${idempotency}</idempotencyKey>
+            <qrCode>
+                <fiscalCode>${fiscalCode}</fiscalCode>
+                <noticeNumber>${noticeNumber}</noticeNumber>
+            </qrCode>
+            <expirationTime>900000</expirationTime>
+            <amount>${amount}</amount>
+        </nod:activatePaymentNoticeV2Request>
+    </soapenv:Body>
+   </soapenv:Envelope>`;
 }
 
 function buildSendPaymentOutcomeRequest(gpdSessionBundle) {
@@ -428,7 +428,7 @@ function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
 	    return {
 	          "description": "Riscossione Tributi",
 	          "due_date": dueDate,
-	          "iban": buildDynamicIban(),
+	          "iban": getTestIban(),
 	          "is_active": true,
 	          "labels": [],
 	          "validity_date": validityDate
