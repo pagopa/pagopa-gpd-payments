@@ -65,13 +65,13 @@ Given('the creditor institution {string}', (orgId) => readCreditorInstitutionInf
 Given('the creditor institution broker {string}', (brokerId) => readCreditorInstitutionBrokerInfo(gpdSessionBundle, brokerId));
 Given('the station {string} for the broker {string}', (stationId, brokerId) => readStationInfo(gpdSessionBundle, stationId, brokerId));
 Given('if necessary, refresh the configuration and wait {int} seconds', async (timeout) => {await refreshNodeConfig(timeout)});
-Given('the default creditor institution', () => {
+Given('the configured creditor institution', () => {
     return readCreditorInstitutionInfo(gpdSessionBundle, TEST_CREDITOR_INSTITUTION);
 });
-Given('the default creditor institution broker', () => {
+Given('the configured creditor institution broker', () => {
     return readCreditorInstitutionBrokerInfo(gpdSessionBundle, TEST_BROKER);
 });
-Given('the default station', () => {
+Given('the configured station', () => {
     return readStationInfo(gpdSessionBundle, TEST_STATION, TEST_BROKER);
 });
 
