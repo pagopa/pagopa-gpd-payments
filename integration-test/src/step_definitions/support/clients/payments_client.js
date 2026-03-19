@@ -12,8 +12,14 @@ function logSoapRequest(operationName, url, body, config) {
         return;
     }
 
+    const sanitizedHeaders = { ...(config?.headers || {}) };
+
+    if (sanitizedHeaders["Ocp-Apim-Subscription-Key"]) {
+        sanitizedHeaders["Ocp-Apim-Subscription-Key"] = "***MASKED***";
+    }
+
     console.log(`[payments_client] ${operationName} url:`, url);
-    console.log(`[payments_client] ${operationName} headers:`, config?.headers);
+    console.log(`[payments_client] ${operationName} headers:`, sanitizedHeaders);
     console.log(`[payments_client] ${operationName} timeout:`, config?.timeout);
     console.log(`[payments_client] ${operationName} body:`, body);
 }
