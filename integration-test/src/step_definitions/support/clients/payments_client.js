@@ -15,7 +15,9 @@ function logSoapRequest(operationName, url, body, config) {
     const sanitizedHeaders = { ...(config?.headers || {}) };
 
     if (sanitizedHeaders["Ocp-Apim-Subscription-Key"]) {
-        sanitizedHeaders["Ocp-Apim-Subscription-Key"] = "***MASKED***";
+        const key = sanitizedHeaders["Ocp-Apim-Subscription-Key"].trim();
+        sanitizedHeaders["Ocp-Apim-Subscription-Key"] =
+            key.length > 8 ? `${key.slice(0, 4)}***${key.slice(-4)}` : "***MASKED***";
     }
 
     console.log(`[payments_client] ${operationName} url:`, url);
@@ -105,14 +107,20 @@ function sendRTV2(body) {
 }
 
 function activatePaymentNotice(body) {
-    return post(nodo_host + "/nodo/node-for-psp/v1", body, {
-        timeout: 10000,
-        headers: {
-            'Content-Type': 'text/xml; charset=utf-8',
-            'SOAPAction': '"activatePaymentNoticeV2"',
-            "Ocp-Apim-Subscription-Key": `${process.env.SUBKEY};product=nodo`
-        }
-    });
+	const url = `${nodo_host}/node-for-psp/v1`;
+	
+	const config = {
+	        timeout: 10000,
+	        headers: {
+	            'Content-Type': 'text/xml; charset=utf-8',
+	            'SOAPAction': 'activatePaymentNoticeV2',
+	            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+	        }
+	};
+	
+	logSoapRequest("activatePaymentNotice", url, body, config);
+	
+    return post(url, body, config);
 }
 
 function sendPaymentOutcome(body) {
