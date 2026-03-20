@@ -42,6 +42,30 @@ let toRefresh = false;
 
 const ENABLE_DEBUG = process.env.ENABLE_DEBUG === "true";
 
+function maskIban(iban) {
+    if (typeof iban !== "string" || iban.trim() === "") {
+        return "<masked>";
+    }
+
+    const normalized = iban.replace(/\s+/g, "");
+    if (normalized.length <= 4) {
+        return "<masked>";
+    }
+
+    return `****${normalized.slice(-4)}`;
+}
+
+function sanitizeSoapRequest(xml) {
+    if (typeof xml !== "string" || xml.length === 0) {
+        return xml;
+    }
+
+    return xml.replace(
+        /<password>.*?<\/password>/is,
+        "<password>***MASKED***</password>"
+    );
+}
+
 function debugLog(message, payload) {
     if (!ENABLE_DEBUG) {
         return;
@@ -117,7 +141,7 @@ async function executeDebtPositionVerificationAndActivation(bundle) {
     assert.match(bundle.responseToCheck.data, /<outcome>OK<\/outcome>/);
 
     const activateRequest = buildActivatePaymentNoticeRequest(bundle, bundle.organizationCode);
-    debugLog("[GPD] activatePaymentNotice request", activateRequest);
+    debugLog("[GPD] activatePaymentNotice request", sanitizeSoapRequest(activateRequest));
 
     bundle.responseToCheck = await activatePaymentNotice(activateRequest);
 
@@ -171,7 +195,7 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
 	if (response.status === 404) {
 	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
-	    console.log("readCreditorInstitutionIbans returned 404, using configured static IBAN:", bundle.debtPosition.iban);
+	    console.log("readCreditorInstitutionIbans returned 404, using configured static IBAN:", maskIban(bundle.debtPosition.iban));
 	    return;
 	}
 
@@ -190,11 +214,11 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
 	if (ibansEnhanced.length === 0) {
 	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
-	    console.log("readCreditorInstitutionIbans returned empty list, using configured static IBAN:", bundle.debtPosition.iban);
+	    console.log("readCreditorInstitutionIbans returned empty list, using configured static IBAN:", maskIban(bundle.debtPosition.iban));
 	} else {
 	    assert.ok(ibansEnhanced[0] !== undefined);
 	    bundle.debtPosition.iban = process.env.test_iban || ibansEnhanced[0].iban;
-	    console.log("using IBAN for debt position:", bundle.debtPosition.iban);
+	    console.log("using IBAN for debt position:", maskIban(bundle.debtPosition.iban));
 	}
 }
 
