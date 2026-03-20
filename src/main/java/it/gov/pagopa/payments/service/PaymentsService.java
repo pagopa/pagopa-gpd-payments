@@ -98,31 +98,6 @@ public class PaymentsService {
         return false;
     }
 
-    /*
-    public void checkGPDDebtPosStatus(TableEntity receipt, TableClient tableClient) {
-        TableEntity tableEntity = tableClient.getEntity(receipt.getPartitionKey(), receipt.getRowKey());
-        // the check on GPD is necessary if the status of the receipt is different from PAID
-        try{
-            if (!tableEntity.getProperty(STATUS_PROPERTY).toString().trim().equalsIgnoreCase(Status.PAID.name())) {
-                PaymentsModelResponse paymentOption =
-                        gpdClient.getPaymentOption(tableEntity.getPartitionKey(), tableEntity.getRowKey());
-                if (paymentOption != null && paymentOption.getStatus().equals(PaymentOptionStatus.PO_UNPAID)) {
-                    throw new AppException(
-                            AppError.UNPROCESSABLE_RECEIPT,
-                            paymentOption.getStatus(),
-                            tableEntity.getPartitionKey(),
-                            tableEntity.getRowKey());
-                }
-                // if no exception is raised the status on GPD is correctly in PAID -> for congruence update
-                // receipt status
-                tableEntity.addProperty(STATUS_PROPERTY, Status.PAID.name());
-                tableClient.updateEntity(tableEntity);
-            }
-        } catch (TableServiceException e){
-            throw new AppException(AppError.DB_ERROR, "Error when updating receipt status");
-        }
-    }*/
-    
     public void checkGPDDebtPosStatus(TableEntity tableEntity) {
         try {
             Object statusProperty = tableEntity.getProperty(STATUS_PROPERTY);
@@ -149,30 +124,6 @@ public class PaymentsService {
             throw new AppException(AppError.DB_ERROR, "Error when updating receipt status");
         }
     }
-
-    /*
-    public List<ReceiptModelResponse> getGPDCheckedReceiptsList(List<ReceiptModelResponse> result, TableClient tableClient) {
-        // for all the receipts in the azure table, only those that have been already PAID status or are
-        // in PAID status on GPD are returned
-        List<ReceiptModelResponse> checkedReceipts = new ArrayList<>();
-        for (ReceiptModelResponse re : result) {
-            try {
-                this.checkGPDDebtPosStatus(new TableEntity(re.getOrganizationFiscalCode(), re.getIuv()), tableClient);
-                checkedReceipts.add(re);
-            } catch (FeignException.NotFound e) {
-                log.error(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: "
-                                + "get not found exception in the recovery of payment options",
-                        e);
-            } catch (AppException e) {
-                log.error(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: Receipt is not in an eligible state on"
-                                + " GPD in order to be returned to the caller",
-                        e);
-            }
-        }
-        return checkedReceipts;
-    }*/
     
     public List<ReceiptModelResponse> getGPDCheckedReceiptsList(List<TableEntity> result) {
         // for all the receipts in the azure table, only those that have been already PAID status or are
@@ -199,78 +150,6 @@ public class PaymentsService {
 
         return checkedReceipts;
     }
-
-    /*
-    public PageInfo retrieveEntitiesByFilter(TableClient tableClient, String organizationFiscalCode,
-                                             String debtor, String service, String from,
-                                             String to, int pageNum, int pageSize,
-                                             List<String> segCodes, String debtorOrIuv) {
-
-        List<String> filters = new ArrayList<>();
-
-        filters.add(String.format("PartitionKey eq '%s'", organizationFiscalCode));
-
-        if(null != debtor){
-            filters.add(String.format("debtor eq '%s'", debtor));
-        }
-
-        if(null != service){
-            filters.add(getStartsWithFilter(ROWKEY_PROPERTY, service));
-        }
-
-        if(null != from && null != to){
-            filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
-        }
-
-        if(debtorOrIuv != null) {
-            String iuvFilter = getStartsWithFilter(ROWKEY_PROPERTY, debtorOrIuv);
-            String debtorFilter = getStartsWithFilter(DEBTOR_PROPERTY, debtorOrIuv);
-            filters.add('(' + String.join(" or ", '(' + iuvFilter + ')', '(' + debtorFilter + ')') + ')');
-        }
-
-        String filter = String.join(" and ", filters);
-
-        if(segCodes != null && !segCodes.isEmpty()) {
-            ArrayList<String> segCodesFilters = new ArrayList<>();
-            for(String segCode: segCodes) {
-                segCodesFilters.add(getStartsWithFilter(ROWKEY_PROPERTY, segCode) + " and " + filter);
-            }
-            filter = String.join(" or ", segCodesFilters);
-        }
-
-        Iterator<PagedResponse<TableEntity>> filteredReceiptIterator = tableClient
-                .listEntities(
-                        new ListEntitiesOptions()
-                                .setFilter(filter)
-                                .setTop(pageSize),
-                        null,
-                        null)
-                .iterableByPage()
-                .iterator();
-
-        int totalPages = 0;
-        List<ReceiptModelResponse> filteredReceipts = new ArrayList<>();
-
-        while(filteredReceiptIterator.hasNext()) {
-            if (totalPages == pageNum) {
-                filteredReceipts.addAll(filteredReceiptIterator.next().getValue().stream()
-                        .map(ConvertTableEntityToReceiptModelResponse::mapTableEntityToReceiptModelResponse)
-                        .toList());
-            } else {
-                filteredReceiptIterator.next();
-            }
-            totalPages++;
-        }
-
-        if(totalPages <= pageNum) {
-            throw new AppException(AppError.PAGE_NUMBER_GREATER_THAN_TOTAL_PAGES);
-        }
-
-        return PageInfo.builder()
-                .receiptsList(filteredReceipts)
-                .totalPages(totalPages)
-                .build();
-    }*/
     
     public PageInfo retrieveEntitiesByFilter(TableClient tableClient,
     		String organizationFiscalCode,
