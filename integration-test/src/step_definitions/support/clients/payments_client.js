@@ -57,7 +57,7 @@ function logSoapRequest(operationName, url, body, config) {
         sanitizeHeaders(config?.headers)
     );
     console.log(`[payments_client] ${operationName} timeout:`, config?.timeout);
-    console.log(`[payments_client] ${operationName} body:`, sanitizeSoapBody(body));
+    console.log(`[payments_client] ${operationName} body: <omitted for security>`);
 }
 
 function healthCheck() {

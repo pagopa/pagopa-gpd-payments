@@ -43,7 +43,11 @@ let toRefresh = false;
 const ENABLE_DEBUG = process.env.ENABLE_DEBUG === "true";
 
 function sanitizeForLog(payload) {
-    if (typeof payload !== "string" || payload.length === 0) {
+    if (payload === undefined || payload === null) {
+        return payload;
+    }
+
+    if (typeof payload !== "string") {
         return payload;
     }
 
@@ -53,8 +57,13 @@ function sanitizeForLog(payload) {
     );
 }
 
-function debugLog(message, payload) {
+function debugLog(message, payload, options = {}) {
     if (!ENABLE_DEBUG) {
+        return;
+    }
+
+    if (options.sensitive === true) {
+        console.log(message);
         return;
     }
 
@@ -128,7 +137,7 @@ async function executeDebtPositionVerificationAndActivation(bundle) {
     assert.match(bundle.responseToCheck.data, /<outcome>OK<\/outcome>/);
 
     const activateRequest = buildActivatePaymentNoticeRequest(bundle, bundle.organizationCode);
-    debugLog("[GPD] activatePaymentNotice request", activateRequest);
+    debugLog("[GPD] activatePaymentNotice request omitted for security");
 
     bundle.responseToCheck = await activatePaymentNotice(activateRequest);
 
@@ -177,18 +186,12 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
     let response = await readCreditorInstitutionIbans(bundle.organizationCode);
 
-    console.log("readCreditorInstitutionIbans status:", response?.status);
-    console.log("readCreditorInstitutionIbans data:", JSON.stringify(response?.data));
+	debugLog("readCreditorInstitutionIbans status", response?.status);
+	debugLog("readCreditorInstitutionIbans data", JSON.stringify(response?.data));
 
 	if (response.status === 404) {
 	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
-
-	    if (process.env.test_iban) {
-	        console.log("readCreditorInstitutionIbans returned 404, using configured environment IBAN");
-	    } else {
-	        console.log("readCreditorInstitutionIbans returned 404, using default static IBAN");
-	    }
-
+	    console.log("readCreditorInstitutionIbans returned 404, using fallback IBAN configuration");
 	    return;
 	}
 
@@ -207,21 +210,11 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
 	if (ibansEnhanced.length === 0) {
 	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
-
-	    if (process.env.test_iban) {
-	        console.log("readCreditorInstitutionIbans returned empty list, using configured environment IBAN");
-	    } else {
-	        console.log("readCreditorInstitutionIbans returned empty list, using default static IBAN");
-	    }
+	    console.log("readCreditorInstitutionIbans returned empty list, using fallback IBAN configuration");
 	} else {
 	    assert.ok(ibansEnhanced[0] !== undefined);
 	    bundle.debtPosition.iban = process.env.test_iban || ibansEnhanced[0].iban;
-
-	    if (process.env.test_iban) {
-	        console.log("using configured environment IBAN for debt position");
-	    } else {
-	        console.log("using IBAN returned by creditor institution configuration for debt position");
-	    }
+	    console.log("using configured IBAN for debt position");
 	}
 }
 
