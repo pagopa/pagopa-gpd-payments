@@ -434,14 +434,28 @@ class PaymentsServiceTest {
     properties.put(STATUS_PROPERTY, Status.PAID.name());
 
     TableEntity te1 = new TableEntity("111", "aaa");
-    te1.setProperties(properties);
-    tableClientConfiguration().createEntity(te1);
+    Map<String, Object> properties1 = new HashMap<>();
+    properties1.put(DEBTOR_PROPERTY, "debtor1");
+    properties1.put(DOCUMENT_PROPERTY, "XML1");
+    properties1.put(STATUS_PROPERTY, Status.PAID.name());
+    properties1.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te1.setProperties(properties1);
+
     TableEntity te2 = new TableEntity("222", "bbb");
-    te2.setProperties(properties);
-    tableClientConfiguration().createEntity(te2);
+    Map<String, Object> properties2 = new HashMap<>();
+    properties2.put(DEBTOR_PROPERTY, "debtor2");
+    properties2.put(DOCUMENT_PROPERTY, "XML2");
+    properties2.put(STATUS_PROPERTY, Status.PAID.name());
+    properties2.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te2.setProperties(properties2);
+
     TableEntity te3 = new TableEntity("333", "ccc");
-    te3.setProperties(properties);
-    tableClientConfiguration().createEntity(te3);
+    Map<String, Object> properties3 = new HashMap<>();
+    properties3.put(DEBTOR_PROPERTY, "debtor3");
+    properties3.put(DOCUMENT_PROPERTY, "XML3");
+    properties3.put(STATUS_PROPERTY, Status.PAID.name());
+    properties3.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te3.setProperties(properties3);
 
     List<TableEntity> receipts = new ArrayList<>();
     receipts.add(te1);
@@ -463,14 +477,28 @@ class PaymentsServiceTest {
     properties.put(STATUS_PROPERTY, Status.CREATED.name());
 
     TableEntity te1 = new TableEntity("111", "aaa");
-    te1.setProperties(properties);
-    tableClientConfiguration().createEntity(te1);
+    Map<String, Object> properties1 = new HashMap<>();
+    properties1.put(DEBTOR_PROPERTY, "debtor1");
+    properties1.put(DOCUMENT_PROPERTY, "XML1");
+    properties1.put(STATUS_PROPERTY, Status.CREATED.name());
+    properties1.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te1.setProperties(properties1);
+
     TableEntity te2 = new TableEntity("222", "bbb");
-    te2.setProperties(properties);
-    tableClientConfiguration().createEntity(te2);
+    Map<String, Object> properties2 = new HashMap<>();
+    properties2.put(DEBTOR_PROPERTY, "debtor2");
+    properties2.put(DOCUMENT_PROPERTY, "XML2");
+    properties2.put(STATUS_PROPERTY, Status.CREATED.name());
+    properties2.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te2.setProperties(properties2);
+
     TableEntity te3 = new TableEntity("333", "ccc");
-    te3.setProperties(properties);
-    tableClientConfiguration().createEntity(te3);
+    Map<String, Object> properties3 = new HashMap<>();
+    properties3.put(DEBTOR_PROPERTY, "debtor3");
+    properties3.put(DOCUMENT_PROPERTY, "XML3");
+    properties3.put(STATUS_PROPERTY, Status.CREATED.name());
+    properties3.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te3.setProperties(properties3);
 
     List<TableEntity> receipts = new ArrayList<>();
     receipts.add(te1);
