@@ -443,39 +443,15 @@ class PaymentsServiceTest {
     te3.setProperties(properties);
     tableClientConfiguration().createEntity(te3);
 
-    List<ReceiptModelResponse> receipts = new ArrayList<>();
-    ReceiptModelResponse re1 = ReceiptModelResponse.builder()
-            .organizationFiscalCode("111")
-            .iuv("aaa")
-            .debtor("debtor1")
-            .paymentDateTime("2022-10-01T17:48:22")
-            .status(Status.PAID.name())
-            .build();
-    re1.setStatus(Status.PAID.name());
-    ReceiptModelResponse re2 = ReceiptModelResponse.builder()
-            .organizationFiscalCode("222")
-            .iuv("bbb")
-            .debtor("debtor1")
-            .paymentDateTime("2022-10-01T17:48:22")
-            .status(Status.PAID.name())
-            .build();
-    ReceiptModelResponse re3 = ReceiptModelResponse.builder()
-            .organizationFiscalCode("333")
-            .iuv("ccc")
-            .status(Status.PAID.name())
-            .build();
-    receipts.add(re1);
-    receipts.add(re2);
-    receipts.add(re3);
-    PaymentsResult<ReceiptModelResponse> mock = new PaymentsResult<>();
-    mock.setCurrentPageNumber(0);
-    mock.setLength(receipts.size());
-    mock.setResults(receipts);
+    List<TableEntity> receipts = new ArrayList<>();
+    receipts.add(te1);
+    receipts.add(te2);
+    receipts.add(te3);
 
     List<ReceiptModelResponse> result =
-        paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
+        paymentsService.getGPDCheckedReceiptsList(receipts);
 
-    assertEquals(mock.getResults().size(), result.size());
+    assertEquals(receipts.size(), result.size());
   }
 
   @Test
@@ -496,17 +472,10 @@ class PaymentsServiceTest {
     te3.setProperties(properties);
     tableClientConfiguration().createEntity(te3);
 
-    List<ReceiptModelResponse> receipts = new ArrayList<>();
-    ReceiptModelResponse re1 = ReceiptModelResponse.builder().organizationFiscalCode("111").iuv("aaa").build();
-    ReceiptModelResponse re2 = ReceiptModelResponse.builder().organizationFiscalCode("222").iuv("bbb").build();
-    ReceiptModelResponse re3 = ReceiptModelResponse.builder().organizationFiscalCode("333").iuv("ccc").build();
-    receipts.add(re1);
-    receipts.add(re2);
-    receipts.add(re3);
-    PaymentsResult<ReceiptModelResponse> mock = new PaymentsResult<>();
-    mock.setCurrentPageNumber(0);
-    mock.setLength(receipts.size());
-    mock.setResults(receipts);
+    List<TableEntity> receipts = new ArrayList<>();
+    receipts.add(te1);
+    receipts.add(te2);
+    receipts.add(te3);
 
     // GPD risponde sempre UNPAID
     PaymentsModelResponse paymentModel =
@@ -515,7 +484,7 @@ class PaymentsServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     List<ReceiptModelResponse> result =
-        paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
+        paymentsService.getGPDCheckedReceiptsList(receipts);
 
     // tutte le ricevute sono state scartate
     assertEquals(0, result.size());
