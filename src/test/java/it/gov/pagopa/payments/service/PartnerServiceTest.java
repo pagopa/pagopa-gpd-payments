@@ -115,6 +115,7 @@ class PartnerServiceTest {
   public static GenericContainer<?> azurite =
       new GenericContainer<>(
               DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
+          .withCommand("azurite --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0")
           .withExposedPorts(10001, 10002, 10000);
 
   String storageConnectionString =

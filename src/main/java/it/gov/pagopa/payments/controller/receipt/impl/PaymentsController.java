@@ -10,7 +10,6 @@ import it.gov.pagopa.payments.service.PaymentsService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +23,6 @@ public class PaymentsController implements IPaymentsController {
 
   private static final String LOG_BASE_HEADER_INFO =
       "[RequestMethod: %s] - [ClassMethod: %s] - [MethodParamsToLog: %s]";
-
-  @Autowired private ModelMapper modelMapper;
 
   @Autowired private PaymentsService paymentsService;
 
@@ -70,18 +67,24 @@ public class PaymentsController implements IPaymentsController {
 
     String sanitizedSegregationCodes = sanitizeInput(segregationCodes);
     log.debug(
-        String.format(
-            LOG_BASE_HEADER_INFO,
-            "GET",
-            "getOrganizationReceipts",
-            "organizationFiscalCode="
-                + sanitizeInput(organizationFiscalCode)
-                + "; debtor= "
-                + sanitizeInput(debtor)
-                + "; service= "
-                + sanitizeInput(service)
-                + "; validSegregationCodes= "
-                + sanitizedSegregationCodes));
+    	    String.format(
+    	        LOG_BASE_HEADER_INFO,
+    	        "GET",
+    	        "getOrganizationReceipts",
+    	        "organizationFiscalCode="
+    	            + sanitizeInput(organizationFiscalCode)
+    	            + "; debtor="
+    	            + sanitizeInput(debtor)
+    	            + "; service="
+    	            + sanitizeInput(service)
+    	            + "; from="
+    	            + sanitizeInput(from)
+    	            + "; to="
+    	            + sanitizeInput(to)
+    	            + "; validSegregationCodes="
+    	            + sanitizedSegregationCodes
+    	            + "; debtorOrIuv="
+    	            + sanitizeInput(debtorOrIuv)));
 
     ArrayList<String> segCodesList =
         segregationCodes != null

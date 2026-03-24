@@ -434,48 +434,38 @@ class PaymentsServiceTest {
     properties.put(STATUS_PROPERTY, Status.PAID.name());
 
     TableEntity te1 = new TableEntity("111", "aaa");
-    te1.setProperties(properties);
-    tableClientConfiguration().createEntity(te1);
-    TableEntity te2 = new TableEntity("222", "bbb");
-    te2.setProperties(properties);
-    tableClientConfiguration().createEntity(te2);
-    TableEntity te3 = new TableEntity("333", "ccc");
-    te3.setProperties(properties);
-    tableClientConfiguration().createEntity(te3);
+    Map<String, Object> properties1 = new HashMap<>();
+    properties1.put(DEBTOR_PROPERTY, "debtor1");
+    properties1.put(DOCUMENT_PROPERTY, "XML1");
+    properties1.put(STATUS_PROPERTY, Status.PAID.name());
+    properties1.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te1.setProperties(properties1);
 
-    List<ReceiptModelResponse> receipts = new ArrayList<>();
-    ReceiptModelResponse re1 = ReceiptModelResponse.builder()
-            .organizationFiscalCode("111")
-            .iuv("aaa")
-            .debtor("debtor1")
-            .paymentDateTime("2022-10-01T17:48:22")
-            .status(Status.PAID.name())
-            .build();
-    re1.setStatus(Status.PAID.name());
-    ReceiptModelResponse re2 = ReceiptModelResponse.builder()
-            .organizationFiscalCode("222")
-            .iuv("bbb")
-            .debtor("debtor1")
-            .paymentDateTime("2022-10-01T17:48:22")
-            .status(Status.PAID.name())
-            .build();
-    ReceiptModelResponse re3 = ReceiptModelResponse.builder()
-            .organizationFiscalCode("333")
-            .iuv("ccc")
-            .status(Status.PAID.name())
-            .build();
-    receipts.add(re1);
-    receipts.add(re2);
-    receipts.add(re3);
-    PaymentsResult<ReceiptModelResponse> mock = new PaymentsResult<>();
-    mock.setCurrentPageNumber(0);
-    mock.setLength(receipts.size());
-    mock.setResults(receipts);
+    TableEntity te2 = new TableEntity("222", "bbb");
+    Map<String, Object> properties2 = new HashMap<>();
+    properties2.put(DEBTOR_PROPERTY, "debtor2");
+    properties2.put(DOCUMENT_PROPERTY, "XML2");
+    properties2.put(STATUS_PROPERTY, Status.PAID.name());
+    properties2.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te2.setProperties(properties2);
+
+    TableEntity te3 = new TableEntity("333", "ccc");
+    Map<String, Object> properties3 = new HashMap<>();
+    properties3.put(DEBTOR_PROPERTY, "debtor3");
+    properties3.put(DOCUMENT_PROPERTY, "XML3");
+    properties3.put(STATUS_PROPERTY, Status.PAID.name());
+    properties3.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te3.setProperties(properties3);
+
+    List<TableEntity> receipts = new ArrayList<>();
+    receipts.add(te1);
+    receipts.add(te2);
+    receipts.add(te3);
 
     List<ReceiptModelResponse> result =
-        paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
+        paymentsService.getGPDCheckedReceiptsList(receipts);
 
-    assertEquals(mock.getResults().size(), result.size());
+    assertEquals(receipts.size(), result.size());
   }
 
   @Test
@@ -487,26 +477,33 @@ class PaymentsServiceTest {
     properties.put(STATUS_PROPERTY, Status.CREATED.name());
 
     TableEntity te1 = new TableEntity("111", "aaa");
-    te1.setProperties(properties);
-    tableClientConfiguration().createEntity(te1);
-    TableEntity te2 = new TableEntity("222", "bbb");
-    te2.setProperties(properties);
-    tableClientConfiguration().createEntity(te2);
-    TableEntity te3 = new TableEntity("333", "ccc");
-    te3.setProperties(properties);
-    tableClientConfiguration().createEntity(te3);
+    Map<String, Object> properties1 = new HashMap<>();
+    properties1.put(DEBTOR_PROPERTY, "debtor1");
+    properties1.put(DOCUMENT_PROPERTY, "XML1");
+    properties1.put(STATUS_PROPERTY, Status.CREATED.name());
+    properties1.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te1.setProperties(properties1);
 
-    List<ReceiptModelResponse> receipts = new ArrayList<>();
-    ReceiptModelResponse re1 = ReceiptModelResponse.builder().organizationFiscalCode("111").iuv("aaa").build();
-    ReceiptModelResponse re2 = ReceiptModelResponse.builder().organizationFiscalCode("222").iuv("bbb").build();
-    ReceiptModelResponse re3 = ReceiptModelResponse.builder().organizationFiscalCode("333").iuv("ccc").build();
-    receipts.add(re1);
-    receipts.add(re2);
-    receipts.add(re3);
-    PaymentsResult<ReceiptModelResponse> mock = new PaymentsResult<>();
-    mock.setCurrentPageNumber(0);
-    mock.setLength(receipts.size());
-    mock.setResults(receipts);
+    TableEntity te2 = new TableEntity("222", "bbb");
+    Map<String, Object> properties2 = new HashMap<>();
+    properties2.put(DEBTOR_PROPERTY, "debtor2");
+    properties2.put(DOCUMENT_PROPERTY, "XML2");
+    properties2.put(STATUS_PROPERTY, Status.CREATED.name());
+    properties2.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te2.setProperties(properties2);
+
+    TableEntity te3 = new TableEntity("333", "ccc");
+    Map<String, Object> properties3 = new HashMap<>();
+    properties3.put(DEBTOR_PROPERTY, "debtor3");
+    properties3.put(DOCUMENT_PROPERTY, "XML3");
+    properties3.put(STATUS_PROPERTY, Status.CREATED.name());
+    properties3.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    te3.setProperties(properties3);
+
+    List<TableEntity> receipts = new ArrayList<>();
+    receipts.add(te1);
+    receipts.add(te2);
+    receipts.add(te3);
 
     // GPD risponde sempre UNPAID
     PaymentsModelResponse paymentModel =
@@ -515,7 +512,7 @@ class PaymentsServiceTest {
     when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
 
     List<ReceiptModelResponse> result =
-        paymentsService.getGPDCheckedReceiptsList(receipts, tableClientConfiguration());
+        paymentsService.getGPDCheckedReceiptsList(receipts);
 
     // tutte le ricevute sono state scartate
     assertEquals(0, result.size());

@@ -1,5 +1,8 @@
-const { addDays, buildStringFromDate, makeidNumber, makeidMix,  } = require("./helpers");
+const { addDays, buildStringFromDate, makeidNumber, makeidMix  } = require("./helpers");
 
+function getTestIban() {
+    return process.env.test_iban || "IT30N0103076271000001823603";
+}
 
 function buildGPSServiceCreationRequest(serviceId, donation_host) {
     return {
@@ -164,34 +167,34 @@ function buildVerifyPaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
         </Envelope>`;
 }
 
+// Builds the Nodo activatePaymentNotice V2 SOAP request.
 function buildActivatePaymentNoticeRequest(gpdSessionBundle, fiscalCode) {
     const pspId = gpdSessionBundle.debtPosition.pspId;
     const pspBrokerId = gpdSessionBundle.debtPosition.pspBrokerId;
     const pspChannelId = gpdSessionBundle.debtPosition.pspChannelId;
-    //const fiscalCode = gpdSessionBundle.debtPosition.fiscalCode;
-    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`
+    const noticeNumber = `3${gpdSessionBundle.debtPosition.iuv1}`;
     const amount = `${gpdSessionBundle.debtPosition.amount}.00`;
     const idempotency = gpdSessionBundle.debtPosition.idempotency;
     const pspPassword = process.env.pspPassword;
 
     return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nod="http://pagopa-api.pagopa.gov.it/node/nodeForPsp.xsd">
-        <soapenv:Header/>
-        <soapenv:Body>
-            <nod:activatePaymentNoticeReq>
-                <idPSP>${pspId}</idPSP>
-                <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
-                <idChannel>${pspChannelId}</idChannel>
-                <password>${pspPassword}</password>
-                <idempotencyKey>${idempotency}</idempotencyKey>
-                <qrCode>
-                    <fiscalCode>${fiscalCode}</fiscalCode>
-                    <noticeNumber>${noticeNumber}</noticeNumber>
-                </qrCode>
-                <expirationTime>6000</expirationTime>
-                <amount>${amount}</amount>
-            </nod:activatePaymentNoticeReq>
-        </soapenv:Body>
-    </soapenv:Envelope>`;
+    <soapenv:Header />
+    <soapenv:Body>
+        <nod:activatePaymentNoticeV2Request>
+            <idPSP>${pspId}</idPSP>
+            <idBrokerPSP>${pspBrokerId}</idBrokerPSP>
+            <idChannel>${pspChannelId}</idChannel>
+            <password>${pspPassword}</password>
+            <idempotencyKey>${idempotency}</idempotencyKey>
+            <qrCode>
+                <fiscalCode>${fiscalCode}</fiscalCode>
+                <noticeNumber>${noticeNumber}</noticeNumber>
+            </qrCode>
+            <expirationTime>900000</expirationTime>
+            <amount>${amount}</amount>
+        </nod:activatePaymentNoticeV2Request>
+    </soapenv:Body>
+   </soapenv:Envelope>`;
 }
 
 function buildSendPaymentOutcomeRequest(gpdSessionBundle) {
@@ -422,14 +425,14 @@ function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
 	}
 	
 	function buildApiConfigServiceCreationIbansRequest(dueDate, validityDate){
-		return {
-			  "description": "Riscossione Tributi",
-			  "due_date": dueDate,
-			  "iban": "IT99C0222211111000000000000",
-			  "is_active": true,
-			  "labels": [],
-			  "validity_date": validityDate
-		};
+	    return {
+	          "description": "Riscossione Tributi",
+	          "due_date": dueDate,
+	          "iban": getTestIban(),
+	          "is_active": true,
+	          "labels": [],
+	          "validity_date": validityDate
+	    };
 	}
 	
 	function buildApiConfigServiceCreationBrokerRequest(brokerCode){
@@ -440,77 +443,21 @@ function buildGetPaymentV2Req(gpdSessionBundle, fiscalCode) {
 			  "extended_fault_bean": true
 		};
 	}
-	
-	function buildApiConfigServiceCreationStationRequest(stationCode, brokerCode, ip){
-		return {
-			  "broker_code": brokerCode,
-			  "broker_description": "Lorem ipsum dolor sit amet",
-			  "enabled": true,
-			  "flag_online": true,
-			  "invio_rt_istantaneo": false,
-			  "ip": ip,
-			  "ip_4mod": "",
-			  "password": "pagopa_test",
-			  "pof_service": "gpd-payments/api/v1",
-			  "port": 65535,
-			  "port_4mod": 65535,
-			  "primitive_version": 1,
-			  "protocol": "HTTPS",
-			  "protocol_4mod": "HTTP",
-			  "proxy_enabled": true,
-			  "proxy_host": "10.79.20.33",
-			  "proxy_password": "",
-			  "proxy_port": 80,
-			  "proxy_username": "",
-			  "redirect_ip": "",
-			  "redirect_path": "",
-			  "redirect_port": 80,
-			  "redirect_protocol": "HTTP",
-			  "redirect_query_string": "",
-			  "service": "gpd-payments/api/v1",
-			  "service_4mod": "",
-			  "station_code": stationCode,
-			  "target_host": "",
-			  "target_host_pof": "",
-			  "target_path": "",
-			  "target_path_pof": "",
-			  "target_port": 0,
-			  "target_port_pof": 0,
-			  "thread_number": 1,
-			  "timeout_a": 15,
-			  "timeout_b": 30,
-			  "timeout_c": 120,
-			  "version": 2
-		};
-	}
-	
-	function buildApiConfigServiceCreationECStationAssociation(stationCode){
-		return {
-			  "application_code": 3,
-			  "aux_digit": 3,
-			  "broadcast": true,
-			  "mod4": true,
-			  "segregation_code": 47,
-			  "station_code": stationCode
-			};
-	}
 
 
 module.exports = {
-    buildActivatePaymentNoticeRequest,
-    buildCreateDebtPositionRequest,
-    buildDebtPositionDynamicData,
-    buildDemandPaymentNoticeRequest,
-    buildGPSOrganizationCreationRequest,
-    buildGPSServiceCreationRequest,
-    buildSendPaymentOutcomeRequest,    
-    buildSendRTRequest,
-    buildVerifyPaymentNoticeRequest,
-    buildGetPaymentReq,
-    buildGetPaymentV2Req,
-    buildApiConfigServiceCreationCIRequest,
-    buildApiConfigServiceCreationIbansRequest,
-    buildApiConfigServiceCreationBrokerRequest,
-    buildApiConfigServiceCreationStationRequest,
-    buildApiConfigServiceCreationECStationAssociation
+	    buildActivatePaymentNoticeRequest,
+	    buildCreateDebtPositionRequest,
+	    buildDebtPositionDynamicData,
+	    buildDemandPaymentNoticeRequest,
+	    buildGPSOrganizationCreationRequest,
+	    buildGPSServiceCreationRequest,
+	    buildSendPaymentOutcomeRequest,
+	    buildSendRTRequest,
+	    buildVerifyPaymentNoticeRequest,
+	    buildGetPaymentReq,
+	    buildGetPaymentV2Req,
+	    buildApiConfigServiceCreationCIRequest,
+	    buildApiConfigServiceCreationIbansRequest,
+	    buildApiConfigServiceCreationBrokerRequest
 }

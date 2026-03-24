@@ -26,7 +26,11 @@ async function assertOutcome(bundle, outcome) {
 }
 
 async function assertStatusCode(bundle, statusCode) {
-    assert.strictEqual(bundle.responseToCheck.status, statusCode);
+	assert.strictEqual(
+	    bundle.responseToCheck.status,
+	    statusCode,
+	    `Unexpected status. expected=${statusCode}, actual=${bundle.responseToCheck?.status}, data=${JSON.stringify(bundle.responseToCheck?.data)}`
+	);
 }
 
 async function executeAfterAllStep(gpsSessionBundle) {
