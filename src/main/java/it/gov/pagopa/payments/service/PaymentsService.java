@@ -20,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotBlank;
+
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -174,8 +176,12 @@ public class PaymentsService {
     		filters.add(getStartsWithFilter(ROWKEY_PROPERTY, service));
     	}
 
-    	if (from != null && to != null) {
-    		filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
+    	String[] normalizedDateRange = normalizeDateRange(organizationFiscalCode, from, to);
+    	if (normalizedDateRange != null) {
+    	    filters.add(String.format(
+    	            "paymentDate ge '%s' and paymentDate le '%s'",
+    	            normalizedDateRange[0],
+    	            normalizedDateRange[1]));
     	}
 
     	if (debtorOrIuv != null) {
@@ -243,5 +249,35 @@ public class PaymentsService {
         result.setCurrentPageNumber(pageNumber);
         result.setTotalPages(totalPages);
         return result;
+    }
+    
+    private String[] normalizeDateRange(String organizationFiscalCode, String from, String to) {
+        if (from == null && to == null) {
+            return null;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate resolvedFrom;
+        LocalDate resolvedTo;
+
+        if (from != null && to != null) {
+            resolvedFrom = LocalDate.parse(from);
+            resolvedTo = LocalDate.parse(to);
+        } else if (from != null) {
+            resolvedFrom = LocalDate.parse(from);
+            resolvedTo = today;
+        } else {
+            resolvedTo = LocalDate.parse(to);
+            resolvedFrom = LocalDate.of(1970, 1, 1);
+        }
+
+        if (resolvedFrom.isAfter(resolvedTo)) {
+            throw new AppException(AppError.RETRIEVAL_RECEIPTS_FAILED, organizationFiscalCode + "with 'from' after 'to' date filters");
+        }
+
+        return new String[] {
+                resolvedFrom.toString() + "T00:00:00",
+                resolvedTo.toString() + "T23:59:59"
+            };
     }
 }
