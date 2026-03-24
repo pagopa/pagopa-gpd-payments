@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.52-2-PIDM-1340-receipt-recovery"
+    tag: "0.12.53"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -72,6 +72,7 @@ microservice-chart:
   envConfig:
     ENV: 'dev'
     WEBSITE_SITE_NAME: 'pagopa-d-gpd-payments-service'
+    PAYMENTS_RECEIPTS_MONTHS_WINDOW: "3"
     PAA_ID_INTERMEDIARIO: "15376371009"
     PAA_STAZIONE_INT: "15376371009_01"
     RETRY_MAX_DELAY: "1000"

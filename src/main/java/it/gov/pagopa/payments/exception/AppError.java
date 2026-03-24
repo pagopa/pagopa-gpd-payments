@@ -40,6 +40,11 @@ public enum AppError {
           HttpStatus.BAD_REQUEST,
           "Not enough elements",
           "The page number is too big for the filtered elements"),
+  
+  INVALID_DATE_RANGE(
+	        HttpStatus.BAD_REQUEST,
+	        "Invalid date range",
+	        "The requested date range is invalid or exceeds the maximum configured number of months"),
 
   UNKNOWN(null, null, null);
 
