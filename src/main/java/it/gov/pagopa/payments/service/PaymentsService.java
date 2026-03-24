@@ -17,6 +17,7 @@ import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.client.GpdClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotBlank;
@@ -37,6 +38,9 @@ public class PaymentsService {
     @Autowired private TableClient tableClient;
     @Autowired
     private GpdClient gpdClient;
+    
+    @Value("${payments.receipts.months-window:3}")
+    private int receiptsMonthsWindow;
 
     public PaymentsService(GpdClient gpdClient, TableClient tableClient) {
         this.gpdClient = gpdClient;
@@ -54,8 +58,13 @@ public class PaymentsService {
             List<String> segCodes,
             String debtorOrIuv) {
         try {
+        	
+        	String[] normalizedDateRange = normalizeDateRange(from, to);
+            String normalizedFrom = normalizedDateRange[0];
+            String normalizedTo = normalizedDateRange[1];
+        	
             PageInfo filteredEntities = retrieveEntitiesByFilter(tableClient,
-                    organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodes, debtorOrIuv);
+                    organizationFiscalCode, debtor, service, normalizedFrom, normalizedTo, pageNum, pageSize, segCodes, debtorOrIuv);
             
             List<ReceiptModelResponse> checkedReceipts =
                     getGPDCheckedReceiptsList(filteredEntities.getReceiptsList());
@@ -88,16 +97,6 @@ public class PaymentsService {
             log.error("Error in organization table connection", e);
             throw new AppException(AppError.DB_ERROR);
         }
-    }
-
-    private boolean isBrokerAuthorized(String iuvSegregationCode, List<String> brokerSegregationCodes) {
-        // verify that IUV is linked with one of segregation code for which the broker is authorized
-        for(String code: brokerSegregationCodes) {
-            if(code.equals(iuvSegregationCode))
-                return true;
-        }
-
-        return false;
     }
 
     public void checkGPDDebtPosStatus(TableEntity tableEntity) {
@@ -176,12 +175,8 @@ public class PaymentsService {
     		filters.add(getStartsWithFilter(ROWKEY_PROPERTY, service));
     	}
 
-    	String[] normalizedDateRange = normalizeDateRange(organizationFiscalCode, from, to);
-    	if (normalizedDateRange != null) {
-    	    filters.add(String.format(
-    	            "paymentDate ge '%s' and paymentDate le '%s'",
-    	            normalizedDateRange[0],
-    	            normalizedDateRange[1]));
+    	if (from != null && to != null) {
+    		filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
     	}
 
     	if (debtorOrIuv != null) {
@@ -232,6 +227,16 @@ public class PaymentsService {
     			.totalPages(totalPages)
     			.build();
     }
+    
+    private boolean isBrokerAuthorized(String iuvSegregationCode, List<String> brokerSegregationCodes) {
+        // verify that IUV is linked with one of segregation code for which the broker is authorized
+        for(String code: brokerSegregationCodes) {
+            if(code.equals(iuvSegregationCode))
+                return true;
+        }
+
+        return false;
+    }
 
     private static String getStartsWithFilter(String field, String startsWith) {
         int length = startsWith.length() - 1;
@@ -251,33 +256,46 @@ public class PaymentsService {
         return result;
     }
     
-    private String[] normalizeDateRange(String organizationFiscalCode, String from, String to) {
-        if (from == null && to == null) {
-            return null;
-        }
-
+    private String[] normalizeDateRange(String from, String to) {
         LocalDate today = LocalDate.now();
+
+        String normalizedFromInput = from != null && !from.isBlank() ? from : null;
+        String normalizedToInput = to != null && !to.isBlank() ? to : null;
+
         LocalDate resolvedFrom;
         LocalDate resolvedTo;
 
-        if (from != null && to != null) {
-            resolvedFrom = LocalDate.parse(from);
-            resolvedTo = LocalDate.parse(to);
-        } else if (from != null) {
-            resolvedFrom = LocalDate.parse(from);
+        // If no date range is provided, default to the last configured number of months.
+        // If a date range is provided, it cannot exceed the configured maximum window.
+        if (normalizedFromInput == null && normalizedToInput == null) {
             resolvedTo = today;
-        } else {
-            resolvedTo = LocalDate.parse(to);
-            resolvedFrom = LocalDate.of(1970, 1, 1);
-        }
+            resolvedFrom = today.minusMonths(receiptsMonthsWindow);
+        } else if (normalizedFromInput != null && normalizedToInput != null) {
+            resolvedFrom = LocalDate.parse(normalizedFromInput);
+            resolvedTo = LocalDate.parse(normalizedToInput);
 
-        if (resolvedFrom.isAfter(resolvedTo)) {
-            throw new AppException(AppError.RETRIEVAL_RECEIPTS_FAILED, organizationFiscalCode + "with 'from' after 'to' date filters");
+            if (resolvedFrom.isAfter(resolvedTo)) {
+                throw new AppException(AppError.INVALID_DATE_RANGE);
+            }
+
+            if (resolvedFrom.plusMonths(receiptsMonthsWindow).isBefore(resolvedTo)) {
+                throw new AppException(AppError.INVALID_DATE_RANGE);
+            }
+        } else if (normalizedFromInput != null) {
+            resolvedFrom = LocalDate.parse(normalizedFromInput);
+            resolvedTo = resolvedFrom.plusMonths(receiptsMonthsWindow);
+
+            if (resolvedTo.isAfter(today)) {
+                resolvedTo = today;
+            }
+        } else {
+            resolvedTo = LocalDate.parse(normalizedToInput);
+            resolvedFrom = resolvedTo.minusMonths(receiptsMonthsWindow);
         }
 
         return new String[] {
-                resolvedFrom.toString() + "T00:00:00",
-                resolvedTo.toString() + "T23:59:59"
-            };
+        	    resolvedFrom.toString() + "T00:00:00",
+        	    resolvedTo.toString() + "T23:59:59"
+        	};
     }
 }

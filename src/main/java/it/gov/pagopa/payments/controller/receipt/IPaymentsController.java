@@ -111,6 +111,12 @@ public interface IPaymentsController {
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                                     schema = @Schema(implementation = PaymentsResult.class))),
                     @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request parameters, including an invalid or too wide date range.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ProblemJson.class))),
+                    @ApiResponse(
                             responseCode = "401",
                             description = "Wrong or missing function key.",
                             content = @Content(schema = @Schema())),
@@ -147,8 +153,13 @@ public interface IPaymentsController {
             @Valid @Parameter(description = "Number of elements per page. Default = 20") @RequestParam(required = false, defaultValue = "20") @Max(100) @Positive int pageSize,
             @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
             @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
-            @Parameter(description = "Filter by date, from this date") @RequestParam(required = false) String from,
-            @Parameter(description = "Filter by date, to this date") @RequestParam(required = false) String to,
+            @Parameter(
+                    description = "Filter by date, from this date. If both from and to are omitted, receipts are returned for the last configured number of months.")
+            @RequestParam(required = false) String from,
+
+            @Parameter(
+                    description = "Filter by date, to this date. If a date range is provided, it cannot exceed the configured maximum number of months.")
+            @RequestParam(required = false) String to,
             @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
             @RequestParam(required = false) String segregationCodes,
             @Parameter(description = "Filter start of debtor or IUV") @RequestParam(required = false) String debtorOrIuv);
