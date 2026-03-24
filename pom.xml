@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.12.52-2-PIDM-1340-receipt-recovery</version>
+    <version>0.12.53</version>
     <name>Payments</name>
     <description>Payments</description>
 
