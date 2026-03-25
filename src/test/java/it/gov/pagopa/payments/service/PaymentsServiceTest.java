@@ -21,6 +21,9 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.mock.MockUtil;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
 import it.gov.pagopa.payments.model.PaymentsResult;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
@@ -33,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -89,7 +93,7 @@ class PaymentsServiceTest {
       properties.put(DEBTOR_PROPERTY, "debtor" + i);
       properties.put(DOCUMENT_PROPERTY, "XML" + i);
       properties.put(STATUS_PROPERTY, Status.PAID.name());
-      properties.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+      properties.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
       tableEntity.setProperties(properties);
       tableClientConfiguration().createEntity(tableEntity);
     }
@@ -99,7 +103,7 @@ class PaymentsServiceTest {
       properties.put(DEBTOR_PROPERTY, "debtor" + i);
       properties.put(DOCUMENT_PROPERTY, "XML" + i);
       properties.put(STATUS_PROPERTY, Status.CREATED.name());
-      properties.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+      properties.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
       tableEntity.setProperties(properties);
       tableClientConfiguration().createEntity(tableEntity);
     }
@@ -116,7 +120,7 @@ class PaymentsServiceTest {
   void getReceiptByOrganizationFCAndIUV() throws Exception {
 
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("00", "89", "90"));
     ReceiptEntity re =
@@ -131,7 +135,7 @@ class PaymentsServiceTest {
   void getReceiptByOrganizationFCAndIUV_403() throws Exception {
 
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     try {
       ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("47", "89", "90"));
@@ -146,7 +150,7 @@ class PaymentsServiceTest {
   void getReceiptByOrganizationFCAndIUV_404() throws Exception {
 
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     try {
       paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "3000000000000013", null);
@@ -173,7 +177,7 @@ class PaymentsServiceTest {
               .connectionString(wrongStorageConnectionString)
               .tableName("receiptsTable")
               .buildClient();
-      PaymentsService paymentsService = spy(new PaymentsService(gpdClient, tableClient));
+      PaymentsService paymentsService = buildPaymentsService(tableClient);
 
       paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "001234567891011", null);
     } catch (AppException e) {
@@ -185,7 +189,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_noFilter() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
@@ -197,7 +201,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_segregationCodesFilter() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("02"));
     PaymentsResult<ReceiptModelResponse> res =
@@ -210,7 +214,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_segregationCodesFilter2() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("02", "03"));
     PaymentsResult<ReceiptModelResponse> res =
@@ -223,7 +227,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_segregationCodesFilterEmpty() throws Exception {
     PaymentsService paymentsService =
-            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+            buildPaymentsService();
 
     ArrayList<String> validSegregationCodes = new ArrayList<>();
     PaymentsResult<ReceiptModelResponse> res =
@@ -237,7 +241,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_PageFilter() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 4, null, null);
@@ -248,7 +252,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_PageNumberTooHigh() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     try {
       paymentsService.getOrganizationReceipts(
@@ -262,7 +266,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_debtor_filter() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
@@ -275,7 +279,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_PAID_service_filter() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
@@ -288,7 +292,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_CREATED_PO_PAID_service_filter() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
@@ -301,7 +305,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_CREATED_PO_UNPAID_service_filter() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     // precondition
     PaymentsModelResponse paymentModel =
@@ -319,7 +323,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_Iuv_filter() throws Exception {
     PaymentsService paymentsService =
-            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+            buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
             paymentsService.getOrganizationReceipts(
@@ -332,7 +336,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_debtor_filter() throws Exception {
     PaymentsService paymentsService =
-            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+            buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
             paymentsService.getOrganizationReceipts(
@@ -342,14 +346,21 @@ class PaymentsServiceTest {
     assertEquals(0, res.getCurrentPageNumber());
   }
 
+
   @Test
   void getOrganizationReceipts_all_filters() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    String from = LocalDate.now().minusMonths(1).toString();
+    String to = LocalDate.now().toString();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
-            "org123456", "debtor5", "05", "2021-09-30", "2023-10-02", 0, 100, null, null);
+            "org123456", "debtor5", "05", from, to, 0, 100, null, null);
+
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -358,17 +369,33 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceiptsByPaymentDate() throws Exception {
     PaymentsService paymentsService =
-            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    String from = LocalDate.now().minusMonths(1).toString();
+    String to = LocalDate.now().toString();
 
     PaymentsResult<ReceiptModelResponse> res =
-            paymentsService.getOrganizationReceipts(
-                    "org123456", "debtor5", "05", "2021-09-30", null, 0, 100, null, null);
+        paymentsService.getOrganizationReceipts(
+            "org123456", "debtor5", "05", from, to, 0, 100, null, null);
+
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
 
-    res = paymentsService.getOrganizationReceipts(
-                    "org123456", "debtor5", "05", null, "2023-10-02", 0, 100, null, null);
+    res =
+        paymentsService.getOrganizationReceipts(
+            "org123456", "debtor5", "05", from, null, 0, 100, null, null);
+
+    assertNotNull(res);
+    assertEquals(1, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+
+    res =
+        paymentsService.getOrganizationReceipts(
+            "org123456", "debtor5", "05", null, to, 0, 100, null, null);
+
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
@@ -377,7 +404,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_debtor_not_exist() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
@@ -389,7 +416,7 @@ class PaymentsServiceTest {
   @Test
   void getOrganizationReceipts_too_many_elements() throws Exception {
     PaymentsService paymentsService =
-            spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+            buildPaymentsService();
     try {
       paymentsService.getOrganizationReceipts(
               "org123456", null, null, null, null, 0, 150, null, null);
@@ -414,7 +441,7 @@ class PaymentsServiceTest {
             .connectionString(wrongStorageConnectionString)
             .tableName("receiptsTable")
             .buildClient();
-    PaymentsService paymentsService = spy(new PaymentsService(gpdClient, tableClient));
+    PaymentsService paymentsService = buildPaymentsService(tableClient);
 
     try {
       paymentsService.getOrganizationReceipts(
@@ -428,7 +455,7 @@ class PaymentsServiceTest {
   @Test
   void getGPDCheckedReceiptsList() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     Map<String, Object> properties = new HashMap<>();
     properties.put(STATUS_PROPERTY, Status.PAID.name());
@@ -438,7 +465,7 @@ class PaymentsServiceTest {
     properties1.put(DEBTOR_PROPERTY, "debtor1");
     properties1.put(DOCUMENT_PROPERTY, "XML1");
     properties1.put(STATUS_PROPERTY, Status.PAID.name());
-    properties1.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    properties1.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
     te1.setProperties(properties1);
 
     TableEntity te2 = new TableEntity("222", "bbb");
@@ -446,7 +473,7 @@ class PaymentsServiceTest {
     properties2.put(DEBTOR_PROPERTY, "debtor2");
     properties2.put(DOCUMENT_PROPERTY, "XML2");
     properties2.put(STATUS_PROPERTY, Status.PAID.name());
-    properties2.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    properties2.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
     te2.setProperties(properties2);
 
     TableEntity te3 = new TableEntity("333", "ccc");
@@ -454,7 +481,7 @@ class PaymentsServiceTest {
     properties3.put(DEBTOR_PROPERTY, "debtor3");
     properties3.put(DOCUMENT_PROPERTY, "XML3");
     properties3.put(STATUS_PROPERTY, Status.PAID.name());
-    properties3.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
+    properties3.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
     te3.setProperties(properties3);
 
     List<TableEntity> receipts = new ArrayList<>();
@@ -471,7 +498,7 @@ class PaymentsServiceTest {
   @Test
   void getGPDCheckedReceiptsList_GPDCheckFail() throws Exception {
     PaymentsService paymentsService =
-        spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+        buildPaymentsService();
 
     Map<String, Object> properties = new HashMap<>();
     properties.put(STATUS_PROPERTY, Status.CREATED.name());
@@ -517,11 +544,170 @@ class PaymentsServiceTest {
     // tutte le ricevute sono state scartate
     assertEquals(0, result.size());
   }
+  
+  @Test
+  void getOrganizationReceipts_defaultLastMonthsWindow_fromAndToAreNull() {
+    PaymentsService paymentsService =
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456", null, null, null, null, 0, 100, null, null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
 
   private TableClient tableClientConfiguration() {
     return new TableClientBuilder()
         .connectionString(storageConnectionString)
         .tableName("receiptsTable")
         .buildClient();
+  }
+  
+  @Test
+  void getOrganizationReceipts_withExplicitValidRangeWithinConfiguredWindow(){
+    PaymentsService paymentsService =
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    String from = LocalDate.now().minusMonths(1).toString();
+    String to = LocalDate.now().toString();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            from,
+            to,
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+  
+  @Test
+  void getOrganizationReceipts_dateRangeTooWide_badRequest() {
+    PaymentsService paymentsService =
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    try {
+      paymentsService.getOrganizationReceipts(
+          "org123456",
+          null,
+          null,
+          "2022-01-01",
+          "2022-10-01",
+          0,
+          100,
+          null,
+          null);
+    } catch (AppException e) {
+      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
+      assertEquals("The requested date range is invalid or exceeds the maximum configured number of months", e.getMessage());
+    }
+  }
+  
+  @Test
+  void getOrganizationReceipts_fromAfterTo_badRequest(){
+    PaymentsService paymentsService =
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    try {
+      paymentsService.getOrganizationReceipts(
+          "org123456",
+          null,
+          null,
+          "2022-12-01",
+          "2022-10-01",
+          0,
+          100,
+          null,
+          null);
+    } catch (AppException e) {
+      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
+    }
+  }
+  
+  @Test
+  void getOrganizationReceipts_onlyFromProvided_resolvesCorrectly() {
+    PaymentsService paymentsService =
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    String from = LocalDate.now().minusMonths(1).toString();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            from,
+            null,
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+  
+  @Test
+  void getOrganizationReceipts_onlyToProvided_resolvesCorrectly() throws Exception {
+    PaymentsService paymentsService =
+        buildPaymentsService();
+
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+
+    String to = LocalDate.now().toString();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            null,
+            to,
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+  
+  
+  // HELPER METHODS
+  
+  private PaymentsService buildPaymentsService() {
+	  PaymentsService paymentsService =
+			  spy(new PaymentsService(gpdClient, tableClientConfiguration()));
+	  ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+	  return paymentsService;
+  }
+  
+  private PaymentsService buildPaymentsService(TableClient tableClient) {
+	  PaymentsService paymentsService =
+			  spy(new PaymentsService(gpdClient, tableClient));
+	  ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+	  return paymentsService;
   }
 }
