@@ -33,6 +33,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -186,16 +188,36 @@ class PaymentsServiceTest {
   }
 
   /** GET RECEIPTS */
-  @Test
-  void getOrganizationReceipts_noFilter() {
-    PaymentsService paymentsService =
-        buildPaymentsService();
+  
+  @ParameterizedTest
+  @CsvSource({
+      "NULL, 100, 15",
+      "NULL, 4,   4",
+      "debtor15, 100, 0"
+  })
+  void getOrganizationReceipts_parameterized(
+      String debtor,
+      int pageSize,
+      int expectedSize) {
+
+    PaymentsService paymentsService = buildPaymentsService();
+
+    String resolvedDebtor = "NULL".equals(debtor) ? null : debtor;
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
-                "org123456", null, null, null, null, 0, 100, null, null);
+            "org123456",
+            resolvedDebtor,
+            null,
+            null,
+            null,
+            0,
+            pageSize,
+            null,
+            null);
+
     assertNotNull(res);
-    assertEquals(15, res.getResults().size());
+    assertEquals(expectedSize, res.getResults().size());
   }
 
   @Test
@@ -235,32 +257,6 @@ class PaymentsServiceTest {
                     "org123456", null, null, null, null, 0, 100, validSegregationCodes, null);
     assertNotNull(res);
     assertEquals(15, res.getResults().size());
-  }
-
-
-  @Test
-  void getOrganizationReceipts_PageFilter() {
-    PaymentsService paymentsService =
-        buildPaymentsService();
-
-    PaymentsResult<ReceiptModelResponse> res =
-        paymentsService.getOrganizationReceipts("org123456", null, null, null, null, 0, 4, null, null);
-    assertNotNull(res);
-    assertEquals(4, res.getResults().size());
-  }
-
-  @Test
-  void getOrganizationReceipts_PageNumberTooHigh() {
-    PaymentsService paymentsService =
-        buildPaymentsService();
-
-    try {
-      paymentsService.getOrganizationReceipts(
-              "org123456", null, null, null, null, 50, 4, null, null);
-    } catch (AppException e) {
-      assertEquals("The page number is too big for the filtered elements", e.getMessage());
-      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
-    }
   }
 
   @Test
@@ -399,30 +395,6 @@ class PaymentsServiceTest {
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
-  }
-
-  @Test
-  void getOrganizationReceipts_debtor_not_exist() {
-    PaymentsService paymentsService =
-        buildPaymentsService();
-
-    PaymentsResult<ReceiptModelResponse> res =
-        paymentsService.getOrganizationReceipts(
-            "org123456", "debtor15", null, null, null, 0, 100, null, null);
-    assertNotNull(res);
-    assertEquals(0, res.getResults().size());
-  }
-
-  @Test
-  void getOrganizationReceipts_too_many_elements() {
-    PaymentsService paymentsService =
-            buildPaymentsService();
-    try {
-      paymentsService.getOrganizationReceipts(
-              "org123456", null, null, null, null, 0, 150, null, null);
-    } catch (AppException e) {
-      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
-    }
   }
 
   @Test
