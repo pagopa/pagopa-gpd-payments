@@ -259,43 +259,52 @@ public class PaymentsService {
     private String[] normalizeDateRange(String from, String to) {
         LocalDate today = LocalDate.now();
 
-        String normalizedFromInput = from != null && !from.isBlank() ? from : null;
-        String normalizedToInput = to != null && !to.isBlank() ? to : null;
-
-        LocalDate resolvedFrom;
-        LocalDate resolvedTo;
+        String normalizedFromInput = normalizeDateInput(from);
+        String normalizedToInput = normalizeDateInput(to);
 
         // If no date range is provided, default to the last configured number of months.
         // If a date range is provided, it cannot exceed the configured maximum window.
         if (normalizedFromInput == null && normalizedToInput == null) {
-            resolvedTo = today;
-            resolvedFrom = today.minusMonths(receiptsMonthsWindow);
-        } else if (normalizedFromInput != null && normalizedToInput != null) {
-            resolvedFrom = LocalDate.parse(normalizedFromInput);
-            resolvedTo = LocalDate.parse(normalizedToInput);
+            return toDateRange(today.minusMonths(receiptsMonthsWindow), today);
+        }
 
-            if (resolvedFrom.isAfter(resolvedTo)) {
-                throw new AppException(AppError.INVALID_DATE_RANGE);
-            }
+        if (normalizedFromInput != null && normalizedToInput != null) {
+            LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
+            LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
+            validateDateRange(resolvedFrom, resolvedTo);
+            return toDateRange(resolvedFrom, resolvedTo);
+        }
 
-            if (resolvedFrom.plusMonths(receiptsMonthsWindow).isBefore(resolvedTo)) {
-                throw new AppException(AppError.INVALID_DATE_RANGE);
-            }
-        } else if (normalizedFromInput != null) {
-            resolvedFrom = LocalDate.parse(normalizedFromInput);
-            resolvedTo = resolvedFrom.plusMonths(receiptsMonthsWindow);
+        if (normalizedFromInput != null) {
+            LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
+            LocalDate resolvedTo = resolvedFrom.plusMonths(receiptsMonthsWindow);
 
             if (resolvedTo.isAfter(today)) {
                 resolvedTo = today;
             }
-        } else {
-            resolvedTo = LocalDate.parse(normalizedToInput);
-            resolvedFrom = resolvedTo.minusMonths(receiptsMonthsWindow);
+
+            return toDateRange(resolvedFrom, resolvedTo);
         }
 
+        LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
+        LocalDate resolvedFrom = resolvedTo.minusMonths(receiptsMonthsWindow);
+        return toDateRange(resolvedFrom, resolvedTo);
+    }
+
+    private String normalizeDateInput(String value) {
+        return value != null && !value.isBlank() ? value : null;
+    }
+
+    private void validateDateRange(LocalDate from, LocalDate to) {
+        if (from.isAfter(to) || from.plusMonths(receiptsMonthsWindow).isBefore(to)) {
+            throw new AppException(AppError.INVALID_DATE_RANGE);
+        }
+    }
+
+    private String[] toDateRange(LocalDate from, LocalDate to) {
         return new String[] {
-        	    resolvedFrom.toString() + "T00:00:00",
-        	    resolvedTo.toString() + "T23:59:59"
-        	};
+            from + "T00:00:00",
+            to + "T23:59:59"
+        };
     }
 }

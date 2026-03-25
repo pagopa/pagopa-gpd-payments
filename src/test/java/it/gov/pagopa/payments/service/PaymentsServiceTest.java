@@ -117,7 +117,7 @@ class PaymentsServiceTest {
 
   /** GET RECEIPT BY IUV */
   @Test
-  void getReceiptByOrganizationFCAndIUV() throws Exception {
+  void getReceiptByOrganizationFCAndIUV() {
 
     PaymentsService paymentsService =
         buildPaymentsService();
@@ -132,7 +132,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getReceiptByOrganizationFCAndIUV_403() throws Exception {
+  void getReceiptByOrganizationFCAndIUV_403() {
 
     PaymentsService paymentsService =
         buildPaymentsService();
@@ -147,7 +147,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getReceiptByOrganizationFCAndIUV_404() throws Exception {
+  void getReceiptByOrganizationFCAndIUV_404() {
 
     PaymentsService paymentsService =
         buildPaymentsService();
@@ -160,7 +160,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getReceiptByOrganizationFCAndIUV_500() throws Exception {
+  void getReceiptByOrganizationFCAndIUV_500() {
 
     try {
       String wrongStorageConnectionString =
@@ -187,7 +187,7 @@ class PaymentsServiceTest {
 
   /** GET RECEIPTS */
   @Test
-  void getOrganizationReceipts_noFilter() throws Exception {
+  void getOrganizationReceipts_noFilter() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -199,7 +199,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_segregationCodesFilter() throws Exception {
+  void getOrganizationReceipts_segregationCodesFilter() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -212,7 +212,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_segregationCodesFilter2() throws Exception {
+  void getOrganizationReceipts_segregationCodesFilter2() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -225,7 +225,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_segregationCodesFilterEmpty() throws Exception {
+  void getOrganizationReceipts_segregationCodesFilterEmpty() {
     PaymentsService paymentsService =
             buildPaymentsService();
 
@@ -239,7 +239,7 @@ class PaymentsServiceTest {
 
 
   @Test
-  void getOrganizationReceipts_PageFilter() throws Exception {
+  void getOrganizationReceipts_PageFilter() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -250,7 +250,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_PageNumberTooHigh() throws Exception {
+  void getOrganizationReceipts_PageNumberTooHigh() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -264,7 +264,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_debtor_filter() throws Exception {
+  void getOrganizationReceipts_debtor_filter()  {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -277,7 +277,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_PAID_service_filter() throws Exception {
+  void getOrganizationReceipts_PAID_service_filter()  {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -290,7 +290,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_CREATED_PO_PAID_service_filter() throws Exception {
+  void getOrganizationReceipts_CREATED_PO_PAID_service_filter()  {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -321,7 +321,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_Iuv_filter() throws Exception {
+  void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_Iuv_filter()  {
     PaymentsService paymentsService =
             buildPaymentsService();
 
@@ -334,7 +334,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_debtor_filter() throws Exception {
+  void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_debtor_filter() {
     PaymentsService paymentsService =
             buildPaymentsService();
 
@@ -348,7 +348,7 @@ class PaymentsServiceTest {
 
 
   @Test
-  void getOrganizationReceipts_all_filters() throws Exception {
+  void getOrganizationReceipts_all_filters() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -367,7 +367,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceiptsByPaymentDate() throws Exception {
+  void getOrganizationReceiptsByPaymentDate() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -402,7 +402,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_debtor_not_exist() throws Exception {
+  void getOrganizationReceipts_debtor_not_exist() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -414,7 +414,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_too_many_elements() throws Exception {
+  void getOrganizationReceipts_too_many_elements() {
     PaymentsService paymentsService =
             buildPaymentsService();
     try {
@@ -426,7 +426,7 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_500() throws Exception {
+  void getOrganizationReceipts_500() {
     String wrongStorageConnectionString =
         String.format(
             "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://%s:%s/devstoreaccount1;QueueEndpoint=http://%s:%s/devstoreaccount1;BlobEndpoint=http://%s:%s/devstoreaccount1",
@@ -453,7 +453,7 @@ class PaymentsServiceTest {
 
   /** GPD CHECK */
   @Test
-  void getGPDCheckedReceiptsList() throws Exception {
+  void getGPDCheckedReceiptsList() {
     PaymentsService paymentsService =
         buildPaymentsService();
 
@@ -669,7 +669,7 @@ class PaymentsServiceTest {
   }
   
   @Test
-  void getOrganizationReceipts_onlyToProvided_resolvesCorrectly() throws Exception {
+  void getOrganizationReceipts_onlyToProvided_resolvesCorrectly() {
     PaymentsService paymentsService =
         buildPaymentsService();
 

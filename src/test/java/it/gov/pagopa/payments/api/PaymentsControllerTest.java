@@ -203,15 +203,15 @@ class PaymentsControllerTest {
     assertEquals(HttpStatus.OK, res.getStatusCode());
 
     verify(paymentsService, times(1)).getOrganizationReceipts(
-        eq("77777777777"),
-        eq("debtor1"),
-        eq("05"),
-        eq("2026-01-01"),
-        eq("2026-03-01"),
-        eq(1),
-        eq(20),
-        eq(new ArrayList<>(Arrays.asList("01", "02"))),
-        eq("deb"));
+        "77777777777",
+        "debtor1",
+        "05",
+        "2026-01-01",
+        "2026-03-01",
+        1,
+        20,
+        new ArrayList<>(Arrays.asList("01", "02")),
+        "deb");
   }
   
   @Test
