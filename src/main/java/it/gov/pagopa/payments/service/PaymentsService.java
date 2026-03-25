@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import javax.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -302,9 +303,12 @@ public class PaymentsService {
     }
 
     private String[] toDateRange(LocalDate from, LocalDate to) {
+        LocalDateTime fromDateTime = from.atStartOfDay();
+        LocalDateTime toDateTime = to.atTime(23, 59, 59);
+
         return new String[] {
-            from + "T00:00:00",
-            to + "T23:59:59"
+            fromDateTime.toString(),
+            toDateTime.toString()
         };
     }
 }
