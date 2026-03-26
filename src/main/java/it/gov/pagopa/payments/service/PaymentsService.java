@@ -17,11 +17,13 @@ import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.client.GpdClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -37,6 +39,9 @@ public class PaymentsService {
     @Autowired private TableClient tableClient;
     @Autowired
     private GpdClient gpdClient;
+    
+    @Value("${payments.receipts.months-window:3}")
+    private int receiptsMonthsWindow;
 
     public PaymentsService(GpdClient gpdClient, TableClient tableClient) {
         this.gpdClient = gpdClient;
@@ -54,8 +59,13 @@ public class PaymentsService {
             List<String> segCodes,
             String debtorOrIuv) {
         try {
+        	
+        	String[] normalizedDateRange = normalizeDateRange(from, to);
+            String normalizedFrom = normalizedDateRange[0];
+            String normalizedTo = normalizedDateRange[1];
+        	
             PageInfo filteredEntities = retrieveEntitiesByFilter(tableClient,
-                    organizationFiscalCode, debtor, service, from, to, pageNum, pageSize, segCodes, debtorOrIuv);
+                    organizationFiscalCode, debtor, service, normalizedFrom, normalizedTo, pageNum, pageSize, segCodes, debtorOrIuv);
             
             List<ReceiptModelResponse> checkedReceipts =
                     getGPDCheckedReceiptsList(filteredEntities.getReceiptsList());
@@ -88,16 +98,6 @@ public class PaymentsService {
             log.error("Error in organization table connection", e);
             throw new AppException(AppError.DB_ERROR);
         }
-    }
-
-    private boolean isBrokerAuthorized(String iuvSegregationCode, List<String> brokerSegregationCodes) {
-        // verify that IUV is linked with one of segregation code for which the broker is authorized
-        for(String code: brokerSegregationCodes) {
-            if(code.equals(iuvSegregationCode))
-                return true;
-        }
-
-        return false;
     }
 
     public void checkGPDDebtPosStatus(TableEntity tableEntity) {
@@ -176,12 +176,8 @@ public class PaymentsService {
     		filters.add(getStartsWithFilter(ROWKEY_PROPERTY, service));
     	}
 
-    	String[] normalizedDateRange = normalizeDateRange(organizationFiscalCode, from, to);
-    	if (normalizedDateRange != null) {
-    	    filters.add(String.format(
-    	            "paymentDate ge '%s' and paymentDate le '%s'",
-    	            normalizedDateRange[0],
-    	            normalizedDateRange[1]));
+    	if (from != null && to != null) {
+    		filters.add(String.format("paymentDate ge '%s' and paymentDate le '%s'", from, to));
     	}
 
     	if (debtorOrIuv != null) {
@@ -232,6 +228,16 @@ public class PaymentsService {
     			.totalPages(totalPages)
     			.build();
     }
+    
+    private boolean isBrokerAuthorized(String iuvSegregationCode, List<String> brokerSegregationCodes) {
+        // verify that IUV is linked with one of segregation code for which the broker is authorized
+        for(String code: brokerSegregationCodes) {
+            if(code.equals(iuvSegregationCode))
+                return true;
+        }
+
+        return false;
+    }
 
     private static String getStartsWithFilter(String field, String startsWith) {
         int length = startsWith.length() - 1;
@@ -251,33 +257,58 @@ public class PaymentsService {
         return result;
     }
     
-    private String[] normalizeDateRange(String organizationFiscalCode, String from, String to) {
-        if (from == null && to == null) {
-            return null;
-        }
-
+    private String[] normalizeDateRange(String from, String to) {
         LocalDate today = LocalDate.now();
-        LocalDate resolvedFrom;
-        LocalDate resolvedTo;
 
-        if (from != null && to != null) {
-            resolvedFrom = LocalDate.parse(from);
-            resolvedTo = LocalDate.parse(to);
-        } else if (from != null) {
-            resolvedFrom = LocalDate.parse(from);
-            resolvedTo = today;
-        } else {
-            resolvedTo = LocalDate.parse(to);
-            resolvedFrom = LocalDate.of(1970, 1, 1);
+        String normalizedFromInput = normalizeDateInput(from);
+        String normalizedToInput = normalizeDateInput(to);
+
+        // If no date range is provided, default to the last configured number of months.
+        // If a date range is provided, it cannot exceed the configured maximum window.
+        if (normalizedFromInput == null && normalizedToInput == null) {
+            return toDateRange(today.minusMonths(receiptsMonthsWindow), today);
         }
 
-        if (resolvedFrom.isAfter(resolvedTo)) {
-            throw new AppException(AppError.RETRIEVAL_RECEIPTS_FAILED, organizationFiscalCode + "with 'from' after 'to' date filters");
+        if (normalizedFromInput != null && normalizedToInput != null) {
+            LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
+            LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
+            validateDateRange(resolvedFrom, resolvedTo);
+            return toDateRange(resolvedFrom, resolvedTo);
         }
+
+        if (normalizedFromInput != null) {
+            LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
+            LocalDate resolvedTo = resolvedFrom.plusMonths(receiptsMonthsWindow);
+
+            if (resolvedTo.isAfter(today)) {
+                resolvedTo = today;
+            }
+
+            return toDateRange(resolvedFrom, resolvedTo);
+        }
+
+        LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
+        LocalDate resolvedFrom = resolvedTo.minusMonths(receiptsMonthsWindow);
+        return toDateRange(resolvedFrom, resolvedTo);
+    }
+
+    private String normalizeDateInput(String value) {
+        return value != null && !value.isBlank() ? value : null;
+    }
+
+    private void validateDateRange(LocalDate from, LocalDate to) {
+        if (from.isAfter(to) || from.plusMonths(receiptsMonthsWindow).isBefore(to)) {
+            throw new AppException(AppError.INVALID_DATE_RANGE);
+        }
+    }
+
+    private String[] toDateRange(LocalDate from, LocalDate to) {
+        LocalDateTime fromDateTime = from.atStartOfDay();
+        LocalDateTime toDateTime = to.atTime(23, 59, 59);
 
         return new String[] {
-                resolvedFrom.toString() + "T00:00:00",
-                resolvedTo.toString() + "T23:59:59"
-            };
+            fromDateTime.toString(),
+            toDateTime.toString()
+        };
     }
 }

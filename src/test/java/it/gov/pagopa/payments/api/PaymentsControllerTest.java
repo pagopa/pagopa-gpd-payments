@@ -3,6 +3,8 @@ package it.gov.pagopa.payments.api;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import it.gov.pagopa.payments.PaymentsApplication;
@@ -14,6 +16,7 @@ import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import it.gov.pagopa.payments.service.PaymentsService;
 import org.junit.ClassRule;
@@ -64,7 +67,7 @@ class PaymentsControllerTest {
     when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
         .thenReturn(receipt);
 
-    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
+    ResponseEntity<String> res = paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -77,18 +80,21 @@ class PaymentsControllerTest {
     when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
             .thenReturn(receipt);
 
-    ResponseEntity<String> res = paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
+    ResponseEntity<String> res = paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
   @Test
-  void getReceiptByIUV_404() throws Exception {
-    // precondition
+  void getReceiptByIUV_404() {
     doThrow(new AppException(AppError.RECEIPT_NOT_FOUND, "111", "222"))
         .when(paymentsService)
-        .getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class));
+        .getReceiptByOrganizationFCAndIUV(
+            eq("77777777777"),
+            eq("123456789012345"),
+            isNull());
+
     try {
-      paymentsController.getReceiptByIUV(anyString(), anyString(), anyString());
+      paymentsController.getReceiptByIUV("77777777777", "123456789012345", null);
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
@@ -101,12 +107,20 @@ class PaymentsControllerTest {
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
     receipts.setResults(new ArrayList<>());
     when(paymentsService.getOrganizationReceipts(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
+            nullable(String.class),
+            nullable(String.class),
+            nullable(String.class),
+            nullable(String.class),
+            nullable(String.class),
+            anyInt(),
+            anyInt(),
+            any(),
+            nullable(String.class)))
         .thenReturn(receipts);
 
     ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
         paymentsController.getOrganizationReceipts(
-            anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+            "77777777777", 0, 20, null, null, null, null, null, null);
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
@@ -117,26 +131,129 @@ class PaymentsControllerTest {
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
     receipts.setResults(new ArrayList<>());
     when(paymentsService.getOrganizationReceipts(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString()))
-            .thenReturn(receipts);
+            nullable(String.class),
+            nullable(String.class),
+            nullable(String.class),
+            nullable(String.class),
+            nullable(String.class),
+            anyInt(),
+            anyInt(),
+            any(),
+            nullable(String.class)))
+        .thenReturn(receipts);
 
     ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
-            paymentsController.getOrganizationReceipts(
-                    anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+        paymentsController.getOrganizationReceipts(
+            "77777777777", 0, 20, null, null, null, null, "01,02", null);
     assertEquals(HttpStatus.OK, res.getStatusCode());
   }
 
   @Test
-  void getOrganizationReceipts_404() throws Exception {
-    // precondition
-//    doThrow(new AppException(AppError.RECEIPTS_NOT_FOUND, "111", 0))
-//        .when(paymentsService)
-//        .getOrganizationReceipts(anyString(), anyString(), anyString(), anyString(), anyString(), anyInt(), anyInt(), any(ArrayList.class), anyString());
+  void getOrganizationReceipts_404() {
+    doThrow(new AppException(AppError.RECEIPTS_NOT_FOUND, "77777777777", 0))
+        .when(paymentsService)
+        .getOrganizationReceipts(
+            eq("77777777777"),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            eq(0),
+            eq(20),
+            isNull(),
+            isNull());
+
     try {
       paymentsController.getOrganizationReceipts(
-          anyString(), anyInt(), anyInt(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+          "77777777777", 0, 20, null, null, null, null, null, null);
     } catch (AppException e) {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
+  }
+  
+  @Test
+  void getOrganizationReceipts_200_allParameters() {
+    PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
+    receipts.setResults(new ArrayList<>());
+
+    when(paymentsService.getOrganizationReceipts(
+            anyString(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyInt(),
+            any(ArrayList.class),
+            anyString()))
+        .thenReturn(receipts);
+
+    ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
+        paymentsController.getOrganizationReceipts(
+            "77777777777",
+            1,
+            20,
+            "debtor1",
+            "05",
+            "2026-01-01",
+            "2026-03-01",
+            "01,02",
+            "deb");
+
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+
+    verify(paymentsService, times(1)).getOrganizationReceipts(
+        "77777777777",
+        "debtor1",
+        "05",
+        "2026-01-01",
+        "2026-03-01",
+        1,
+        20,
+        new ArrayList<>(Arrays.asList("01", "02")),
+        "deb");
+  }
+  
+  @Test
+  void getOrganizationReceipts_200_withoutSegregationCodes() {
+    PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
+    receipts.setResults(new ArrayList<>());
+
+    when(paymentsService.getOrganizationReceipts(
+            eq("77777777777"),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            eq(0),
+            eq(20),
+            isNull(),
+            isNull()))
+        .thenReturn(receipts);
+
+    ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
+        paymentsController.getOrganizationReceipts(
+            "77777777777",
+            0,
+            20,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+
+    verify(paymentsService, times(1)).getOrganizationReceipts(
+        eq("77777777777"),
+        isNull(),
+        isNull(),
+        isNull(),
+        isNull(),
+        eq(0),
+        eq(20),
+        isNull(),
+        isNull());
   }
 }

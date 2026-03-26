@@ -138,7 +138,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
           ProblemJson.builder()
               .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
               .title(INTERNAL_SERVER_ERROR)
-              .detail(ex.getMessage())
+              .detail("A persistence error occurred.")
               .build();
     }
 
@@ -189,7 +189,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
         ProblemJson.builder()
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
             .title(INTERNAL_SERVER_ERROR)
-            .detail(ex.getMessage())
+            .detail("An unexpected error occurred.")
             .build();
     return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
