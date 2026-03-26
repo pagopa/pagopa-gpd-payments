@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.12.53-1-PIDM-1340-receipts-window"
+    tag: "0.13.0"
     pullPolicy: Always
   livenessProbe:
     httpGet:
