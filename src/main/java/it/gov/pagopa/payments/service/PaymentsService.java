@@ -263,12 +263,12 @@ public class PaymentsService {
         String normalizedFromInput = normalizeDateInput(from);
         String normalizedToInput = normalizeDateInput(to);
 
-        // If no date range is provided, default to the last configured number of months.
-        // If a date range is provided, it cannot exceed the configured maximum window.
+        // No explicit range provided: use the configured default window.
         if (normalizedFromInput == null && normalizedToInput == null) {
             return toDateRange(today.minusMonths(receiptsMonthsWindow), today);
         }
 
+        // Explicit full range provided: use it as-is, without applying the configured window.
         if (normalizedFromInput != null && normalizedToInput != null) {
             LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
             LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
@@ -276,6 +276,7 @@ public class PaymentsService {
             return toDateRange(resolvedFrom, resolvedTo);
         }
 
+        // Only "from" provided: complete the range using the configured window.
         if (normalizedFromInput != null) {
             LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
             LocalDate resolvedTo = resolvedFrom.plusMonths(receiptsMonthsWindow);
@@ -287,6 +288,7 @@ public class PaymentsService {
             return toDateRange(resolvedFrom, resolvedTo);
         }
 
+        // Only "to" provided: complete the range using the configured window.
         LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
         LocalDate resolvedFrom = resolvedTo.minusMonths(receiptsMonthsWindow);
         return toDateRange(resolvedFrom, resolvedTo);
@@ -297,7 +299,7 @@ public class PaymentsService {
     }
 
     private void validateDateRange(LocalDate from, LocalDate to) {
-        if (from.isAfter(to) || from.plusMonths(receiptsMonthsWindow).isBefore(to)) {
+    	if (from.isAfter(to)) {
             throw new AppException(AppError.INVALID_DATE_RANGE);
         }
     }
