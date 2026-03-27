@@ -568,27 +568,26 @@ class PaymentsServiceTest {
   }
   
   @Test
-  void getOrganizationReceipts_dateRangeTooWide_badRequest() {
-    PaymentsService paymentsService =
-        buildPaymentsService();
+  void getOrganizationReceipts_explicitRangeLongerThanConfiguredWindow_isOk() {
+    PaymentsService paymentsService = buildPaymentsService();
 
     ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
 
-    try {
-      paymentsService.getOrganizationReceipts(
-          "org123456",
-          null,
-          null,
-          "2022-01-01",
-          "2022-10-01",
-          0,
-          100,
-          null,
-          null);
-    } catch (AppException e) {
-      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
-      assertEquals("The requested date range is invalid or exceeds the maximum configured number of months", e.getMessage());
-    }
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            "2022-01-01",
+            "2022-10-01",
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(0, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
   }
   
   @Test

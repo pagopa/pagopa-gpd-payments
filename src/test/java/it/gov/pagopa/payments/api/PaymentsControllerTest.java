@@ -256,4 +256,47 @@ class PaymentsControllerTest {
         isNull(),
         isNull());
   }
+  
+  @Test
+  void getOrganizationReceipts_200_withExplicitWideDateRange() {
+    PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
+    receipts.setResults(new ArrayList<>());
+
+    when(paymentsService.getOrganizationReceipts(
+            eq("77777777777"),
+            isNull(),
+            isNull(),
+            eq("2022-01-01"),
+            eq("2022-10-01"),
+            eq(0),
+            eq(20),
+            isNull(),
+            isNull()))
+        .thenReturn(receipts);
+
+    ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
+        paymentsController.getOrganizationReceipts(
+            "77777777777",
+            0,
+            20,
+            null,
+            null,
+            "2022-01-01",
+            "2022-10-01",
+            null,
+            null);
+
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+
+    verify(paymentsService, times(1)).getOrganizationReceipts(
+        eq("77777777777"),
+        isNull(),
+        isNull(),
+        eq("2022-01-01"),
+        eq("2022-10-01"),
+        eq(0),
+        eq(20),
+        isNull(),
+        isNull());
+  }
 }

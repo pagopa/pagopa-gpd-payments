@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.0</version>
+    <version>0.13.0-1-PIDM-1736-range-from-to-provided</version>
     <name>Payments</name>
     <description>Payments</description>
 

@@ -112,7 +112,7 @@ public interface IPaymentsController {
                                     schema = @Schema(implementation = PaymentsResult.class))),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "Invalid request parameters, including an invalid or too wide date range.",
+                            description = "Invalid request parameters, including an invalid date range.",
                             content = @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                                     schema = @Schema(implementation = ProblemJson.class))),
@@ -154,11 +154,10 @@ public interface IPaymentsController {
             @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
             @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
             @Parameter(
-                    description = "Filter by date, from this date. If both from and to are omitted, receipts are returned for the last configured number of months.")
+                    description = "Filter by date, from this date. If both from and to are omitted, receipts are returned for the last configured number of months. If only from is provided, the search range is automatically completed using the configured window.")
             @RequestParam(required = false) String from,
-
             @Parameter(
-                    description = "Filter by date, to this date. If a date range is provided, it cannot exceed the configured maximum number of months.")
+                    description = "Filter by date, to this date. If only to is provided, the search range is automatically completed using the configured window. If both from and to are provided, the exact requested range is applied.")
             @RequestParam(required = false) String to,
             @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
             @RequestParam(required = false) String segregationCodes,
