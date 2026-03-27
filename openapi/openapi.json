@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.13.0-1-PIDM-1736-range-from-to-provided"
+    "version": "0.13.1"
   },
   "servers": [
     {
