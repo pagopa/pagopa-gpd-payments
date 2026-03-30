@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.2-1-fix-manage-datetime-format"
+    tag: "0.13.3"
     pullPolicy: Always
   livenessProbe:
     httpGet:

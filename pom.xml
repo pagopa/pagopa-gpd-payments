@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.2-1-fix-manage-datetime-format</version>
+    <version>0.13.3</version>
     <name>Payments</name>
     <description>Payments</description>
 
