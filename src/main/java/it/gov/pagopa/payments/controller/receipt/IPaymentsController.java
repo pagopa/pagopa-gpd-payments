@@ -91,7 +91,7 @@ public interface IPaymentsController {
                     required = true, example = "ABC123")
             @PathVariable("iuv")
             String iuv,
-            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
+            @Valid @Parameter(hidden = true, description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
             @RequestParam(required = false) String segregationCodes);
 
     @Operation(
@@ -159,7 +159,7 @@ public interface IPaymentsController {
             @Parameter(
                     description = "Filter by date, to this date. If only to is provided, the search range is automatically completed using the configured window. If both from and to are provided, the exact requested range is applied.")
             @RequestParam(required = false) String to,
-            @Valid @Parameter(description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
+            @Valid @Parameter(hidden = true, description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
             @RequestParam(required = false) String segregationCodes,
             @Parameter(description = "Filter start of debtor or IUV") @RequestParam(required = false) String debtorOrIuv);
 }
