@@ -665,6 +665,121 @@ class PaymentsServiceTest {
     assertEquals(0, res.getCurrentPageNumber());
   }
   
+  @Test
+  void getOrganizationReceipts_withExplicitDateTimeRange() {
+    PaymentsService paymentsService = buildPaymentsService();
+
+    String from = LocalDateTime.now().minusDays(11).withHour(8).withMinute(20).withSecond(0).withNano(0).toString();
+    String to = LocalDateTime.now().minusDays(9).withHour(18).withMinute(45).withSecond(10).withNano(0).toString();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            from,
+            to,
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+  
+  @Test
+  void getOrganizationReceipts_withMixedDateFormats() {
+    PaymentsService paymentsService = buildPaymentsService();
+
+    String from = LocalDate.now().minusDays(11).toString();
+    String to = LocalDateTime.now().minusDays(9).withHour(18).withMinute(45).withSecond(10).withNano(0).toString();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            from,
+            to,
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+  
+  @Test
+  void getOrganizationReceipts_onlyFromDateTimeProvided() {
+    PaymentsService paymentsService = buildPaymentsService();
+
+    String from = LocalDateTime.now().minusDays(10).withHour(8).withMinute(20).withSecond(0).withNano(0).toString();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            from,
+            null,
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+  
+  @Test
+  void getOrganizationReceipts_onlyToDateTimeProvided() {
+    PaymentsService paymentsService = buildPaymentsService();
+
+    String to = LocalDateTime.now().minusDays(9).withHour(18).withMinute(45).withSecond(10).withNano(0).toString();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456",
+            null,
+            null,
+            null,
+            to,
+            0,
+            100,
+            null,
+            null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+  }
+  
+  @Test
+  void getOrganizationReceipts_invalidDateTimeFormat_badRequest() {
+    PaymentsService paymentsService = buildPaymentsService();
+
+    try {
+      paymentsService.getOrganizationReceipts(
+          "org123456",
+          null,
+          null,
+          "2026/03/30 08:20:00",
+          null,
+          0,
+          100,
+          null,
+          null);
+    } catch (AppException e) {
+      assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
+      assertEquals("Invalid date range", e.getTitle());
+    }
+  }
+  
   
   // HELPER METHODS
   

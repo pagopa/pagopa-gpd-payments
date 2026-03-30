@@ -44,7 +44,7 @@ public enum AppError {
   INVALID_DATE_RANGE(
 	        HttpStatus.BAD_REQUEST,
 	        "Invalid date range",
-	        "The requested date range is invalid. 'from' must be less than or equal to 'to'."),
+	        "The requested date range is invalid. Supported formats are yyyy-MM-dd and yyyy-MM-dd'T'HH:mm:ss, and 'from' must be less than or equal to 'to'."),
 
   UNKNOWN(null, null, null);
 

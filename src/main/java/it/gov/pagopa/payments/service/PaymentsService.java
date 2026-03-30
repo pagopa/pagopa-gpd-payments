@@ -24,6 +24,7 @@ import javax.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -258,7 +259,7 @@ public class PaymentsService {
     }
     
     private String[] normalizeDateRange(String from, String to) {
-        LocalDate today = LocalDate.now();
+        LocalDateTime today = LocalDateTime.now();
 
         String normalizedFromInput = normalizeDateInput(from);
         String normalizedToInput = normalizeDateInput(to);
@@ -268,18 +269,18 @@ public class PaymentsService {
             return toDateRange(today.minusMonths(receiptsMonthsWindow), today);
         }
 
-        // Explicit full range provided: use it as-is, without applying the configured window.
+        // Explicit full range provided: use it as-is, preserving the provided precision.
         if (normalizedFromInput != null && normalizedToInput != null) {
-            LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
-            LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
+            LocalDateTime resolvedFrom = parseSupportedDateTime(normalizedFromInput, true);
+            LocalDateTime resolvedTo = parseSupportedDateTime(normalizedToInput, false);
             validateDateRange(resolvedFrom, resolvedTo);
             return toDateRange(resolvedFrom, resolvedTo);
         }
 
         // Only "from" provided: complete the range using the configured window.
         if (normalizedFromInput != null) {
-            LocalDate resolvedFrom = LocalDate.parse(normalizedFromInput);
-            LocalDate resolvedTo = resolvedFrom.plusMonths(receiptsMonthsWindow);
+            LocalDateTime resolvedFrom = parseSupportedDateTime(normalizedFromInput, true);
+            LocalDateTime resolvedTo = resolvedFrom.plusMonths(receiptsMonthsWindow);
 
             if (resolvedTo.isAfter(today)) {
                 resolvedTo = today;
@@ -289,28 +290,40 @@ public class PaymentsService {
         }
 
         // Only "to" provided: complete the range using the configured window.
-        LocalDate resolvedTo = LocalDate.parse(normalizedToInput);
-        LocalDate resolvedFrom = resolvedTo.minusMonths(receiptsMonthsWindow);
+        LocalDateTime resolvedTo = parseSupportedDateTime(normalizedToInput, false);
+        LocalDateTime resolvedFrom = resolvedTo.minusMonths(receiptsMonthsWindow);
         return toDateRange(resolvedFrom, resolvedTo);
+    }
+    
+    private LocalDateTime parseSupportedDateTime(String value, boolean isFromBoundary) {
+        try {
+            return LocalDateTime.parse(value);
+        } catch (DateTimeParseException ex) {
+            try {
+                LocalDate parsedDate = LocalDate.parse(value);
+                return isFromBoundary
+                        ? parsedDate.atStartOfDay()
+                        : parsedDate.atTime(23, 59, 59);
+            } catch (DateTimeParseException innerEx) {
+                throw new AppException(AppError.INVALID_DATE_RANGE);
+            }
+        }
     }
 
     private String normalizeDateInput(String value) {
         return value != null && !value.isBlank() ? value : null;
     }
 
-    private void validateDateRange(LocalDate from, LocalDate to) {
-    	if (from.isAfter(to)) {
+    private void validateDateRange(LocalDateTime from, LocalDateTime to) {
+        if (from.isAfter(to)) {
             throw new AppException(AppError.INVALID_DATE_RANGE);
         }
     }
 
-    private String[] toDateRange(LocalDate from, LocalDate to) {
-        LocalDateTime fromDateTime = from.atStartOfDay();
-        LocalDateTime toDateTime = to.atTime(23, 59, 59);
-
+    private String[] toDateRange(LocalDateTime from, LocalDateTime to) {
         return new String[] {
-            fromDateTime.toString(),
-            toDateTime.toString()
+            from.toString(),
+            to.toString()
         };
     }
 }
