@@ -154,10 +154,13 @@ public interface IPaymentsController {
             @Parameter(description = "Filter by debtor") @RequestParam(required = false) String debtor,
             @Parameter(description = "Filter by service") @RequestParam(required = false) String service,
             @Parameter(
-                    description = "Filter by date, from this date. If both from and to are omitted, receipts are returned for the last configured number of months. If only from is provided, the search range is automatically completed using the configured window.")
+                    description = "Filter by date, from this date. Supported formats: yyyy-MM-dd or yyyy-MM-dd'T'HH:mm:ss. If both from and to are omitted, receipts are returned for the last configured number of months. If only from is provided, the search range is automatically completed using the configured window.",
+                    example = "2026-03-30 or 2026-03-30T08:20:00")
             @RequestParam(required = false) String from,
+
             @Parameter(
-                    description = "Filter by date, to this date. If only to is provided, the search range is automatically completed using the configured window. If both from and to are provided, the exact requested range is applied.")
+                    description = "Filter by date, to this date. Supported formats: yyyy-MM-dd or yyyy-MM-dd'T'HH:mm:ss. If only to is provided, the search range is automatically completed using the configured window. If both from and to are provided, the exact requested range is applied.",
+                    example = "2026-03-31 or 2026-03-31T08:20:00")
             @RequestParam(required = false) String to,
             @Valid @Parameter(hidden = true, description = "Segregation codes for which broker is authorized") @Pattern(regexp = "\\d{2}(,\\d{2})*")
             @RequestParam(required = false) String segregationCodes,
