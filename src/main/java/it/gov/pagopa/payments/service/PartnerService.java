@@ -1075,13 +1075,13 @@ public class PartnerService {
 
   public PaymentOptionModelResponse getReceiptPaymentOptionScheduler(
       String noticeNumber,
-      String idPa,
+      String receiptFiscalCode,
       String creditorReferenceId,
       boolean isStandIn,
       PaymentOptionModel body,
       ReceiptEntity receiptEntity)
       throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
-    return getReceiptPaymentOption(noticeNumber, idPa, creditorReferenceId, isStandIn, body, receiptEntity);
+    return getReceiptPaymentOption(noticeNumber, receiptFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity);
   }
 
   private PaymentsModelResponse getAndValidatePaymentOption(

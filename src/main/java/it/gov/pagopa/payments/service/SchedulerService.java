@@ -93,7 +93,7 @@ public class SchedulerService {
 
         Element node = (Element) nodes.item(0);
 
-        String idPA = node.getElementsByTagName("idPA").item(0).getTextContent();
+        String receiptFiscalCode = node.getElementsByTagName("fiscalCode").item(0).getTextContent();
         String creditorReferenceId = node.getElementsByTagName("creditorReferenceId").item(0).getTextContent();
         String noticeNumber = node.getElementsByTagName("noticeNumber").item(0).getTextContent();
         String paymentDateTime = node.getElementsByTagName("paymentDateTime").item(0).getTextContent();
@@ -109,7 +109,7 @@ public class SchedulerService {
             standInString = standInNodeList.item(0).getTextContent();
         }
 
-        ReceiptEntity receiptEntity = new ReceiptEntity(idPA, creditorReferenceId);
+        ReceiptEntity receiptEntity = new ReceiptEntity(receiptFiscalCode, creditorReferenceId);
         receiptEntity.setDebtor(entityUniqueIdentifierValue);
         String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
         receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
@@ -128,14 +128,14 @@ public class SchedulerService {
         try {
             partnerService.getReceiptPaymentOptionScheduler(
                     noticeNumber,
-                    idPA,
+                    receiptFiscalCode,
                     creditorReferenceId,
                     Boolean.parseBoolean(standInString),
                     body,
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
-            log.debug("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", idPA, noticeNumber);
+            log.debug("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", receiptFiscalCode, noticeNumber);
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
                     queueMessageItem.getPopReceipt(),
@@ -145,7 +145,7 @@ public class SchedulerService {
                     Context.NONE);
         } catch (PartnerValidationException e) {
             // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
-            log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), idPA, noticeNumber);
+            log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), receiptFiscalCode, noticeNumber);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         }
     }
