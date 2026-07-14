@@ -838,7 +838,7 @@ public class PartnerService {
             .orElse("");
     ReceiptEntity receiptEntity =
         this.getReceiptEntity(
-            request.getIdPA(),
+            request.getReceipt().getFiscalCode(),
             request.getReceipt().getCreditorReferenceId(),
             debtorIdentifier,
             request.getReceipt().getPaymentDateTime().toString());
@@ -877,7 +877,7 @@ public class PartnerService {
 
     return this.getReceiptExceptionHandling(
         request.getReceipt().getNoticeNumber(),
-        request.getIdPA(),
+        request.getReceipt().getFiscalCode(),
         request.getReceipt().getCreditorReferenceId(),
         isStandIn,
         body,
@@ -896,7 +896,7 @@ public class PartnerService {
             .orElse("");
     ReceiptEntity receiptEntity =
         this.getReceiptEntity(
-            request.getIdPA(),
+            request.getReceipt().getFiscalCode(),
             request.getReceipt().getCreditorReferenceId(),
             debtorIdentifier,
             request.getReceipt().getPaymentDateTime().toString());
@@ -935,7 +935,7 @@ public class PartnerService {
 
     return this.getReceiptExceptionHandling(
         request.getReceipt().getNoticeNumber(),
-        request.getIdPA(),
+        request.getReceipt().getFiscalCode(),
         request.getReceipt().getCreditorReferenceId(),
         isStandIn,
         body,
@@ -944,14 +944,14 @@ public class PartnerService {
 
   private PaymentOptionModelResponse getReceiptExceptionHandling(
       String noticeNumber,
-      String idPa,
+      String organizationFiscalCode,
       String creditorReferenceId,
       boolean isStandIn,
       PaymentOptionModel body,
       ReceiptEntity receiptEntity) {
     try {
       return this.getReceiptPaymentOption(
-          noticeNumber, idPa, creditorReferenceId, isStandIn, body, receiptEntity);
+          noticeNumber, organizationFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity);
     } catch (RetryableException e) {
       log.error(
           "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Not Reachable [noticeNumber={}]",
@@ -1003,8 +1003,8 @@ public class PartnerService {
   }
 
   private ReceiptEntity getReceiptEntity(
-      String idPa, String creditorReferenceId, String debtor, String paymentDateTime) {
-    ReceiptEntity receiptEntity = new ReceiptEntity(idPa, creditorReferenceId);
+      String organizationFiscalCode, String creditorReferenceId, String debtor, String paymentDateTime) {
+    ReceiptEntity receiptEntity = new ReceiptEntity(organizationFiscalCode, creditorReferenceId);
     receiptEntity.setDebtor(debtor);
     String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
     receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
@@ -1013,7 +1013,7 @@ public class PartnerService {
 
   private PaymentOptionModelResponse getReceiptPaymentOption(
       String noticeNumber,
-      String idPa,
+      String organizationFiscalCode,
       String creditorReferenceId,
       boolean isStandIn,
       PaymentOptionModel body,
@@ -1021,7 +1021,7 @@ public class PartnerService {
       throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
-      paymentOption = gpdClient.sendPaymentOptionReceipt(idPa, noticeNumber, body);
+      paymentOption = gpdClient.sendPaymentOptionReceipt(organizationFiscalCode, noticeNumber, body);
 
       // To exclude receipts from being saved, it is necessary to know if a PD is not ACA.
       boolean isNotACA = true; // default GPD -> it isn't ACA
@@ -1041,7 +1041,7 @@ public class PartnerService {
             "[getReceiptPaymentOption] PAA_RECEIPT_DUPLICATA: GPD Conflict Error Response [noticeNumber={}]",
             noticeNumber,
             e);
-        boolean receiptNotFoundInStorage = this.getReceipt(idPa, creditorReferenceId) == null;
+        boolean receiptNotFoundInStorage = this.getReceipt(organizationFiscalCode, creditorReferenceId) == null;
 
         boolean isNotACA = true; // default GPD -> it isn't ACA
         if(paymentOption.getServiceType() != null) {
