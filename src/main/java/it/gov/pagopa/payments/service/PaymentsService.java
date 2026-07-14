@@ -24,6 +24,7 @@ import javax.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 
@@ -259,7 +260,7 @@ public class PaymentsService {
     }
     
     private String[] normalizeDateRange(String from, String to) {
-        LocalDateTime today = LocalDateTime.now();
+        LocalDateTime today = LocalDateTime.now(ZoneId.systemDefault());
 
         String normalizedFromInput = normalizeDateInput(from);
         String normalizedToInput = normalizeDateInput(to);
