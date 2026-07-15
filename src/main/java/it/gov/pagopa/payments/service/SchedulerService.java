@@ -9,7 +9,9 @@ import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationE
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
+import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +61,9 @@ public class SchedulerService {
 
     @Autowired
     PartnerService partnerService;
+    
+    @Autowired
+    DeadLetterService deadLetterService;
 
     public void retryFailedPaSendRT() {
         XPathFactory xPathfactory = XPathFactory.newInstance();
@@ -70,15 +76,18 @@ public class SchedulerService {
                 Context.NONE)
                 .stream().toList();
         for(QueueMessageItem message: queueList) {
-            if(checkQueueCountValidity(message)) {
-                try{
-                    handlingXml(getMessageContent(message), xpath, message);
-                } catch (XPathExpressionException e) {
-                    log.error("[paSendRT] XML error during retry process [messageId={},popReceipt={}]\",\n", message.getMessageId() , message.getPopReceipt());
-                }
-            } else {
-                queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
-            }
+        	if (checkQueueCountValidity(message)) {
+        	    try {
+        	        handlingXml(getMessageContent(message), xpath, message);
+        	    } catch (XPathExpressionException e) {
+        	        log.error(
+        	                "[paSendRT] XML error during retry process [messageId={},popReceipt={}]",
+        	                message.getMessageId(),
+        	                message.getPopReceipt());
+        	    }
+        	} else {
+        	    moveToDeadLetter(message);
+        	}
         }
     }
 
@@ -168,6 +177,50 @@ public class SchedulerService {
             return builder.parse(is);
         } catch (ParserConfigurationException | SAXException | IOException e) {
             throw new AppException(AppError.UNKNOWN);
+        }
+    }
+    
+    private void moveToDeadLetter(QueueMessageItem message) {
+
+        DeadLetterMessage deadLetterMessage =
+                DeadLetterMessage.builder()
+                        .messageId(message.getMessageId())
+                        .dequeueCount(message.getDequeueCount())
+                        .reason(DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED)
+                        .deadLetteredAt(Instant.now())
+                        .originalMessage(getMessageContent(message))
+                        .build();
+
+        try {
+            /*
+             * The retry queue message must be deleted only after the dead-letter
+             * message has been successfully persisted. This prevents message loss
+             * if Blob Storage is temporarily unavailable.
+             */
+            deadLetterService.sendToDeadLetter(deadLetterMessage);
+
+            queueClient.deleteMessage(
+                    message.getMessageId(),
+                    message.getPopReceipt());
+
+            log.warn(
+                    "[paSendRT] Maximum retry attempts reached. Message moved to dead-letter storage "
+                            + "[messageId={},dequeueCount={}]",
+                    message.getMessageId(),
+                    message.getDequeueCount());
+
+        } catch (RuntimeException e) {
+            /*
+             * Keep the message in the retry queue if dead-letter persistence fails.
+             * It will become visible again after the queue visibility timeout.
+             */
+            log.error(
+                    "[paSendRT] Unable to move message to dead-letter storage. "
+                            + "The message will remain in the retry queue "
+                            + "[messageId={},dequeueCount={}]",
+                    message.getMessageId(),
+                    message.getDequeueCount(),
+                    e);
         }
     }
 }
