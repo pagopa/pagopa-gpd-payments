@@ -1,5 +1,7 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
+import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.LoggingAspect;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.partner.CtFaultBean;
 import it.gov.pagopa.payments.model.partner.CtResponse;
@@ -77,7 +79,10 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
         }
         catch (PartnerValidationException e) {
 
-            log.error("Processing resulted in exception: " + e.getMessage());
+            LogContext.putDetail(LogContext.CTX_DETAILS_FAULT_CODE, e.getError().getFaultCode());
+            LoggingAspect.markApiFailure(e);
+            // business KO owned by the caller: the milestone outcome carries the failure
+            log.info(LoggingAspect.API_OPERATION_FAILED);
             faultCode = e.getError().getFaultCode();
             faultString = e.getError().getFaultString();
             description = e.getError().getDescription();
@@ -85,7 +90,8 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
         } catch (Exception e) {
 
-            log.error("Processing resulted in generic exception: " + e.getMessage());
+            LoggingAspect.markApiFailure(e);
+            log.error(LoggingAspect.API_OPERATION_FAILED, e);
             httpServletResponse.setStatus(500);
         }
 
@@ -191,7 +197,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
             } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
 
-                log.error("Processing resulted in generic exception: " + e.getMessage());
+                log.error("SOAP fault response generation failed", e);
                 httpServletResponse.setStatus(500);
             }
         }

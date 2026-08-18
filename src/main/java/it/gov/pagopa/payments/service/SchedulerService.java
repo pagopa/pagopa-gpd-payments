@@ -5,6 +5,7 @@ import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.models.QueueMessageItem;
 import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
+import it.gov.pagopa.payments.config.LogContext;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
@@ -70,11 +71,14 @@ public class SchedulerService {
                 Context.NONE)
                 .stream().toList();
         for(QueueMessageItem message: queueList) {
+            // each message is a separate business operation: no identifier must be inherited
+            LogContext.clear();
+            LogContext.putDetail(LogContext.CTX_DETAILS_MESSAGE_ID, message.getMessageId());
             if(checkQueueCountValidity(message)) {
                 try{
                     handlingXml(getMessageContent(message), xpath, message);
                 } catch (XPathExpressionException e) {
-                    log.error("[paSendRT] XML error during retry process [messageId={},popReceipt={}]\",\n", message.getMessageId() , message.getPopReceipt());
+                    log.error("Malformed receipt in the retry queue", e);
                 }
             } else {
                 queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
@@ -109,6 +113,13 @@ public class SchedulerService {
             standInString = standInNodeList.item(0).getTextContent();
         }
 
+        // the retry flow is not intercepted by the logging aspect: the business identifiers of the
+        // message being processed are published here
+        LogContext.putIdentifier(LogContext.CTX_NAV, noticeNumber);
+        LogContext.putIdentifier(LogContext.CTX_IUV, creditorReferenceId);
+        LogContext.putIdentifier(LogContext.CTX_ORGANIZATION_FISCAL_CODE, receiptFiscalCode);
+        LogContext.putIdentifier(LogContext.CTX_TRANSACTION_ID, receiptId);
+
         ReceiptEntity receiptEntity = new ReceiptEntity(receiptFiscalCode, creditorReferenceId);
         receiptEntity.setDebtor(entityUniqueIdentifierValue);
         String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
@@ -135,7 +146,7 @@ public class SchedulerService {
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
-            log.debug("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", receiptFiscalCode, noticeNumber);
+            log.debug("Receipt retry failed, message re-enqueued");
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
                     queueMessageItem.getPopReceipt(),
@@ -145,7 +156,8 @@ public class SchedulerService {
                     Context.NONE);
         } catch (PartnerValidationException e) {
             // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
-            log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), receiptFiscalCode, noticeNumber);
+            LogContext.putDetail(LogContext.CTX_DETAILS_FAULT_CODE, e.getError().getFaultCode());
+            log.warn("Receipt retry failed, message removed from the queue");
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         }
     }

@@ -1,6 +1,8 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
+import it.gov.pagopa.payments.config.LogContext;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
+import it.gov.pagopa.payments.utils.LogMasker;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -41,7 +43,9 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
                           + "]: "
                           + error.getMessage())
               .collect(Collectors.joining(" -- "));
-      log.error(validationErrorsString);
+      LogContext.putDetail(
+          LogContext.CTX_DETAILS_VALIDATION_ERRORS, LogMasker.redact(validationErrorsString));
+      log.error("SOAP request failed the XSD validation");
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }
     return true;
@@ -70,7 +74,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       soapMessage.saveChanges();
     } catch (SOAPException e) {
 
-      log.error("Processing resulted in exception: " + e.getMessage());
+      log.error("SOAP response post processing failed", e);
     }
   }
 

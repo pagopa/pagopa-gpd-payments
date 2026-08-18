@@ -42,7 +42,7 @@ public class ConfigCacheData {
             setStationCreditorInstitutionMap(configDataV1);
             setStationMaintenanceMap(configDataV1);
         } catch (Exception e) {
-            log.error("Exception while setConfigCacheData: ", e);
+            log.error("Failed to store the configuration cache data", e);
         }
     }
 
@@ -77,7 +77,7 @@ public class ConfigCacheData {
                     })
                     .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
         } catch (Exception e) {
-            log.error("Exception while set active StationMaintenance Map: ", e);
+            log.error("Failed to store the station maintenance configuration", e);
             // reset activeStationMaintenanceMap
             activeStationMaintenanceMap = null;
         }
@@ -97,7 +97,7 @@ public class ConfigCacheData {
                 stationCreditorInstitutionMap.put(newKey, stationCI);
             }
         } catch (Exception e) {
-            log.error("Exception while set StationCreditorInstitution Map: ", e);
+            log.error("Failed to store the station/creditor institution configuration", e);
             // reset stationCreditorInstitutionMap
             stationCreditorInstitutionMap = null;
         }

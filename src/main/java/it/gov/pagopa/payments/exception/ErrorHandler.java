@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.exception;
 
 import it.gov.pagopa.payments.config.LoggingAspect;
 import it.gov.pagopa.payments.model.ProblemJson;
+import it.gov.pagopa.payments.utils.LogMasker;
 import java.util.ArrayList;
 import java.util.List;
 import javax.validation.ConstraintViolationException;
@@ -31,42 +32,47 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   public static final String BAD_REQUEST = "BAD REQUEST";
   public static final String FOREIGN_KEY_VIOLATION = "23503";
 
+  private static final String API_OPERATION_FAILED = "Failed API operation";
+
+  /**
+   * Logs the failure milestone of an API operation. The message is static: the reason of the
+   * failure is published as ECS {@code error.*} fields, redacted from any PII or financial data.
+   */
   private void logMilestoneFailure(Exception ex, HttpStatus status) {
-    MDC.put(LoggingAspect.EVENT_OUTCOME, "failure");
-    MDC.put(LoggingAspect.CTX_DETAILS_HTTP_CODE, String.valueOf(status.value()));
-    String executionTime = LoggingAspect.getExecutionTime();
-    if (executionTime != null && !"-".equals(executionTime)) {
-      MDC.put(LoggingAspect.CTX_DETAILS_RESPONSE_TIME, executionTime);
-    }
-    
-    if (status.is4xxClientError()) {
-      log.info("Failed API operation", ex);
-    } else {
-      log.error("Failed API operation", ex);
-    }
-    
-    MDC.remove(LoggingAspect.EVENT_OUTCOME);
-    MDC.remove(LoggingAspect.CTX_DETAILS_HTTP_CODE);
-    MDC.remove(LoggingAspect.CTX_DETAILS_RESPONSE_TIME);
+    MDC.put(LoggingAspect.ERROR_TYPE, ex.getClass().getName());
+    logMilestoneFailure(ex.getMessage(), status, ex);
   }
 
   private void logMilestoneFailure(String message, HttpStatus status) {
-    MDC.put(LoggingAspect.EVENT_OUTCOME, "failure");
+    logMilestoneFailure(message, status, null);
+  }
+
+  private void logMilestoneFailure(String message, HttpStatus status, Exception ex) {
+    MDC.put(LoggingAspect.EVENT_OUTCOME, LoggingAspect.OUTCOME_FAILURE);
     MDC.put(LoggingAspect.CTX_DETAILS_HTTP_CODE, String.valueOf(status.value()));
     String executionTime = LoggingAspect.getExecutionTime();
     if (executionTime != null && !"-".equals(executionTime)) {
       MDC.put(LoggingAspect.CTX_DETAILS_RESPONSE_TIME, executionTime);
     }
-    
-    if (status.is4xxClientError()) {
-      log.info("Failed API operation: {}", message);
-    } else {
-      log.error("Failed API operation: {}", message);
+    String redactedMessage = LogMasker.redact(message);
+    if (redactedMessage != null) {
+      MDC.put(LoggingAspect.ERROR_MESSAGE, redactedMessage);
     }
-    
+
+    if (status.is4xxClientError()) {
+      // client side KO: the milestone outcome carries the failure, no stack trace needed
+      log.info(API_OPERATION_FAILED);
+    } else if (ex != null) {
+      log.error(API_OPERATION_FAILED, ex);
+    } else {
+      log.error(API_OPERATION_FAILED);
+    }
+
     MDC.remove(LoggingAspect.EVENT_OUTCOME);
     MDC.remove(LoggingAspect.CTX_DETAILS_HTTP_CODE);
     MDC.remove(LoggingAspect.CTX_DETAILS_RESPONSE_TIME);
+    MDC.remove(LoggingAspect.ERROR_TYPE);
+    MDC.remove(LoggingAspect.ERROR_MESSAGE);
   }
 
   @Override
@@ -146,11 +152,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<ProblemJson> handleAppException(
       final AppException ex, final WebRequest request) {
 
-    if (ex.getCause() != null) {
-      logMilestoneFailure(new Exception("App Exception raised: " + ex.getMessage(), ex.getCause()), ex.getHttpStatus());
-    } else {
-      logMilestoneFailure("App Exception raised: " + ex.getMessage(), ex.getHttpStatus());
-    }
+    logMilestoneFailure(ex, ex.getHttpStatus());
 
     var errorResponse =
         ProblemJson.builder()
