@@ -1,10 +1,12 @@
 package it.gov.pagopa.payments.exception;
 
+import it.gov.pagopa.payments.config.LoggingAspect;
 import it.gov.pagopa.payments.model.ProblemJson;
 import java.util.ArrayList;
 import java.util.List;
 import javax.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
@@ -29,72 +31,74 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   public static final String BAD_REQUEST = "BAD REQUEST";
   public static final String FOREIGN_KEY_VIOLATION = "23503";
 
-  /**
-   * Handle if the input request is not a valid JSON
-   *
-   * @param ex {@link HttpMessageNotReadableException} exception raised
-   * @param headers of the response
-   * @param status of the response
-   * @param request from frontend
-   * @return a {@link ProblemJson} as response with the cause and with a 400 as HTTP status
-   */
+  private void logMilestoneFailure(Exception ex, HttpStatus status) {
+    MDC.put(LoggingAspect.EVENT_OUTCOME, "failure");
+    MDC.put(LoggingAspect.CTX_DETAILS_HTTP_CODE, String.valueOf(status.value()));
+    String executionTime = LoggingAspect.getExecutionTime();
+    if (executionTime != null && !"-".equals(executionTime)) {
+      MDC.put(LoggingAspect.CTX_DETAILS_RESPONSE_TIME, executionTime);
+    }
+    
+    if (status.is4xxClientError()) {
+      log.info("Failed API operation", ex);
+    } else {
+      log.error("Failed API operation", ex);
+    }
+    
+    MDC.remove(LoggingAspect.EVENT_OUTCOME);
+    MDC.remove(LoggingAspect.CTX_DETAILS_HTTP_CODE);
+    MDC.remove(LoggingAspect.CTX_DETAILS_RESPONSE_TIME);
+  }
+
+  private void logMilestoneFailure(String message, HttpStatus status) {
+    MDC.put(LoggingAspect.EVENT_OUTCOME, "failure");
+    MDC.put(LoggingAspect.CTX_DETAILS_HTTP_CODE, String.valueOf(status.value()));
+    String executionTime = LoggingAspect.getExecutionTime();
+    if (executionTime != null && !"-".equals(executionTime)) {
+      MDC.put(LoggingAspect.CTX_DETAILS_RESPONSE_TIME, executionTime);
+    }
+    
+    if (status.is4xxClientError()) {
+      log.info("Failed API operation: {}", message);
+    } else {
+      log.error("Failed API operation: {}", message);
+    }
+    
+    MDC.remove(LoggingAspect.EVENT_OUTCOME);
+    MDC.remove(LoggingAspect.CTX_DETAILS_HTTP_CODE);
+    MDC.remove(LoggingAspect.CTX_DETAILS_RESPONSE_TIME);
+  }
+
   @Override
   public ResponseEntity<Object> handleHttpMessageNotReadable(
       HttpMessageNotReadableException ex,
       HttpHeaders headers,
       HttpStatus status,
       WebRequest request) {
-    log.warn("Input not readable: ", ex);
+    logMilestoneFailure(ex, HttpStatus.BAD_REQUEST);
     return generateErrorResponse(ex.getMessage());
   }
 
-  /**
-   * Handle if missing some request parameters in the request
-   *
-   * @param ex {@link MissingServletRequestParameterException} exception raised
-   * @param headers of the response
-   * @param status of the response
-   * @param request from frontend
-   * @return a {@link ProblemJson} as response with the cause and with a 400 as HTTP status
-   */
   @Override
   public ResponseEntity<Object> handleMissingServletRequestParameter(
       MissingServletRequestParameterException ex,
       HttpHeaders headers,
       HttpStatus status,
       WebRequest request) {
-    log.warn("Missing request parameter: ", ex);
+    logMilestoneFailure(ex, HttpStatus.BAD_REQUEST);
     return generateErrorResponse(ex.getMessage());
   }
 
-  /**
-   * Customize the response for TypeMismatchException.
-   *
-   * @param ex the exception
-   * @param headers the headers to be written to the response
-   * @param status the selected response status
-   * @param request the current request
-   * @return a {@code ResponseEntity} instance
-   */
   @Override
   protected ResponseEntity<Object> handleTypeMismatch(
       TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-    log.warn("Type mismatch: ", ex);
+    logMilestoneFailure(ex, HttpStatus.BAD_REQUEST);
     return generateErrorResponse(
         String.format(
             "Invalid value %s for property %s",
             ex.getValue(), ((MethodArgumentTypeMismatchException) ex).getName()));
   }
 
-  /**
-   * Handle if validation constraints are unsatisfied
-   *
-   * @param ex {@link MethodArgumentNotValidException} exception raised
-   * @param headers of the response
-   * @param status of the response
-   * @param request from frontend
-   * @return a {@link ProblemJson} as response with the cause and with a 400 as HTTP status
-   */
   @Override
   protected ResponseEntity<Object> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex,
@@ -106,23 +110,17 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
       details.add(error.getField() + ": " + error.getDefaultMessage());
     }
     var detailsMessage = String.join(", ", details);
-    log.warn("Input not valid: " + detailsMessage);
+    logMilestoneFailure("Input not valid: " + detailsMessage, HttpStatus.BAD_REQUEST);
     return generateErrorResponse(detailsMessage);
   }
 
-  /**
-   * @param ex {@link DataIntegrityViolationException} exception raised when the SQL statement
-   *     cannot be executed
-   * @param request from frontend
-   * @return a {@link ProblemJson} as response with the cause and with an appropriated HTTP status
-   */
   @ExceptionHandler({DataIntegrityViolationException.class})
   public ResponseEntity<ProblemJson> handleDataIntegrityViolationException(
       final DataIntegrityViolationException ex, final WebRequest request) {
     ProblemJson errorResponse = null;
 
     if (ex.getCause() instanceof ConstraintViolationException) {
-      log.warn("Constraint violation from Database", ex);
+      logMilestoneFailure(ex, HttpStatus.CONFLICT);
       errorResponse =
           ProblemJson.builder()
               .status(HttpStatus.CONFLICT.value())
@@ -131,9 +129,8 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
               .build();
     }
 
-    // default response
     if (errorResponse == null) {
-      log.warn("Data Integrity Violation", ex);
+      logMilestoneFailure(ex, HttpStatus.INTERNAL_SERVER_ERROR);
       errorResponse =
           ProblemJson.builder()
               .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -145,24 +142,14 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
     return new ResponseEntity<>(errorResponse, HttpStatus.valueOf(errorResponse.getStatus()));
   }
 
-  /**
-   * Handle if a {@link AppException} is raised
-   *
-   * @param ex {@link AppException} exception raised
-   * @param request from frontend
-   * @return a {@link ProblemJson} as response with the cause and with an appropriated HTTP status
-   */
   @ExceptionHandler({AppException.class})
   public ResponseEntity<ProblemJson> handleAppException(
       final AppException ex, final WebRequest request) {
 
     if (ex.getCause() != null) {
-      log.warn(
-            "App Exception raised: " + ex.getMessage() + "\nCause of the App Exception: ",
-            ex.getCause());
+      logMilestoneFailure(new Exception("App Exception raised: " + ex.getMessage(), ex.getCause()), ex.getHttpStatus());
     } else {
-      if (ex.getHttpStatus() != HttpStatus.NOT_FOUND)
-        log.warn("App Exception raised: " + ex.getMessage());
+      logMilestoneFailure("App Exception raised: " + ex.getMessage(), ex.getHttpStatus());
     }
 
     var errorResponse =
@@ -174,17 +161,10 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
     return new ResponseEntity<>(errorResponse, ex.getHttpStatus());
   }
 
-  /**
-   * Handle if a {@link Exception} is raised
-   *
-   * @param ex {@link Exception} exception raised
-   * @param request from frontend
-   * @return a {@link ProblemJson} as response with the cause and with 500 as HTTP status
-   */
   @ExceptionHandler({Exception.class})
   public ResponseEntity<ProblemJson> handleGenericException(
       final Exception ex, final WebRequest request) {
-    log.error("Generic Exception raised:", ex);
+    logMilestoneFailure(ex, HttpStatus.INTERNAL_SERVER_ERROR);
     var errorResponse =
         ProblemJson.builder()
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -196,6 +176,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(ConstraintViolationException.class)
   protected ResponseEntity<String> handleConstraintViolationError(final ConstraintViolationException exception) {
+    logMilestoneFailure(exception, HttpStatus.BAD_REQUEST);
     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
   }
 

@@ -11,26 +11,32 @@ import org.slf4j.MDC;
 public class SchedulerUtils {
 
   public static void updateMDCForStartExecution(String method, String args) {
-    MDC.put(METHOD, method);
+    MDC.put(EVENT_ACTION, method);
     MDC.put(START_TIME, String.valueOf(Calendar.getInstance().getTimeInMillis()));
-    MDC.put(REQUEST_ID, UUID.randomUUID().toString());
-    MDC.put(OPERATION_ID, UUID.randomUUID().toString());
-    MDC.put(ARGS, args);
+    MDC.put(CORRELATION_ID, UUID.randomUUID().toString());
+    MDC.put(CTX_DETAILS_ARGS, args);
   }
 
   public static void updateMDCForEndExecution() {
-    MDC.put(STATUS, "OK");
-    MDC.put(CODE, "201");
-    MDC.put(RESPONSE_TIME, getExecutionTime());
+    MDC.put(EVENT_OUTCOME, "success");
+    String executionTime = getExecutionTime();
+    if (executionTime != null && !"-".equals(executionTime)) {
+      MDC.put(CTX_DETAILS_RESPONSE_TIME, executionTime);
+    }
     log.info("Scheduled job finished successfully");
+    
+    MDC.clear(); // Safe to clear all MDC since the scheduled job execution is over
   }
 
   public static void updateMDCError(Exception e, String method) {
-    MDC.put(STATUS, "KO");
-    MDC.put(CODE, "500");
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    MDC.put(FAULT_CODE, method);
-    MDC.put(FAULT_DETAIL, e.getMessage());
-    log.info("An error occurring during a scheduled job");
+    MDC.put(EVENT_OUTCOME, "failure");
+    String executionTime = getExecutionTime();
+    if (executionTime != null && !"-".equals(executionTime)) {
+      MDC.put(CTX_DETAILS_RESPONSE_TIME, executionTime);
+    }
+    
+    log.error("An error occurred during a scheduled job", e);
+    
+    MDC.clear(); // Safe to clear all MDC since the scheduled job execution is over
   }
 }

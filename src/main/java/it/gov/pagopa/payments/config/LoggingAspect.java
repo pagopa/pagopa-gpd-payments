@@ -32,19 +32,21 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LoggingAspect {
 
+  public static final String EVENT_ACTION = "event.action";
+  public static final String CORRELATION_ID = "correlation.id";
+  public static final String EVENT_OUTCOME = "event.outcome";
+  public static final String ERROR_MESSAGE = "error.message";
+  public static final String ERROR_TYPE = "error.type";
+
+  public static final String CTX_DETAILS_HTTP_CODE = "ctx.details.httpCode";
+  public static final String CTX_DETAILS_RESPONSE_TIME = "ctx.details.responseTime";
+  public static final String CTX_DETAILS_ARGS = "ctx.details.args";
+  public static final String CTX_DETAILS_DEPENDENCY = "ctx.details.dependency";
+  public static final String CTX_DETAILS_PATH = "ctx.details.path";
+
   public static final String START_TIME = "startTime";
-  public static final String METHOD = "method";
-  public static final String STATUS = "status";
-  public static final String CODE = "httpCode";
-  public static final String RESPONSE_TIME = "responseTime";
-  public static final String FAULT_CODE = "faultCode";
-  public static final String FAULT_DETAIL = "faultDetail";
-  public static final String REQUEST_ID = "requestId";
-  public static final String OPERATION_ID = "operationId";
-  public static final String ARGS = "args";
 
   final HttpServletRequest httRequest;
-
   final HttpServletResponse httpResponse;
 
   @Value("${info.application.name}")
@@ -104,7 +106,7 @@ public class LoggingAspect {
 
   @Pointcut("@within(org.springframework.ws.server.endpoint.annotation.Endpoint)")
   public void endpointClass() {
-    // all rest controllers
+    // all endpoint classes
   }
 
   @Pointcut("@within(org.springframework.stereotype.Repository)")
@@ -117,7 +119,11 @@ public class LoggingAspect {
     // all service methods
   }
 
-  /** Log essential info of application during the startup. */
+  @Pointcut("@within(org.springframework.cloud.openfeign.FeignClient)")
+  public void feignClient() {
+    // all feign clients
+  }
+
   @PostConstruct
   public void logStartup() {
     log.info("-> Starting {} version {} - environment {}", name, version, environment);
@@ -125,52 +131,81 @@ public class LoggingAspect {
 
   @Around(value = "restController() || endpointClass()")
   public Object logApiInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
-    MDC.put(METHOD, joinPoint.getSignature().getName());
+    String method = httRequest.getMethod();
+    String uri = httRequest.getRequestURI();
+    String action = method != null && uri != null ? method + " " + uri : joinPoint.getSignature().getName();
+    
+    MDC.put(EVENT_ACTION, action);
     MDC.put(START_TIME, String.valueOf(System.currentTimeMillis()));
-    MDC.put(OPERATION_ID, UUID.randomUUID().toString());
-    if (MDC.get(REQUEST_ID) == null) {
-      var requestId = UUID.randomUUID().toString();
-      MDC.put(REQUEST_ID, requestId);
+
+    if (MDC.get(CORRELATION_ID) == null) {
+      MDC.put(CORRELATION_ID, UUID.randomUUID().toString());
     }
+
     Map<String, String> params = getParams(joinPoint);
-    MDC.put(ARGS, params.toString());
+    MDC.put(CTX_DETAILS_ARGS, params.toString());
 
-    log.debug("Invoking API operation {} - args: {}", joinPoint.getSignature().getName(), params);
+    Object result = null;
+    try {
+      result = joinPoint.proceed();
 
-    Object result = joinPoint.proceed();
-
-    MDC.put(STATUS, "OK");
-    MDC.put(CODE, String.valueOf(httpResponse.getStatus()));
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    log.info(
-        "Successful API operation {} - result: {}",
-        joinPoint.getSignature().getName(),
-        jaxToString(result));
-    MDC.remove(STATUS);
-    MDC.remove(CODE);
-    MDC.remove(RESPONSE_TIME);
-    MDC.remove(START_TIME);
-    return result;
+      MDC.put(EVENT_OUTCOME, "success");
+      MDC.put(CTX_DETAILS_HTTP_CODE, String.valueOf(httpResponse.getStatus()));
+      MDC.put(CTX_DETAILS_RESPONSE_TIME, getExecutionTime());
+      
+      log.info("Completed API operation - result: {}", jaxToString(result));
+      return result;
+    } finally {
+      MDC.remove(EVENT_OUTCOME);
+      MDC.remove(CTX_DETAILS_HTTP_CODE);
+      MDC.remove(CTX_DETAILS_RESPONSE_TIME);
+      MDC.remove(START_TIME);
+      MDC.remove(CTX_DETAILS_ARGS);
+    }
   }
 
-  @AfterReturning(value = "execution(* *..exception.ErrorHandler.*(..))", returning = "result")
-  public void trowingApiInvocation(JoinPoint joinPoint, ResponseEntity<ProblemJson> result) {
-    MDC.put(STATUS, "KO");
-    MDC.put(CODE, String.valueOf(result.getStatusCode().value()));
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    MDC.put(FAULT_CODE, getTitle(result));
-    MDC.put(FAULT_DETAIL, getDetail(result));
-    log.info("Failed API operation {} - error: {}", MDC.get(METHOD), result);
-    MDC.clear();
-  }
 
-  @Around(value = "repository() || service()")
+  @Around(value = "repository() || service() || feignClient()")
   public Object logTrace(ProceedingJoinPoint joinPoint) throws Throwable {
     Map<String, String> params = getParams(joinPoint);
-    log.debug("Call method {} - args: {}", joinPoint.getSignature().toShortString(), params);
-    Object result = joinPoint.proceed();
-    log.debug("Return method {} - result: {}", joinPoint.getSignature().toShortString(), result);
-    return result;
+    String targetClass = joinPoint.getTarget().getClass().getSimpleName();
+    String methodName = joinPoint.getSignature().getName();
+    
+    long startTime = System.currentTimeMillis();
+    try {
+        Object result = joinPoint.proceed();
+        
+        MDC.put(EVENT_OUTCOME, "success");
+        MDC.put(CTX_DETAILS_DEPENDENCY, targetClass);
+        MDC.put(CTX_DETAILS_PATH, methodName);
+        long executionTime = System.currentTimeMillis() - startTime;
+        MDC.put(CTX_DETAILS_RESPONSE_TIME, String.valueOf(executionTime));
+        MDC.put(CTX_DETAILS_ARGS, params.toString());
+        
+        log.info("Completed I/O operation - result: {}", jaxToString(result));
+        
+        return result;
+    } catch (Exception e) {
+        MDC.put(EVENT_OUTCOME, "failure");
+        MDC.put(CTX_DETAILS_DEPENDENCY, targetClass);
+        MDC.put(CTX_DETAILS_PATH, methodName);
+        long executionTime = System.currentTimeMillis() - startTime;
+        MDC.put(CTX_DETAILS_RESPONSE_TIME, String.valueOf(executionTime));
+        MDC.put(CTX_DETAILS_ARGS, params.toString());
+        MDC.put(ERROR_TYPE, e.getClass().getName());
+        MDC.put(ERROR_MESSAGE, e.getMessage());
+        
+        log.info("Failed I/O operation");
+        throw e;
+    } finally {
+        MDC.remove(EVENT_OUTCOME);
+        MDC.remove(CTX_DETAILS_DEPENDENCY);
+        MDC.remove(CTX_DETAILS_PATH);
+        MDC.remove(CTX_DETAILS_RESPONSE_TIME);
+        MDC.remove(CTX_DETAILS_ARGS);
+        MDC.remove(ERROR_TYPE);
+        MDC.remove(ERROR_MESSAGE);
+    }
   }
 
   private static Object jaxToString(Object arg) {
