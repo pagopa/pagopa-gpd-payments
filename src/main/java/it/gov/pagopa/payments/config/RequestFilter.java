@@ -14,6 +14,8 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import static it.gov.pagopa.payments.config.LoggingAspect.CORRELATION_ID;
+
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestFilter implements Filter {
@@ -43,7 +45,7 @@ public class RequestFilter implements Filter {
       }
 
       // set requestId in MDC
-      MDC.put("requestId", requestId);
+      MDC.put(CORRELATION_ID, requestId);
 
       // set requestId in the response header
       ((HttpServletResponse) response).setHeader(HEADER_REQUEST_ID, requestId);

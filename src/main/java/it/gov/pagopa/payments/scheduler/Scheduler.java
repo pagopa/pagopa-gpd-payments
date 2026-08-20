@@ -11,6 +11,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import static it.gov.pagopa.payments.utils.SchedulerUtils.*;
 
 @Component
@@ -19,6 +22,8 @@ import static it.gov.pagopa.payments.utils.SchedulerUtils.*;
 @ConditionalOnProperty(name = "cron.job.schedule.retry.enabled", matchIfMissing = true)
 public class Scheduler {
 
+    private static final String LOG_BASE_HEADER_INFO = "[OperationType: %s] - [ClassMethod: %s] - [MethodParamsToLog: %s]";
+    private static final String CRON_JOB = "CRON JOB";
     private Thread threadOfExecution;
 
     @Autowired
@@ -28,13 +33,14 @@ public class Scheduler {
     @Async
     public void retryPaSendRT() {
         try {
-            updateMDCForStartExecution("retryPaSendRT");
+            updateMDCForStartExecution("retryPaSendRT", "");
+            log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now())));
             schedulerService.retryFailedPaSendRT();
             this.threadOfExecution = Thread.currentThread();
             updateMDCForEndExecution();
         }
         catch (Exception e){
-            updateMDCError(e);
+            updateMDCError(e, "retryPaSendRT");
             throw e;
         }
         finally {

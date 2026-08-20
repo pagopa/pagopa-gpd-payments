@@ -1,7 +1,6 @@
 package it.gov.pagopa.payments.service;
 
 import feign.FeignException;
-import it.gov.pagopa.payments.config.LogContext;
 import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
 import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.ConfigDataV1;
@@ -31,10 +30,9 @@ public class ConfigCacheService {
     public void setConfigCacheData() {
         try {
             getConfigCacheData();
-            LogContext.putDetail(LogContext.CTX_DETAILS_CACHE_VERSION, ConfigCacheData.getVersion());
-            log.debug("Configuration cache initialized");
+            log.info("[PostConstruct] Successful getConfigCacheData, version: {}", ConfigCacheData.getVersion());
         } catch (Exception e) {
-            log.error("Configuration cache initialization failed", e);
+            log.error("[PostConstruct] Exception while setConfigCacheData: ", e);
         }
     }
 
@@ -75,7 +73,7 @@ public class ConfigCacheService {
             try {
                 configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
             } catch (FeignException feignException) {
-                log.error("Configuration cache download failed", feignException);
+                log.error("[apiconfig-cache-update] Feign Exception while download cache {}: {}", feignException.getClass(), feignException.getMessage());
                 return;
             }
 
@@ -84,8 +82,7 @@ public class ConfigCacheService {
 
                 ConfigCacheData.setConfigData(configDataV1);
 
-                LogContext.putDetail(LogContext.CTX_DETAILS_CACHE_VERSION, ConfigCacheData.getVersion());
-                log.info("Configuration cache updated");
+                log.info("[apiconfig-cache-update] Cache version: {}", ConfigCacheData.getVersion());
             }
         }
     }

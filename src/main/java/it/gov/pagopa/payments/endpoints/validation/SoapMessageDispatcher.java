@@ -1,6 +1,5 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
-import it.gov.pagopa.payments.config.LogContext;
 import it.gov.pagopa.payments.config.LoggingAspect;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.partner.CtFaultBean;
@@ -79,10 +78,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
         }
         catch (PartnerValidationException e) {
 
-            LogContext.putDetail(LogContext.CTX_DETAILS_FAULT_CODE, e.getError().getFaultCode());
-            LoggingAspect.markApiFailure(e);
-            // business KO owned by the caller: the milestone outcome carries the failure
-            log.info(LoggingAspect.API_OPERATION_FAILED);
+            log.warn(LoggingAspect.API_OPERATION_FAILED, e);
             faultCode = e.getError().getFaultCode();
             faultString = e.getError().getFaultString();
             description = e.getError().getDescription();
@@ -90,7 +86,6 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
         } catch (Exception e) {
 
-            LoggingAspect.markApiFailure(e);
             log.error(LoggingAspect.API_OPERATION_FAILED, e);
             httpServletResponse.setStatus(500);
         }
