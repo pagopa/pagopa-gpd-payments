@@ -9,15 +9,15 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import static it.gov.pagopa.payments.config.LoggingAspect.CORRELATION_ID;
+
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@Slf4j
 public class RequestFilter implements Filter {
 
   private static final String HEADER_REQUEST_ID = "X-Request-Id";
@@ -45,8 +45,7 @@ public class RequestFilter implements Filter {
       }
 
       // set requestId in MDC
-      MDC.put("requestId", requestId);
-      log.debug("{} {}", httRequest.getMethod(), httRequest.getRequestURI());
+      MDC.put(CORRELATION_ID, requestId);
 
       // set requestId in the response header
       ((HttpServletResponse) response).setHeader(HEADER_REQUEST_ID, requestId);
