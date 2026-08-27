@@ -31,7 +31,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,7 +71,7 @@ class SchedulerServiceTest {
   @Mock private GpdClient gpdClient;
 
   @Mock private GpsClient gpsClient;
-  
+
   @Mock private DeadLetterService deadLetterService;
 
   private String genericService = "/xsd/general-service.xsd";
@@ -85,11 +84,13 @@ class SchedulerServiceTest {
 
   @Autowired private CustomizedMapper customizedModelMapper;
 
-  @ClassRule @Container
+  @ClassRule
+  @Container
   public static GenericContainer<?> azurite =
       new GenericContainer<>(
               DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
-          .withCommand("azurite --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0")
+          .withCommand(
+              "azurite --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0")
           .withExposedPorts(10001, 10002, 10000);
 
   String storageConnectionString =
@@ -103,407 +104,599 @@ class SchedulerServiceTest {
           azurite.getMappedPort(10000));
 
   @Test
-  void paSendRTQueueReceiveTestOk() throws DatatypeConfigurationException, IOException, URISyntaxException, InvalidKeyException, StorageException {
+  void paSendRTQueueReceiveTestOk()
+      throws DatatypeConfigurationException,
+          IOException,
+          URISyntaxException,
+          InvalidKeyException,
+          StorageException {
 
     var pService =
-            spy(
-                    new PartnerService(
-                            resource,
-                            queueSendInvisibilityTime,
-                            factory,
-                            gpdClient,
-                            gpsClient,
-                            tableClientConfiguration(),
-                            queueClientConfiguration(),
-                            customizedModelMapper, List.of(), List.of()));
+        spy(
+            new PartnerService(
+                resource,
+                queueSendInvisibilityTime,
+                factory,
+                gpdClient,
+                gpsClient,
+                tableClientConfiguration(),
+                queueClientConfiguration(),
+                customizedModelMapper,
+                List.of(),
+                List.of()));
 
     var schedService =
-            spy(
-                    new SchedulerService(
-                            5,
-                            1L,
-                            1L,
-                            queueClientConfiguration(),
-                            pService,
-                            deadLetterService));
+        spy(
+            new SchedulerService(
+                5,
+                1L,
+                1L,
+                queueClientConfiguration(),
+                pService,
+                deadLetterService));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
 
-    var e = Mockito.mock(FeignException.class);
+    var e = mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
-            .thenThrow(e);
-    doReturn(MockUtil.readModelFromFile("gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class))
-            .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+
+    when(
+            gpdClient.sendPaymentOptionReceipt(
+                anyString(), anyString(), nullable(PaymentOptionModel.class)))
+        .thenThrow(e);
+
+    doReturn(
+            MockUtil.readModelFromFile(
+                "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class))
+        .when(pService)
+        .getReceiptPaymentOptionScheduler(
+            anyString(),
+            anyString(),
+            anyString(),
+            anyBoolean(),
+            any(PaymentOptionModel.class),
+            any(ReceiptEntity.class));
 
     try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      CloudStorageAccount cloudStorageAccount =
+          CloudStorageAccount.parse(storageConnectionString);
+
+      CloudTableClient cloudTableClient =
+          cloudStorageAccount.createCloudTableClient();
+
+      TableRequestOptions tableRequestOptions =
+          new TableRequestOptions();
+
+      tableRequestOptions.setRetryPolicyFactory(
+          RetryNoRetry.getInstance());
+
+      cloudTableClient.setDefaultRequestOptions(
+          tableRequestOptions);
+
+      CloudTable table =
+          cloudTableClient.getTableReference("receiptsTable");
+
       table.createIfNotExists();
-      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
-      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+
+      CloudQueueClient cloudQueueClient =
+          cloudStorageAccount.createCloudQueueClient();
+
+      CloudQueue queue =
+          cloudQueueClient.getQueueReference("testqueue");
+
       queue.create();
+
     } catch (Exception ex) {
       log.info("Error during table creation", ex);
     }
 
-    try {
-      // Test execution
-      queueClientConfiguration().clearMessages();
-      assertEquals(0, queueClientConfiguration().receiveMessages(10).stream().toList().size());
-      pService.paSendRT(requestBody);
-      fail();
-    } catch (PartnerValidationException ex) {
-      // Test post condition
-      assertEquals(1, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
-      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
-      schedService.retryFailedPaSendRT();
-      await().pollDelay(Duration.ofSeconds(2L)).until(() -> true);
-      assertEquals(0, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
-    }
+    // Test execution
+    queueClientConfiguration().clearMessages();
+
+    assertEquals(
+        0,
+        queueClientConfiguration()
+            .receiveMessages(10)
+            .stream()
+            .toList()
+            .size());
+
+    PartnerValidationException ex =
+        assertThrows(
+            PartnerValidationException.class,
+            () -> pService.paSendRT(requestBody));
+
+    // Test post condition
+    assertEquals(
+        1,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
+
+    assertEquals(
+        PaaErrorEnum.PAA_SEMANTICA,
+        ex.getError());
+
+    schedService.retryFailedPaSendRT();
+
+    await()
+        .pollDelay(Duration.ofSeconds(2L))
+        .until(() -> true);
+
+    assertEquals(
+        0,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
   }
 
   @Test
-  void paSendRTQueueReceiveTestKo() throws DatatypeConfigurationException, IOException, URISyntaxException, InvalidKeyException, StorageException {
+  void paSendRTQueueReceiveTestKo()
+      throws DatatypeConfigurationException,
+          IOException,
+          URISyntaxException,
+          InvalidKeyException,
+          StorageException {
 
     var pService =
-            spy(
-                    new PartnerService(
-                            resource,
-                            queueSendInvisibilityTime,
-                            factory,
-                            gpdClient,
-                            gpsClient,
-                            tableClientConfiguration(),
-                            queueClientConfiguration(),
-                            customizedModelMapper, List.of(), List.of()));
+        spy(
+            new PartnerService(
+                resource,
+                queueSendInvisibilityTime,
+                factory,
+                gpdClient,
+                gpsClient,
+                tableClientConfiguration(),
+                queueClientConfiguration(),
+                customizedModelMapper,
+                List.of(),
+                List.of()));
 
     var schedService =
-            spy(
-                    new SchedulerService(
-                            5,
-                            1L,
-                            1L,
-                            queueClientConfiguration(),
-                            pService,
-                            deadLetterService));
+        spy(
+            new SchedulerService(
+                5,
+                1L,
+                1L,
+                queueClientConfiguration(),
+                pService,
+                deadLetterService));
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
+    PaSendRTReq requestBody =
+        PaSendRTReqMock.getMockDebtor("11111111112222225");
 
-    var e = Mockito.mock(FeignException.class);
+    var e = mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
-            .thenThrow(e);
+
+    when(
+            gpdClient.sendPaymentOptionReceipt(
+                anyString(), anyString(), nullable(PaymentOptionModel.class)))
+        .thenThrow(e);
+
     doThrow(FeignException.class)
-            .when(pService)
-            .getReceiptPaymentOptionScheduler(anyString(), anyString(), anyString(), anyBoolean(), any(PaymentOptionModel.class), any(ReceiptEntity.class));
+        .when(pService)
+        .getReceiptPaymentOptionScheduler(
+            anyString(),
+            anyString(),
+            anyString(),
+            anyBoolean(),
+            any(PaymentOptionModel.class),
+            any(ReceiptEntity.class));
 
     try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      CloudStorageAccount cloudStorageAccount =
+          CloudStorageAccount.parse(storageConnectionString);
+
+      CloudTableClient cloudTableClient =
+          cloudStorageAccount.createCloudTableClient();
+
+      TableRequestOptions tableRequestOptions =
+          new TableRequestOptions();
+
+      tableRequestOptions.setRetryPolicyFactory(
+          RetryNoRetry.getInstance());
+
+      cloudTableClient.setDefaultRequestOptions(
+          tableRequestOptions);
+
+      CloudTable table =
+          cloudTableClient.getTableReference("receiptsTable");
+
       table.createIfNotExists();
-      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
-      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+
+      CloudQueueClient cloudQueueClient =
+          cloudStorageAccount.createCloudQueueClient();
+
+      CloudQueue queue =
+          cloudQueueClient.getQueueReference("testqueue");
+
       queue.create();
+
     } catch (Exception ex) {
       log.info("Error during table creation", ex);
     }
 
-    try {
-      // Test execution
-      queueClientConfiguration().clearMessages();
-      assertEquals(0, queueClientConfiguration().receiveMessages(10).stream().toList().size());
-      pService.paSendRT(requestBody);
-      fail();
-    } catch (PartnerValidationException ex) {
-      // Test post condition
-      assertEquals(1, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
-      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
-      schedService.retryFailedPaSendRT();
-      await().pollDelay(Duration.ofSeconds(2L)).until(() -> true);
-      assertEquals(1, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
-    }
+    // Test execution
+    queueClientConfiguration().clearMessages();
+
+    assertEquals(
+        0,
+        queueClientConfiguration()
+            .receiveMessages(10)
+            .stream()
+            .toList()
+            .size());
+
+    PartnerValidationException ex =
+        assertThrows(
+            PartnerValidationException.class,
+            () -> pService.paSendRT(requestBody));
+
+    // Test post condition
+    assertEquals(
+        1,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
+
+    assertEquals(
+        PaaErrorEnum.PAA_SEMANTICA,
+        ex.getError());
+
+    schedService.retryFailedPaSendRT();
+
+    await()
+        .pollDelay(Duration.ofSeconds(2L))
+        .until(() -> true);
+
+    assertEquals(
+        1,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
   }
 
   @Test
-  void paSendRTQueueReceiveTestShouldMoveMessageToDeadLetterWhenDequeueLimitExceeded() throws DatatypeConfigurationException, IOException, URISyntaxException, InvalidKeyException, StorageException {
+  void paSendRTQueueReceiveTestShouldMoveMessageToDeadLetterWhenDequeueLimitExceeded()
+      throws DatatypeConfigurationException,
+          IOException,
+          URISyntaxException,
+          InvalidKeyException,
+          StorageException {
 
     var pService =
-            spy(
-                    new PartnerService(
-                            resource,
-                            queueSendInvisibilityTime,
-                            factory,
-                            gpdClient,
-                            gpsClient,
-                            tableClientConfiguration(),
-                            queueClientConfiguration(),
-                            customizedModelMapper, List.of(), List.of()));
+        spy(
+            new PartnerService(
+                resource,
+                queueSendInvisibilityTime,
+                factory,
+                gpdClient,
+                gpsClient,
+                tableClientConfiguration(),
+                queueClientConfiguration(),
+                customizedModelMapper,
+                List.of(),
+                List.of()));
 
     var schedService =
-            spy(
-                    new SchedulerService(
-                            5,
-                            1L,
-                            1L,
-                            queueClientConfiguration(),
-                            pService,
-                            deadLetterService));
+        spy(
+            new SchedulerService(
+                5,
+                1L,
+                1L,
+                queueClientConfiguration(),
+                pService,
+                deadLetterService));
 
     // Test preconditions
-    PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
+    PaSendRTReq requestBody =
+        PaSendRTReqMock.getMockDebtor("11111111112222225");
 
-    var e = Mockito.mock(FeignException.class);
+    var e = mock(FeignException.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpdClient.sendPaymentOptionReceipt(anyString(), anyString(), nullable(PaymentOptionModel.class)))
-            .thenThrow(e);
+
+    when(
+            gpdClient.sendPaymentOptionReceipt(
+                anyString(), anyString(), nullable(PaymentOptionModel.class)))
+        .thenThrow(e);
 
     try {
-      CloudStorageAccount cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-      CloudTableClient cloudTableClient = cloudStorageAccount.createCloudTableClient();
-      TableRequestOptions tableRequestOptions = new TableRequestOptions();
-      tableRequestOptions.setRetryPolicyFactory(RetryNoRetry.getInstance());
-      cloudTableClient.setDefaultRequestOptions(tableRequestOptions);
-      CloudTable table = cloudTableClient.getTableReference("receiptsTable");
+      CloudStorageAccount cloudStorageAccount =
+          CloudStorageAccount.parse(storageConnectionString);
+
+      CloudTableClient cloudTableClient =
+          cloudStorageAccount.createCloudTableClient();
+
+      TableRequestOptions tableRequestOptions =
+          new TableRequestOptions();
+
+      tableRequestOptions.setRetryPolicyFactory(
+          RetryNoRetry.getInstance());
+
+      cloudTableClient.setDefaultRequestOptions(
+          tableRequestOptions);
+
+      CloudTable table =
+          cloudTableClient.getTableReference("receiptsTable");
+
       table.createIfNotExists();
-      CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
-      CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
+
+      CloudQueueClient cloudQueueClient =
+          cloudStorageAccount.createCloudQueueClient();
+
+      CloudQueue queue =
+          cloudQueueClient.getQueueReference("testqueue");
+
       queue.create();
+
     } catch (Exception ex) {
       log.info("Error during table creation", ex);
     }
 
-    try {
-      // Test execution
-      queueClientConfiguration().clearMessages();
-      assertEquals(0, queueClientConfiguration().receiveMessages(10).stream().toList().size());
-      pService.paSendRT(requestBody);
-      fail();
-    } catch (PartnerValidationException ex) {
-      // Test post condition
-      assertEquals(1, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
-      assertEquals(PaaErrorEnum.PAA_SEMANTICA, ex.getError());
-      ArgumentCaptor<DeadLetterMessage> deadLetterCaptor =
-    	        ArgumentCaptor.forClass(DeadLetterMessage.class);
-      for (int i = 0; i <= 4; i++) {
+    // Test execution
+    queueClientConfiguration().clearMessages();
 
-    	    QueueMessageItem receptionMessage =
-    	            queueClientConfiguration().receiveMessage();
+    assertEquals(
+        0,
+        queueClientConfiguration()
+            .receiveMessages(10)
+            .stream()
+            .toList()
+            .size());
 
-    	    String originalContent =
-    	            new String(
-    	                    receptionMessage.getBody().toBytes(),
-    	                    StandardCharsets.UTF_8);
+    PartnerValidationException ex =
+        assertThrows(
+            PartnerValidationException.class,
+            () -> pService.paSendRT(requestBody));
 
-    	    queueClientConfiguration().updateMessage(
-    	            receptionMessage.getMessageId(),
-    	            receptionMessage.getPopReceipt(),
-    	            originalContent,
-    	            null);
-      }
-      schedService.retryFailedPaSendRT();
-      
-      verify(deadLetterService).sendToDeadLetter(deadLetterCaptor.capture());
-      DeadLetterMessage deadLetterMessage =
-    	        deadLetterCaptor.getValue();
+    // Test post condition
+    assertEquals(
+        1,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
 
-      assertNotNull(deadLetterMessage.getMessageId());
-      assertEquals(6L, deadLetterMessage.getDequeueCount());
-      assertEquals(
-    	        DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED,
-    	        deadLetterMessage.getReason());
-      assertNotNull(deadLetterMessage.getDeadLetteredAt());
-      assertFalse(deadLetterMessage.getOriginalMessage().isBlank());
-      
-      assertEquals(0, queueClientConfiguration().peekMessages(10, null, Context.NONE).stream().toList().size());
+    assertEquals(
+        PaaErrorEnum.PAA_SEMANTICA,
+        ex.getError());
+
+    ArgumentCaptor<DeadLetterMessage> deadLetterCaptor =
+        ArgumentCaptor.forClass(DeadLetterMessage.class);
+
+    for (int i = 0; i <= 4; i++) {
+
+      QueueMessageItem receptionMessage =
+          queueClientConfiguration().receiveMessage();
+
+      String originalContent =
+          new String(
+              receptionMessage.getBody().toBytes(),
+              StandardCharsets.UTF_8);
+
+      queueClientConfiguration()
+          .updateMessage(
+              receptionMessage.getMessageId(),
+              receptionMessage.getPopReceipt(),
+              originalContent,
+              null);
     }
+
+    schedService.retryFailedPaSendRT();
+
+    verify(deadLetterService)
+        .sendToDeadLetter(deadLetterCaptor.capture());
+
+    DeadLetterMessage deadLetterMessage =
+        deadLetterCaptor.getValue();
+
+    assertNotNull(deadLetterMessage.getMessageId());
+
+    assertEquals(
+        6L,
+        deadLetterMessage.getDequeueCount());
+
+    assertEquals(
+        DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED,
+        deadLetterMessage.getReason());
+
+    assertNotNull(deadLetterMessage.getDeadLetteredAt());
+
+    assertFalse(
+        deadLetterMessage.getOriginalMessage().isBlank());
+
+    assertEquals(
+        0,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
   }
-  
+
   @Test
   void paSendRTQueueReceiveTestShouldKeepMessageWhenDeadLetterPersistenceFails()
-          throws DatatypeConfigurationException,
-                  IOException,
-                  URISyntaxException,
-                  InvalidKeyException,
-                  StorageException {
+      throws DatatypeConfigurationException,
+          IOException,
+          URISyntaxException,
+          InvalidKeyException,
+          StorageException {
 
-      var pService =
-              spy(
-                      new PartnerService(
-                              resource,
-                              queueSendInvisibilityTime,
-                              factory,
-                              gpdClient,
-                              gpsClient,
-                              tableClientConfiguration(),
-                              queueClientConfiguration(),
-                              customizedModelMapper,
-                              List.of(),
-                              List.of()));
+    var pService =
+        spy(
+            new PartnerService(
+                resource,
+                queueSendInvisibilityTime,
+                factory,
+                gpdClient,
+                gpsClient,
+                tableClientConfiguration(),
+                queueClientConfiguration(),
+                customizedModelMapper,
+                List.of(),
+                List.of()));
 
-      var schedService =
-              spy(
-                      new SchedulerService(
-                              5,
-                              1L,
-                              1L,
-                              queueClientConfiguration(),
-                              pService,
-                              deadLetterService));
+    var schedService =
+        spy(
+            new SchedulerService(
+                5,
+                1L,
+                1L,
+                queueClientConfiguration(),
+                pService,
+                deadLetterService));
 
-      // Test preconditions
-      PaSendRTReq requestBody =
-              PaSendRTReqMock.getMockDebtor("11111111112222225");
+    // Test preconditions
+    PaSendRTReq requestBody =
+        PaSendRTReqMock.getMockDebtor("11111111112222225");
 
-      var e = Mockito.mock(FeignException.class);
-      lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
+    var e = mock(FeignException.class);
+    lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
 
-      when(
-              gpdClient.sendPaymentOptionReceipt(
-                      anyString(),
-                      anyString(),
-                      nullable(PaymentOptionModel.class)))
-              .thenThrow(e);
+    when(
+            gpdClient.sendPaymentOptionReceipt(
+                anyString(),
+                anyString(),
+                nullable(PaymentOptionModel.class)))
+        .thenThrow(e);
 
-      try {
-          CloudStorageAccount cloudStorageAccount =
-                  CloudStorageAccount.parse(storageConnectionString);
+    try {
+      CloudStorageAccount cloudStorageAccount =
+          CloudStorageAccount.parse(storageConnectionString);
 
-          CloudTableClient cloudTableClient =
-                  cloudStorageAccount.createCloudTableClient();
+      CloudTableClient cloudTableClient =
+          cloudStorageAccount.createCloudTableClient();
 
-          TableRequestOptions tableRequestOptions =
-                  new TableRequestOptions();
+      TableRequestOptions tableRequestOptions =
+          new TableRequestOptions();
 
-          tableRequestOptions.setRetryPolicyFactory(
-                  RetryNoRetry.getInstance());
+      tableRequestOptions.setRetryPolicyFactory(
+          RetryNoRetry.getInstance());
 
-          cloudTableClient.setDefaultRequestOptions(
-                  tableRequestOptions);
+      cloudTableClient.setDefaultRequestOptions(
+          tableRequestOptions);
 
-          CloudTable table =
-                  cloudTableClient.getTableReference("receiptsTable");
+      CloudTable table =
+          cloudTableClient.getTableReference("receiptsTable");
 
-          table.createIfNotExists();
+      table.createIfNotExists();
 
-          CloudQueueClient cloudQueueClient =
-                  cloudStorageAccount.createCloudQueueClient();
+      CloudQueueClient cloudQueueClient =
+          cloudStorageAccount.createCloudQueueClient();
 
-          CloudQueue queue =
-                  cloudQueueClient.getQueueReference("testqueue");
+      CloudQueue queue =
+          cloudQueueClient.getQueueReference("testqueue");
 
-          queue.create();
+      queue.create();
 
-      } catch (Exception ex) {
-          log.info("Error during table creation", ex);
-      }
+    } catch (Exception ex) {
+      log.info("Error during table creation", ex);
+    }
 
-      try {
-          // Test execution
-          queueClientConfiguration().clearMessages();
+    // Test execution
+    queueClientConfiguration().clearMessages();
 
-          assertEquals(
-                  0,
-                  queueClientConfiguration()
-                          .receiveMessages(10)
-                          .stream()
-                          .toList()
-                          .size());
+    assertEquals(
+        0,
+        queueClientConfiguration()
+            .receiveMessages(10)
+            .stream()
+            .toList()
+            .size());
 
-          pService.paSendRT(requestBody);
+    PartnerValidationException ex =
+        assertThrows(
+            PartnerValidationException.class,
+            () -> pService.paSendRT(requestBody));
 
-          fail();
+    // The failed paSendRT must have been stored in the retry queue.
+    assertEquals(
+        1,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
 
-      } catch (PartnerValidationException ex) {
+    assertEquals(
+        PaaErrorEnum.PAA_SEMANTICA,
+        ex.getError());
 
-          // The failed paSendRT must have been stored in the retry queue.
-          assertEquals(
-                  1,
-                  queueClientConfiguration()
-                          .peekMessages(10, null, Context.NONE)
-                          .stream()
-                          .toList()
-                          .size());
+    /*
+     * Increase the dequeue count up to the retry limit while preserving
+     * the original receipt payload.
+     */
+    for (int i = 0; i <= 4; i++) {
 
-          assertEquals(
-                  PaaErrorEnum.PAA_SEMANTICA,
-                  ex.getError());
+      QueueMessageItem receptionMessage =
+          queueClientConfiguration().receiveMessage();
 
-          /*
-           * Increase the dequeue count up to the retry limit while preserving
-           * the original receipt payload.
-           */
-          for (int i = 0; i <= 4; i++) {
+      String originalContent =
+          new String(
+              receptionMessage.getBody().toBytes(),
+              StandardCharsets.UTF_8);
 
-              QueueMessageItem receptionMessage =
-                      queueClientConfiguration().receiveMessage();
+      queueClientConfiguration()
+          .updateMessage(
+              receptionMessage.getMessageId(),
+              receptionMessage.getPopReceipt(),
+              originalContent,
+              null);
+    }
 
-              String originalContent =
-                      new String(
-                              receptionMessage.getBody().toBytes(),
-                              StandardCharsets.UTF_8);
+    /*
+     * Simulate Blob Storage unavailability. The scheduler must not delete
+     * the original queue message when dead-letter persistence fails.
+     */
+    doThrow(new IllegalStateException("Blob Storage unavailable"))
+        .when(deadLetterService)
+        .sendToDeadLetter(any(DeadLetterMessage.class));
 
-              queueClientConfiguration().updateMessage(
-                      receptionMessage.getMessageId(),
-                      receptionMessage.getPopReceipt(),
-                      originalContent,
-                      null);
-          }
+    schedService.retryFailedPaSendRT();
 
-          /*
-           * Simulate Blob Storage unavailability. The scheduler must not delete
-           * the original queue message when dead-letter persistence fails.
-           */
-          doThrow(new IllegalStateException("Blob Storage unavailable"))
-                  .when(deadLetterService)
-                  .sendToDeadLetter(any(DeadLetterMessage.class));
+    verify(deadLetterService)
+        .sendToDeadLetter(any(DeadLetterMessage.class));
 
-          schedService.retryFailedPaSendRT();
+    /*
+     * retryFailedPaSendRT() receives the message with a one-second
+     * visibility timeout. Since dead-letter persistence failed, the
+     * message was not deleted and must become visible again.
+     */
+    await()
+        .pollDelay(Duration.ofSeconds(2L))
+        .until(() -> true);
 
-          verify(deadLetterService)
-                  .sendToDeadLetter(any(DeadLetterMessage.class));
-
-          /*
-           * retryFailedPaSendRT() receives the message with a one-second
-           * visibility timeout. Since dead-letter persistence failed, the
-           * message was not deleted and must become visible again.
-           */
-          await()
-                  .pollDelay(Duration.ofSeconds(2L))
-                  .until(() -> true);
-
-          assertEquals(
-                  1,
-                  queueClientConfiguration()
-                          .peekMessages(10, null, Context.NONE)
-                          .stream()
-                          .toList()
-                          .size());
-      }
+    assertEquals(
+        1,
+        queueClientConfiguration()
+            .peekMessages(10, null, Context.NONE)
+            .stream()
+            .toList()
+            .size());
   }
 
   private TableClient tableClientConfiguration() {
-      return new TableClientBuilder()
-              .connectionString(storageConnectionString)
-              .tableName("receiptsTable")
-              .buildClient();
+    return new TableClientBuilder()
+        .connectionString(storageConnectionString)
+        .tableName("receiptsTable")
+        .buildClient();
   }
 
   private QueueClient queueClientConfiguration() {
     return new QueueClientBuilder()
-            .connectionString(storageConnectionString)
-            .queueName("testqueue")
-            .buildClient();
+        .connectionString(storageConnectionString)
+        .queueName("testqueue")
+        .buildClient();
   }
 }

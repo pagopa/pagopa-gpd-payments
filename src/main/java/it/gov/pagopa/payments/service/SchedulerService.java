@@ -12,10 +12,7 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
 import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
@@ -43,27 +40,31 @@ import java.util.Optional;
 
 @Service
 @Slf4j
-@NoArgsConstructor
-@AllArgsConstructor
 public class SchedulerService {
 
-    @Value(value = "${azure.queue.dequeue.limit}")
-    private Integer dequeueLimit;
+	private final Integer dequeueLimit;
+	private final Long queueReceiveInvisibilityTime;
+	private final Long queueUpdateInvisibilityTime;
 
-    @Value(value = "${azure.queue.receive.invisibilityTime}")
-    private Long queueReceiveInvisibilityTime;
+	private final QueueClient queueClient;
+	private final PartnerService partnerService;
+	private final DeadLetterService deadLetterService;
 
-    @Value(value = "${azure.queue.send.invisibilityTime}")
-    private Long queueUpdateInvisibilityTime;
+	public SchedulerService(
+	        @Value("${azure.queue.dequeue.limit}") Integer dequeueLimit,
+	        @Value("${azure.queue.receive.invisibilityTime}") Long queueReceiveInvisibilityTime,
+	        @Value("${azure.queue.send.invisibilityTime}") Long queueUpdateInvisibilityTime,
+	        QueueClient queueClient,
+	        PartnerService partnerService,
+	        DeadLetterService deadLetterService) {
 
-    @Autowired
-    QueueClient queueClient;
-
-    @Autowired
-    PartnerService partnerService;
-    
-    @Autowired
-    DeadLetterService deadLetterService;
+	    this.dequeueLimit = dequeueLimit;
+	    this.queueReceiveInvisibilityTime = queueReceiveInvisibilityTime;
+	    this.queueUpdateInvisibilityTime = queueUpdateInvisibilityTime;
+	    this.queueClient = queueClient;
+	    this.partnerService = partnerService;
+	    this.deadLetterService = deadLetterService;
+	}
 
     public void retryFailedPaSendRT() {
         XPathFactory xPathfactory = XPathFactory.newInstance();
