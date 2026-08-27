@@ -126,14 +126,15 @@ class SchedulerServiceTest {
                 List.of()));
 
     var schedService =
-        spy(
-            new SchedulerService(
-                5,
-                1L,
-                1L,
-                queueClientConfiguration(),
-                pService,
-                deadLetterService));
+    		spy(new SchedulerService(
+    				5,
+    				1L,
+    				1L,
+    				8L,
+    				2.0,
+    				queueClientConfiguration(),
+    				pService,
+    				deadLetterService));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMockDebtor("11111111112222225");
@@ -258,14 +259,15 @@ class SchedulerServiceTest {
                 List.of()));
 
     var schedService =
-        spy(
-            new SchedulerService(
-                5,
-                1L,
-                1L,
-                queueClientConfiguration(),
-                pService,
-                deadLetterService));
+    		spy(new SchedulerService(
+    				5,
+    				1L,
+    				1L,
+    				8L,
+    				2.0,
+    				queueClientConfiguration(),
+    				pService,
+    				deadLetterService));
 
     // Test preconditions
     PaSendRTReq requestBody =
@@ -389,14 +391,15 @@ class SchedulerServiceTest {
                 List.of()));
 
     var schedService =
-        spy(
-            new SchedulerService(
-                5,
-                1L,
-                1L,
-                queueClientConfiguration(),
-                pService,
-                deadLetterService));
+    		spy(new SchedulerService(
+    				5,
+    				1L,
+    				1L,
+    				8L,
+    				2.0,
+    				queueClientConfiguration(),
+    				pService,
+    				deadLetterService));
 
     // Test preconditions
     PaSendRTReq requestBody =
@@ -548,14 +551,15 @@ class SchedulerServiceTest {
                 List.of()));
 
     var schedService =
-        spy(
-            new SchedulerService(
-                5,
-                1L,
-                1L,
-                queueClientConfiguration(),
-                pService,
-                deadLetterService));
+    		spy(new SchedulerService(
+    				5,
+    				1L,
+    				1L,
+    				8L,
+    				2.0,
+    				queueClientConfiguration(),
+    				pService,
+    				deadLetterService));
 
     // Test preconditions
     PaSendRTReq requestBody =
@@ -684,6 +688,41 @@ class SchedulerServiceTest {
             .stream()
             .toList()
             .size());
+  }
+  
+  @Test
+  void calculateRetryVisibilityTimeoutShouldIncreaseExponentiallyAndRespectMaxDelay() {
+
+      SchedulerService schedService =
+              new SchedulerService(
+                      10,
+                      1L,
+                      2L,
+                      10L,
+                      2.0,
+                      mock(QueueClient.class),
+                      mock(PartnerService.class),
+                      deadLetterService);
+
+      assertEquals(
+              2L,
+              schedService.calculateRetryVisibilityTimeout(1));
+
+      assertEquals(
+              4L,
+              schedService.calculateRetryVisibilityTimeout(2));
+
+      assertEquals(
+              8L,
+              schedService.calculateRetryVisibilityTimeout(3));
+
+      assertEquals(
+              10L,
+              schedService.calculateRetryVisibilityTimeout(4));
+
+      assertEquals(
+              10L,
+              schedService.calculateRetryVisibilityTimeout(5));
   }
 
   private TableClient tableClientConfiguration() {

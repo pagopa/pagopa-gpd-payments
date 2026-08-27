@@ -44,7 +44,9 @@ public class SchedulerService {
 
 	private final Integer dequeueLimit;
 	private final Long queueReceiveInvisibilityTime;
-	private final Long queueUpdateInvisibilityTime;
+	private final Long queueRetryInitialDelay;
+	private final Long queueRetryMaxDelay;
+	private final Double queueRetryMultiplier;
 
 	private final QueueClient queueClient;
 	private final PartnerService partnerService;
@@ -53,14 +55,18 @@ public class SchedulerService {
 	public SchedulerService(
 	        @Value("${azure.queue.dequeue.limit}") Integer dequeueLimit,
 	        @Value("${azure.queue.receive.invisibilityTime}") Long queueReceiveInvisibilityTime,
-	        @Value("${azure.queue.send.invisibilityTime}") Long queueUpdateInvisibilityTime,
+	        @Value("${azure.queue.retry.initialDelay}") Long queueRetryInitialDelay,
+	        @Value("${azure.queue.retry.maxDelay}") Long queueRetryMaxDelay,
+	        @Value("${azure.queue.retry.multiplier}") Double queueRetryMultiplier,
 	        QueueClient queueClient,
 	        PartnerService partnerService,
 	        DeadLetterService deadLetterService) {
 
 	    this.dequeueLimit = dequeueLimit;
 	    this.queueReceiveInvisibilityTime = queueReceiveInvisibilityTime;
-	    this.queueUpdateInvisibilityTime = queueUpdateInvisibilityTime;
+	    this.queueRetryInitialDelay = queueRetryInitialDelay;
+	    this.queueRetryMaxDelay = queueRetryMaxDelay;
+	    this.queueRetryMultiplier = queueRetryMultiplier;
 	    this.queueClient = queueClient;
 	    this.partnerService = partnerService;
 	    this.deadLetterService = deadLetterService;
@@ -145,12 +151,24 @@ public class SchedulerService {
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
-            log.debug("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", receiptFiscalCode, noticeNumber);
+
+            long retryDelay =
+                    calculateRetryVisibilityTimeout(
+                            queueMessageItem.getDequeueCount());
+
+            log.debug(
+                    "[paSendRT] Retry failed. Next retry scheduled "
+                            + "[fiscalCode={},noticeNumber={},dequeueCount={},retryDelaySeconds={}]",
+                    receiptFiscalCode,
+                    noticeNumber,
+                    queueMessageItem.getDequeueCount(),
+                    retryDelay);
+
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
                     queueMessageItem.getPopReceipt(),
                     receiptEntity.getDocument(),
-                    Duration.ofSeconds(queueUpdateInvisibilityTime),
+                    Duration.ofSeconds(retryDelay),
                     null,
                     Context.NONE);
         } catch (PartnerValidationException e) {
@@ -158,6 +176,36 @@ public class SchedulerService {
             log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), receiptFiscalCode, noticeNumber);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         }
+    }
+    
+    long calculateRetryVisibilityTimeout(long dequeueCount) {
+
+        long exponent = Math.max(0L, dequeueCount - 1);
+
+        double calculatedDelay =
+                queueRetryInitialDelay
+                        * Math.pow(queueRetryMultiplier, exponent);
+
+        /*
+         * Cap the exponential backoff to prevent excessively long retry delays
+         * when the dequeue count grows.
+         * 
+         * Without capping (initialDelay = 120s / 2m, multiplier = 2.0):
+         * - dequeueCount 1: 120s  (2 min)
+         * - dequeueCount 2: 240s  (4 min)
+         * - dequeueCount 3: 480s  (8 min)
+         * - dequeueCount 4: 960s  (16 min)
+         * - dequeueCount 5: 1920s (32 min)
+         * - dequeueCount 6: 3840s (64 min / >1 hour)
+         * - dequeueCount 10: ~34 hours
+         * 
+         * With cap (maxDelay = 3600s / 60 min):
+         * - dequeueCount 6: 3840s -> Capped at 3600s (60 min)
+         * - dequeueCount 7: 7680s -> Capped at 3600s (60 min)
+         */
+        return Math.min(
+                (long) Math.ceil(calculatedDelay),
+                queueRetryMaxDelay);
     }
 
     public boolean checkQueueCountValidity(QueueMessageItem message) {
