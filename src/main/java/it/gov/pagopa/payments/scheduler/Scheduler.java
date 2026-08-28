@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 
 import static it.gov.pagopa.payments.utils.SchedulerUtils.*;
 
@@ -31,7 +32,7 @@ public class Scheduler {
     public void retryPaSendRT() {
         try {
             updateMDCForStartExecution("retryPaSendRT", "");
-            log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now())));
+            log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now(ZoneId.systemDefault()))));
             schedulerService.retryFailedPaSendRT();
             this.threadOfExecution = Thread.currentThread();
             updateMDCForEndExecution();
