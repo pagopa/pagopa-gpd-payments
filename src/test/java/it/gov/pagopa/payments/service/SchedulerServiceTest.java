@@ -392,7 +392,7 @@ class SchedulerServiceTest {
 
     var schedService =
     		spy(new SchedulerService(
-    				5,
+    				10,
     				1L,
     				1L,
     				8L,
@@ -478,7 +478,7 @@ class SchedulerServiceTest {
     ArgumentCaptor<DeadLetterMessage> deadLetterCaptor =
         ArgumentCaptor.forClass(DeadLetterMessage.class);
 
-    for (int i = 0; i <= 4; i++) {
+    for (int i = 0; i <= 9; i++) {
 
       QueueMessageItem receptionMessage =
           queueClientConfiguration().receiveMessage();
@@ -507,7 +507,7 @@ class SchedulerServiceTest {
     assertNotNull(deadLetterMessage.getMessageId());
 
     assertEquals(
-        6L,
+        11L,
         deadLetterMessage.getDequeueCount());
 
     assertEquals(
@@ -552,7 +552,7 @@ class SchedulerServiceTest {
 
     var schedService =
     		spy(new SchedulerService(
-    				5,
+    				10,
     				1L,
     				1L,
     				8L,
@@ -641,7 +641,7 @@ class SchedulerServiceTest {
      * Increase the dequeue count up to the retry limit while preserving
      * the original receipt payload.
      */
-    for (int i = 0; i <= 4; i++) {
+    for (int i = 0; i <= 9; i++) {
 
       QueueMessageItem receptionMessage =
           queueClientConfiguration().receiveMessage();
@@ -723,6 +723,39 @@ class SchedulerServiceTest {
       assertEquals(
               10L,
               schedService.calculateRetryVisibilityTimeout(5));
+  }
+  
+  @Test
+  void checkQueueCountValidityShouldAcceptMessagesUpToConfiguredLimit() {
+
+      SchedulerService schedService =
+              new SchedulerService(
+                      10,
+                      1L,
+                      1L,
+                      8L,
+                      2.0,
+                      mock(QueueClient.class),
+                      mock(PartnerService.class),
+                      deadLetterService);
+
+      QueueMessageItem messageAtLimit =
+              mock(QueueMessageItem.class);
+
+      QueueMessageItem messageOverLimit =
+              mock(QueueMessageItem.class);
+
+      when(messageAtLimit.getDequeueCount())
+              .thenReturn(10L);
+
+      when(messageOverLimit.getDequeueCount())
+              .thenReturn(11L);
+
+      assertTrue(
+              schedService.checkQueueCountValidity(messageAtLimit));
+
+      assertFalse(
+              schedService.checkQueueCountValidity(messageOverLimit));
   }
 
   private TableClient tableClientConfiguration() {
