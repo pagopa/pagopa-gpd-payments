@@ -4,9 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.client.BlobStorageClient;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
+import it.gov.pagopa.payments.model.DeadLetterMessageSummary;
 import it.gov.pagopa.payments.service.DeadLetterService;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,52 @@ public class DeadLetterServiceImpl implements DeadLetterService {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(
                     "Unable to serialize dead-letter message " + message.getMessageId(),
+                    e);
+        }
+    }
+    
+    @Override
+    public List<DeadLetterMessageSummary> getDeadLetters(int maxMessages) {
+
+        return blobStorageClient.listJsonBlobs(maxMessages)
+                .stream()
+                .map(this::getDeadLetterSummary)
+                .toList();
+    }
+
+    @Override
+    public DeadLetterMessage getDeadLetter(String fileName) {
+
+        String json =
+                blobStorageClient.getStringJsonFromBlobStorage(fileName);
+
+        return deserializeDeadLetterMessage(json);
+    }
+
+    private DeadLetterMessageSummary getDeadLetterSummary(String fileName) {
+
+        DeadLetterMessage message =
+                getDeadLetter(fileName);
+
+        return DeadLetterMessageSummary.builder()
+                .fileName(fileName)
+                .messageId(message.getMessageId())
+                .dequeueCount(message.getDequeueCount())
+                .reason(message.getReason())
+                .deadLetteredAt(message.getDeadLetteredAt())
+                .build();
+    }
+
+    private DeadLetterMessage deserializeDeadLetterMessage(String json) {
+
+        try {
+            return objectMapper.readValue(
+                    json,
+                    DeadLetterMessage.class);
+
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(
+                    "Unable to deserialize dead-letter message",
                     e);
         }
     }

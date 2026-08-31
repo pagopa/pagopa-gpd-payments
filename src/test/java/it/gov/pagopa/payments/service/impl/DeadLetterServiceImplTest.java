@@ -2,13 +2,17 @@ package it.gov.pagopa.payments.service.impl;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import it.gov.pagopa.payments.client.BlobStorageClient;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
+import it.gov.pagopa.payments.model.DeadLetterMessageSummary;
 import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
 import java.time.Instant;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -80,5 +84,131 @@ class DeadLetterServiceImplTest {
         	        .startsWith(
         	            "2026/08/27/14/message-123/"
         	            + "MAX_RETRY_ATTEMPTS_REACHED_"));
+    }
+    
+    @Test
+    void getDeadLettersShouldReturnMessageSummaries() throws Exception {
+
+        String fileName =
+                "2026/08/31/10/message-1/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        Instant deadLetteredAt =
+                Instant.parse("2026-08-31T10:00:00Z");
+
+        DeadLetterMessage message =
+                DeadLetterMessage.builder()
+                        .messageId("message-1")
+                        .dequeueCount(11L)
+                        .reason(DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED)
+                        .deadLetteredAt(deadLetteredAt)
+                        .originalMessage("<paSendRT>payload</paSendRT>")
+                        .build();
+
+        String json =
+                objectMapper.writeValueAsString(message);
+
+        when(blobStorageClient.listJsonBlobs(10))
+                .thenReturn(List.of(fileName));
+
+        when(blobStorageClient.getStringJsonFromBlobStorage(fileName))
+                .thenReturn(json);
+
+        List<DeadLetterMessageSummary> result =
+                sut.getDeadLetters(10);
+
+        assertEquals(1, result.size());
+
+        DeadLetterMessageSummary summary =
+                result.get(0);
+
+        assertEquals(
+                fileName,
+                summary.getFileName());
+
+        assertEquals(
+                "message-1",
+                summary.getMessageId());
+
+        assertEquals(
+                11L,
+                summary.getDequeueCount());
+
+        assertEquals(
+                DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED,
+                summary.getReason());
+
+        assertEquals(
+                deadLetteredAt,
+                summary.getDeadLetteredAt());
+    }
+    
+    @Test
+    void getDeadLetterShouldReturnCompleteMessage() throws Exception {
+
+        String fileName =
+                "2026/08/31/10/message-1/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        Instant deadLetteredAt =
+                Instant.parse("2026-08-31T10:00:00Z");
+
+        DeadLetterMessage expected =
+                DeadLetterMessage.builder()
+                        .messageId("message-1")
+                        .dequeueCount(11L)
+                        .reason(DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED)
+                        .deadLetteredAt(deadLetteredAt)
+                        .originalMessage("<paSendRT>payload</paSendRT>")
+                        .build();
+
+        String json =
+                objectMapper.writeValueAsString(expected);
+
+        when(blobStorageClient.getStringJsonFromBlobStorage(fileName))
+                .thenReturn(json);
+
+        DeadLetterMessage result =
+                sut.getDeadLetter(fileName);
+
+        assertEquals(
+                "message-1",
+                result.getMessageId());
+
+        assertEquals(
+                11L,
+                result.getDequeueCount());
+
+        assertEquals(
+                DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED,
+                result.getReason());
+
+        assertEquals(
+                deadLetteredAt,
+                result.getDeadLetteredAt());
+
+        assertEquals(
+                "<paSendRT>payload</paSendRT>",
+                result.getOriginalMessage());
+    }
+    
+    @Test
+    void getDeadLetterShouldFailWhenStoredJsonIsInvalid() {
+
+        String fileName =
+                "2026/08/31/10/message-1/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        when(blobStorageClient.getStringJsonFromBlobStorage(fileName))
+                .thenReturn("invalid-json");
+
+        IllegalStateException exception =
+                assertThrows(
+                        IllegalStateException.class,
+                        () -> sut.getDeadLetter(fileName));
+
+        assertEquals(
+                "Unable to deserialize dead-letter message",
+                exception.getMessage());
     }
 }
