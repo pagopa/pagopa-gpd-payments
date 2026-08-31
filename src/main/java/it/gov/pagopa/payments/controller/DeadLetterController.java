@@ -1,5 +1,7 @@
 package it.gov.pagopa.payments.controller;
 
+import it.gov.pagopa.payments.exception.DeadLetterAccessException;
+import it.gov.pagopa.payments.exception.DeadLetterNotFoundException;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.DeadLetterMessageSummary;
 import it.gov.pagopa.payments.service.DeadLetterService;
@@ -24,30 +26,37 @@ public class DeadLetterController {
 
     private final DeadLetterService deadLetterService;
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<DeadLetterMessageSummary>> getDeadLetters(
-            @RequestParam(
-                    name = "maxMessages",
-                    defaultValue = "50")
-            int maxMessages) {
+	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<List<DeadLetterMessageSummary>> getDeadLetters(
+			@RequestParam(name = "maxMessages", defaultValue = "50") int maxMessages) {
 
-        validateMaxMessages(maxMessages);
+		validateMaxMessages(maxMessages);
 
-        return ResponseEntity.ok(
-                deadLetterService.getDeadLetters(maxMessages));
-    }
+		try {
+			return ResponseEntity.ok(deadLetterService.getDeadLetters(maxMessages));
 
-    @GetMapping(
-            value = "/detail",
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<DeadLetterMessage> getDeadLetter(
-            @RequestParam(name = "filename") String fileName) {
+		} catch (DeadLetterAccessException e) {
+			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to access dead-letter storage",
+					e);
+		}
+	}
 
-        validateFileName(fileName);
+	@GetMapping(value = "/detail", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<DeadLetterMessage> getDeadLetter(@RequestParam(name = "filename") String fileName) {
 
-        return ResponseEntity.ok(
-                deadLetterService.getDeadLetter(fileName));
-    }
+		validateFileName(fileName);
+
+		try {
+			return ResponseEntity.ok(deadLetterService.getDeadLetter(fileName));
+
+		} catch (DeadLetterNotFoundException e) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dead-letter message not found", e);
+
+		} catch (DeadLetterAccessException e) {
+			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to access dead-letter storage",
+					e);
+		}
+	}
 
     private void validateMaxMessages(int maxMessages) {
 

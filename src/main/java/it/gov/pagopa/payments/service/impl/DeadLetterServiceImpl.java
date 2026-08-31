@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.client.BlobStorageClient;
+import it.gov.pagopa.payments.exception.DeadLetterAccessException;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.DeadLetterMessageSummary;
 import it.gov.pagopa.payments.service.DeadLetterService;
@@ -83,7 +84,7 @@ public class DeadLetterServiceImpl implements DeadLetterService {
                     DeadLetterMessage.class);
 
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException(
+            throw new DeadLetterAccessException(
                     "Unable to deserialize dead-letter message",
                     e);
         }

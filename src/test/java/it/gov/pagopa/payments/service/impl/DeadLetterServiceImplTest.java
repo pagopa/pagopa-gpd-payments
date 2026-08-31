@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import it.gov.pagopa.payments.client.BlobStorageClient;
+import it.gov.pagopa.payments.exception.DeadLetterAccessException;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.DeadLetterMessageSummary;
 import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
@@ -202,9 +203,9 @@ class DeadLetterServiceImplTest {
         when(blobStorageClient.getStringJsonFromBlobStorage(fileName))
                 .thenReturn("invalid-json");
 
-        IllegalStateException exception =
+        DeadLetterAccessException exception =
                 assertThrows(
-                        IllegalStateException.class,
+                        DeadLetterAccessException.class,
                         () -> sut.getDeadLetter(fileName));
 
         assertEquals(

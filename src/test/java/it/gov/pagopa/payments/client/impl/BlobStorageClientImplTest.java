@@ -1,9 +1,11 @@
 package it.gov.pagopa.payments.client.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +26,10 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobStorageException;
+
+import it.gov.pagopa.payments.exception.DeadLetterAccessException;
+import it.gov.pagopa.payments.exception.DeadLetterNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class BlobStorageClientImplTest {
@@ -138,5 +144,55 @@ class BlobStorageClientImplTest {
 
         verify(blobClient)
                 .downloadStream(any(OutputStream.class));
+    }
+    
+    @Test
+    void getStringJsonFromBlobStorageShouldThrowNotFoundWhenBlobDoesNotExist() {
+
+        String fileName =
+                "2026/08/31/10/message-1/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        BlobStorageException storageException =
+                mock(BlobStorageException.class);
+
+        when(blobContainerClient.getBlobClient(fileName))
+                .thenReturn(blobClient);
+
+        when(storageException.getStatusCode())
+                .thenReturn(404);
+
+        doThrow(storageException)
+                .when(blobClient)
+                .downloadStream(any(OutputStream.class));
+
+        assertThrows(
+                DeadLetterNotFoundException.class,
+                () -> sut.getStringJsonFromBlobStorage(fileName));
+    }
+    
+    @Test
+    void getStringJsonFromBlobStorageShouldThrowAccessExceptionOnStorageFailure() {
+
+        String fileName =
+                "2026/08/31/10/message-1/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        BlobStorageException storageException =
+                mock(BlobStorageException.class);
+
+        when(blobContainerClient.getBlobClient(fileName))
+                .thenReturn(blobClient);
+
+        when(storageException.getStatusCode())
+                .thenReturn(500);
+
+        doThrow(storageException)
+                .when(blobClient)
+                .downloadStream(any(OutputStream.class));
+
+        assertThrows(
+                DeadLetterAccessException.class,
+                () -> sut.getStringJsonFromBlobStorage(fileName));
     }
 }

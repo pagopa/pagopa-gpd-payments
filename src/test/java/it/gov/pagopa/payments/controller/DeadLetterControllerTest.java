@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import it.gov.pagopa.payments.exception.DeadLetterAccessException;
+import it.gov.pagopa.payments.exception.DeadLetterNotFoundException;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.DeadLetterMessageSummary;
 import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
@@ -187,5 +189,60 @@ class DeadLetterControllerTest {
         mockMvc.perform(
                         get("/error-messages/detail"))
                 .andExpect(status().isBadRequest());
+    }
+    
+    @Test
+    void getDeadLetterShouldReturnNotFoundWhenMessageDoesNotExist()
+            throws Exception {
+
+        String fileName =
+                "2026/08/31/10/missing-message/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        when(deadLetterService.getDeadLetter(fileName))
+                .thenThrow(
+                        new DeadLetterNotFoundException(
+                                fileName,
+                                new RuntimeException()));
+
+        mockMvc.perform(
+                        get("/error-messages/detail")
+                                .param("filename", fileName))
+                .andExpect(status().isNotFound());
+    }
+    
+    @Test
+    void getDeadLettersShouldReturnInternalServerErrorWhenStorageFails()
+            throws Exception {
+
+        when(deadLetterService.getDeadLetters(50))
+                .thenThrow(
+                        new DeadLetterAccessException(
+                                "Storage unavailable",
+                                new RuntimeException()));
+
+        mockMvc.perform(
+                        get("/error-messages"))
+                .andExpect(status().isInternalServerError());
+    }
+    
+    @Test
+    void getDeadLetterShouldReturnInternalServerErrorWhenStorageFails()
+            throws Exception {
+
+        String fileName =
+                "2026/08/31/10/message-1/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        when(deadLetterService.getDeadLetter(fileName))
+                .thenThrow(
+                        new DeadLetterAccessException(
+                                "Storage unavailable",
+                                new RuntimeException()));
+
+        mockMvc.perform(
+                        get("/error-messages/detail")
+                                .param("filename", fileName))
+                .andExpect(status().isInternalServerError());
     }
 }

@@ -3,7 +3,11 @@ package it.gov.pagopa.payments.client.impl;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobStorageException;
+
 import it.gov.pagopa.payments.client.BlobStorageClient;
+import it.gov.pagopa.payments.exception.DeadLetterAccessException;
+import it.gov.pagopa.payments.exception.DeadLetterNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +23,8 @@ import java.util.List;
 public class BlobStorageClientImpl implements BlobStorageClient {
 
 	private static final String FILE_EXTENSION = ".json";
-
 	private final BlobContainerClient blobContainerClient;
+	private static final int HTTP_NOT_FOUND = 404;
 
 	@Override
 	public void saveStringJsonToBlobStorage(String json, String fileName) {
@@ -36,16 +40,28 @@ public class BlobStorageClientImpl implements BlobStorageClient {
 
 	@Override
 	public List<String> listJsonBlobs(int maxMessages) {
-		return blobContainerClient.listBlobs().stream().map(BlobItem::getName)
-				.filter(name -> name.endsWith(FILE_EXTENSION)).limit(maxMessages).toList();
+		try {
+			return blobContainerClient.listBlobs().stream().map(BlobItem::getName)
+					.filter(name -> name.endsWith(FILE_EXTENSION)).limit(maxMessages).toList();
+
+		} catch (BlobStorageException e) {
+			throw new DeadLetterAccessException("Unable to list dead-letter messages", e);
+		}
 	}
 
 	@Override
 	public String getStringJsonFromBlobStorage(String fileName) {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		BlobClient blobClient = blobContainerClient.getBlobClient(fileName);
-		blobClient.downloadStream(outputStream);
 
-		return outputStream.toString(StandardCharsets.UTF_8);
+		try {
+			blobClient.downloadStream(outputStream);
+			return outputStream.toString(StandardCharsets.UTF_8);
+		} catch (BlobStorageException e) {
+			if (e.getStatusCode() == HTTP_NOT_FOUND) {
+				throw new DeadLetterNotFoundException(fileName, e);
+			}
+			throw new DeadLetterAccessException("Unable to read dead-letter message: " + fileName, e);
+		}
 	}
 }
