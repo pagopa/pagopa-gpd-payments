@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import it.gov.pagopa.payments.exception.DeadLetterAccessException;
 import it.gov.pagopa.payments.exception.DeadLetterNotFoundException;
@@ -28,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/error-messages")
 @RequiredArgsConstructor
 @Tag(name = "Dead Letter", description = "Read-only operations for inspecting terminally failed retry messages.")
+@SecurityRequirement(name = "ApiKey")
 public class DeadLetterController {
 
 	static final int DEFAULT_MAX_MESSAGES = 50;
@@ -43,7 +45,8 @@ public class DeadLetterController {
 			@ApiResponse(responseCode = "500", description = "Dead-letter storage unavailable.", content = @Content) })
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<List<DeadLetterMessageSummary>> getDeadLetters(
-			@Parameter(description = "Maximum number of dead-letter messages to return.", schema = @Schema(defaultValue = "50", minimum = "1", maximum = "100")) 
+			@Parameter(description = "Maximum number of dead-letter messages to return.", 
+			schema = @Schema(type = "integer", format = "int32", defaultValue = "50", minimum = "1", maximum = "100")) 
 			@RequestParam(name = "maxMessages", defaultValue = "50") int maxMessages) {
 
 		validateMaxMessages(maxMessages);
