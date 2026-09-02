@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.5"
+    tag: "0.13.5-1-PIDM-2311-dead-letter-queue"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -91,20 +91,15 @@ microservice-chart:
     QUEUE_NAME: "gpd-receipt-poison-queue" # Queue used for active paSendRT retries
     DEAD_LETTER_STORAGE_CONTAINER_NAME: "gpd-receipt-dead-letter" # Blob container used as terminal dead-letter storage after max retry attempts
     DEQUEUE_LIMIT: "10"
-    
     QUEUE_SEND_INVISIBILITY_TIME: "120" # Initial delay applied when a failed paSendRT is first enqueued
     QUEUE_RECEIVE_INVISIBILITY_TIME: "300" # Temporary visibility lock applied when the scheduler dequeues a message. It prevents another consumer processing the same message while the retry attempt is still in progress.
-    
     QUEUE_RETRY_INITIAL_DELAY: "120" # Initial visibility delay applied after the first failed retry attempt
     QUEUE_RETRY_MAX_DELAY: "3600" # Maximum visibility delay allowed for exponential retry backoff
     QUEUE_RETRY_MULTIPLIER: "2.0" # Multiplier used to increase the retry delay exponentially after each failed processing attempt.
-    
     CRON_JOB_SCHEDULE_RETRY_ENABLED: "true"
-    
     # Poll the retry queue every minute. Messages still inside their visibility timeout are not returned by Azure Storage Queue, 
     # so the actual retry timing continues to be controlled by the exponential backoff.
-    CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 * * * * *" 
-    
+    CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 * * * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
     CONFIG_CACHE_EVENTHUB_NAME: "pagopa-d-weu-core-evh-ns04"
     # List of stations for which SUPPRESSED_ERRORS_VALUES are ignored: response override with "OK".
