@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.5"
+    tag: "0.13.5-1-PIDM-2311-dead-letter-queue"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -88,12 +88,18 @@ microservice-chart:
     GPS_HOST: "https://api.uat.platform.pagopa.it/spontaneous-payments-service/v1"
     GPD_HOST: "https://api.uat.platform.pagopa.it/gpd/api/v1"
     API_CONFIG_CACHE_HOST: "https://api.uat.platform.pagopa.it/api-config-cache/p/v1"
-    QUEUE_NAME: "gpd-receipt-poison-queue"
-    DEQUEUE_LIMIT: "5"
-    QUEUE_SEND_INVISIBILITY_TIME: "120"
-    QUEUE_RECEIVE_INVISIBILITY_TIME: "300"
+    QUEUE_NAME: "gpd-receipt-poison-queue" # Queue used for active paSendRT retries
+    DEAD_LETTER_STORAGE_CONTAINER_NAME: "gpd-receipt-dead-letter" # Blob container used as terminal dead-letter storage after max retry attempts
+    DEQUEUE_LIMIT: "10"
+    QUEUE_SEND_INVISIBILITY_TIME: "120" # Initial delay applied when a failed paSendRT is first enqueued
+    QUEUE_RECEIVE_INVISIBILITY_TIME: "300" # Temporary visibility lock applied when the scheduler dequeues a message. It prevents another consumer processing the same message while the retry attempt is still in progress.
+    QUEUE_RETRY_INITIAL_DELAY: "120" # Initial visibility delay applied after the first failed retry attempt
+    QUEUE_RETRY_MAX_DELAY: "3600" # Maximum visibility delay allowed for exponential retry backoff
+    QUEUE_RETRY_MULTIPLIER: "2.0" # Multiplier used to increase the retry delay exponentially after each failed processing attempt.
     CRON_JOB_SCHEDULE_RETRY_ENABLED: "true"
-    CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 0 0,6,12,18 * * *"
+    # Poll the retry queue every minute. Messages still inside their visibility timeout are not returned by Azure Storage Queue, 
+    # so the actual retry timing continues to be controlled by the exponential backoff.
+    CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 * * * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
     CONFIG_CACHE_EVENTHUB_NAME: "pagopa-u-weu-core-evh-ns04"
     # List of stations for which "Not Found" or "Duplicated Receipt" errors are ignored: response override with "OK".
@@ -108,6 +114,7 @@ microservice-chart:
     CONFIG_CACHE_SUBSCRIPTION_KEY: "gpd-u-config-cache-subkey"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-u-cosmos-connection-string"
     QUEUE_CONNECTION_STRING: "gpd-payments-u-queue-connection-string"
+    DEAD_LETTER_STORAGE_CONNECTION_STRING: "gpd-payments-u-queue-connection-string"
     CONFIG_CACHE_EVENTHUB_CONN_STRING: "config-cache-event-hub-connection-string-for-aca-payments-rx"
   keyvault:
     name: "pagopa-u-gps-kv"

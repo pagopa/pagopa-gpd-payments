@@ -1,18 +1,17 @@
 package it.gov.pagopa.payments.scheduler;
 
 import it.gov.pagopa.payments.service.SchedulerService;
-import it.gov.pagopa.payments.utils.SchedulerUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 
 import static it.gov.pagopa.payments.utils.SchedulerUtils.*;
 
@@ -30,11 +29,10 @@ public class Scheduler {
     SchedulerService schedulerService;
 
     @Scheduled(cron = "${cron.job.schedule.expression.retry.trigger}")
-    @Async
     public void retryPaSendRT() {
         try {
             updateMDCForStartExecution("retryPaSendRT", "");
-            log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now())));
+            log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now(ZoneId.systemDefault()))));
             schedulerService.retryFailedPaSendRT();
             this.threadOfExecution = Thread.currentThread();
             updateMDCForEndExecution();

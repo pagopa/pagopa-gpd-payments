@@ -10,6 +10,8 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import java.util.Map;
+
+import org.springdoc.core.GroupedOpenApi;
 import org.springdoc.core.customizers.OpenApiCustomiser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -122,5 +124,21 @@ public class SwaggerConfig {
                                                   .description(
                                                       "This header identifies the call"))));
                 });
+  }
+  
+  @Bean
+  GroupedOpenApi externalOpenApi() {
+    return GroupedOpenApi.builder()
+        .group("external")
+        .pathsToMatch("/info", "/payments/**")
+        .build();
+  }
+
+  @Bean
+  GroupedOpenApi helpdeskOpenApi() {
+    return GroupedOpenApi.builder()
+        .group("helpdesk")
+        .pathsToMatch("/error-messages", "/error-messages/**")
+        .build();
   }
 }

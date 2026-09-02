@@ -1,0 +1,191 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "PagoPA API Payments",
+    "description" : "Payments",
+    "termsOfService" : "https://www.pagopa.gov.it/",
+    "version" : "0.13.5"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "tags" : [ {
+    "name" : "Dead Letter",
+    "description" : "Read-only operations for inspecting terminally failed retry messages."
+  } ],
+  "paths" : {
+    "/error-messages" : {
+      "get" : {
+        "tags" : [ "Dead Letter" ],
+        "summary" : "List dead-letter messages",
+        "description" : "Returns dead-letter message metadata without exposing the original paSendRT payload.",
+        "operationId" : "getDeadLetters",
+        "parameters" : [ {
+          "name" : "maxMessages",
+          "in" : "query",
+          "description" : "Maximum number of dead-letter messages to return.",
+          "required" : false,
+          "schema" : {
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 50
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Invalid maxMessages parameter."
+          },
+          "200" : {
+            "description" : "Dead-letter messages retrieved successfully.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DeadLetterMessageSummary"
+                  }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Dead-letter storage unavailable."
+          }
+        },
+        "security" : [ {
+          "ApiKey" : [ ]
+        } ]
+      }
+    },
+    "/error-messages/detail" : {
+      "get" : {
+        "tags" : [ "Dead Letter" ],
+        "summary" : "Get dead-letter message detail",
+        "description" : "Returns a complete dead-letter message, including the original paSendRT XML payload.",
+        "operationId" : "getDeadLetter",
+        "parameters" : [ {
+          "name" : "filename",
+          "in" : "query",
+          "description" : "Full Blob Storage file name returned by the list operation.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "2026/08/31/10/message-1/MAX_RETRY_ATTEMPTS_REACHED_1000.json"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Dead-letter message retrieved successfully.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeadLetterMessage"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Dead-letter storage unavailable."
+          },
+          "400" : {
+            "description" : "Invalid or missing filename."
+          },
+          "404" : {
+            "description" : "Dead-letter message not found."
+          }
+        },
+        "security" : [ {
+          "ApiKey" : [ ]
+        } ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "DeadLetterMessageSummary" : {
+        "type" : "object",
+        "properties" : {
+          "fileName" : {
+            "type" : "string",
+            "description" : "Full dead-letter Blob Storage file name.",
+            "example" : "2026/08/31/10/message-1/MAX_RETRY_ATTEMPTS_REACHED_1000.json"
+          },
+          "messageId" : {
+            "type" : "string",
+            "description" : "Original Azure Queue message identifier.",
+            "example" : "message-1"
+          },
+          "dequeueCount" : {
+            "type" : "integer",
+            "description" : "Number of times the message was dequeued before being moved to dead-letter storage.",
+            "format" : "int64",
+            "example" : 11
+          },
+          "reason" : {
+            "type" : "string",
+            "description" : "Reason why the message was moved to dead-letter storage.",
+            "example" : "MAX_RETRY_ATTEMPTS_REACHED",
+            "enum" : [ "MAX_RETRY_ATTEMPTS_REACHED" ]
+          },
+          "deadLetteredAt" : {
+            "type" : "string",
+            "description" : "UTC timestamp when the message was moved to dead-letter storage.",
+            "format" : "date-time",
+            "example" : "2026-08-31T10:00:00Z"
+          }
+        },
+        "description" : "Summary of a terminally failed retry message stored in dead-letter storage."
+      },
+      "DeadLetterMessage" : {
+        "type" : "object",
+        "properties" : {
+          "messageId" : {
+            "type" : "string",
+            "description" : "Original Azure Queue message identifier.",
+            "example" : "message-1"
+          },
+          "dequeueCount" : {
+            "type" : "integer",
+            "description" : "Number of times the message was dequeued before being moved to dead-letter storage.",
+            "format" : "int64",
+            "example" : 11
+          },
+          "reason" : {
+            "type" : "string",
+            "description" : "Reason why the message was moved to dead-letter storage.",
+            "example" : "MAX_RETRY_ATTEMPTS_REACHED",
+            "enum" : [ "MAX_RETRY_ATTEMPTS_REACHED" ]
+          },
+          "deadLetteredAt" : {
+            "type" : "string",
+            "description" : "UTC timestamp when the message was moved to dead-letter storage.",
+            "format" : "date-time",
+            "example" : "2026-08-31T10:00:00Z"
+          },
+          "originalMessage" : {
+            "type" : "string",
+            "description" : "Original paSendRT XML payload preserved for operational and forensic inspection."
+          }
+        },
+        "description" : "Complete terminally failed retry message stored in dead-letter storage."
+      }
+    },
+    "securitySchemes" : {
+      "ApiKey" : {
+        "type" : "apiKey",
+        "description" : "The API key to access this function app.",
+        "name" : "Ocp-Apim-Subscription-Key",
+        "in" : "header"
+      },
+      "Authorization" : {
+        "type" : "http",
+        "description" : "JWT token get after Azure Login",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}

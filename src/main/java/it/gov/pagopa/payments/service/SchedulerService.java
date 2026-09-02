@@ -9,11 +9,10 @@ import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationE
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
@@ -34,30 +33,44 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @Slf4j
-@NoArgsConstructor
-@AllArgsConstructor
 public class SchedulerService {
 
-    @Value(value = "${azure.queue.dequeue.limit}")
-    private Integer dequeueLimit;
+	private final Integer dequeueLimit;
+	private final Long queueReceiveInvisibilityTime;
+	private final Long queueRetryInitialDelay;
+	private final Long queueRetryMaxDelay;
+	private final Double queueRetryMultiplier;
 
-    @Value(value = "${azure.queue.receive.invisibilityTime}")
-    private Long queueReceiveInvisibilityTime;
+	private final QueueClient queueClient;
+	private final PartnerService partnerService;
+	private final DeadLetterService deadLetterService;
 
-    @Value(value = "${azure.queue.send.invisibilityTime}")
-    private Long queueUpdateInvisibilityTime;
+	public SchedulerService(
+	        @Value("${azure.queue.dequeue.limit}") Integer dequeueLimit,
+	        @Value("${azure.queue.receive.invisibilityTime}") Long queueReceiveInvisibilityTime,
+	        @Value("${azure.queue.retry.initialDelay}") Long queueRetryInitialDelay,
+	        @Value("${azure.queue.retry.maxDelay}") Long queueRetryMaxDelay,
+	        @Value("${azure.queue.retry.multiplier}") Double queueRetryMultiplier,
+	        QueueClient queueClient,
+	        PartnerService partnerService,
+	        DeadLetterService deadLetterService) {
 
-    @Autowired
-    QueueClient queueClient;
-
-    @Autowired
-    PartnerService partnerService;
+	    this.dequeueLimit = dequeueLimit;
+	    this.queueReceiveInvisibilityTime = queueReceiveInvisibilityTime;
+	    this.queueRetryInitialDelay = queueRetryInitialDelay;
+	    this.queueRetryMaxDelay = queueRetryMaxDelay;
+	    this.queueRetryMultiplier = queueRetryMultiplier;
+	    this.queueClient = queueClient;
+	    this.partnerService = partnerService;
+	    this.deadLetterService = deadLetterService;
+	}
 
     public void retryFailedPaSendRT() {
         XPathFactory xPathfactory = XPathFactory.newInstance();
@@ -70,15 +83,18 @@ public class SchedulerService {
                 Context.NONE)
                 .stream().toList();
         for(QueueMessageItem message: queueList) {
-            if(checkQueueCountValidity(message)) {
-                try{
-                    handlingXml(getMessageContent(message), xpath, message);
-                } catch (XPathExpressionException e) {
-                    log.error("[paSendRT] XML error during retry process [messageId={},popReceipt={}]\",\n", message.getMessageId() , message.getPopReceipt());
-                }
-            } else {
-                queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
-            }
+        	if (checkQueueCountValidity(message)) {
+        	    try {
+        	        handlingXml(getMessageContent(message), xpath, message);
+        	    } catch (XPathExpressionException e) {
+        	        log.error(
+        	                "[paSendRT] XML error during retry process [messageId={},popReceipt={}]",
+        	                message.getMessageId(),
+        	                message.getPopReceipt());
+        	    }
+        	} else {
+        	    moveToDeadLetter(message);
+        	}
         }
     }
 
@@ -135,12 +151,24 @@ public class SchedulerService {
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
-            log.debug("[paSendRT] Retry failed [fiscalCode={},noticeNumber={}]\",\n", receiptFiscalCode, noticeNumber);
+
+            long retryDelay =
+                    calculateRetryVisibilityTimeout(
+                            queueMessageItem.getDequeueCount());
+
+            log.debug(
+                    "[paSendRT] Retry failed. Next retry scheduled "
+                            + "[fiscalCode={},noticeNumber={},dequeueCount={},retryDelaySeconds={}]",
+                    receiptFiscalCode,
+                    noticeNumber,
+                    queueMessageItem.getDequeueCount(),
+                    retryDelay);
+
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
                     queueMessageItem.getPopReceipt(),
                     receiptEntity.getDocument(),
-                    Duration.ofSeconds(queueUpdateInvisibilityTime),
+                    Duration.ofSeconds(retryDelay),
                     null,
                     Context.NONE);
         } catch (PartnerValidationException e) {
@@ -148,6 +176,36 @@ public class SchedulerService {
             log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), receiptFiscalCode, noticeNumber);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         }
+    }
+    
+    long calculateRetryVisibilityTimeout(long dequeueCount) {
+
+        long exponent = Math.max(0L, dequeueCount - 1);
+
+        double calculatedDelay =
+                queueRetryInitialDelay
+                        * Math.pow(queueRetryMultiplier, exponent);
+
+        /*
+         * Cap the exponential backoff to prevent excessively long retry delays
+         * when the dequeue count grows.
+         * 
+         * Without capping (initialDelay = 120s / 2m, multiplier = 2.0):
+         * - dequeueCount 1: 120s  (2 min)
+         * - dequeueCount 2: 240s  (4 min)
+         * - dequeueCount 3: 480s  (8 min)
+         * - dequeueCount 4: 960s  (16 min)
+         * - dequeueCount 5: 1920s (32 min)
+         * - dequeueCount 6: 3840s (64 min / >1 hour)
+         * - dequeueCount 10: ~34 hours
+         * 
+         * With cap (maxDelay = 3600s / 60 min):
+         * - dequeueCount 6: 3840s -> Capped at 3600s (60 min)
+         * - dequeueCount 7: 7680s -> Capped at 3600s (60 min)
+         */
+        return Math.min(
+                (long) Math.ceil(calculatedDelay),
+                queueRetryMaxDelay);
     }
 
     public boolean checkQueueCountValidity(QueueMessageItem message) {
@@ -168,6 +226,50 @@ public class SchedulerService {
             return builder.parse(is);
         } catch (ParserConfigurationException | SAXException | IOException e) {
             throw new AppException(AppError.UNKNOWN);
+        }
+    }
+    
+    private void moveToDeadLetter(QueueMessageItem message) {
+
+        DeadLetterMessage deadLetterMessage =
+                DeadLetterMessage.builder()
+                        .messageId(message.getMessageId())
+                        .dequeueCount(message.getDequeueCount())
+                        .reason(DeadLetterReason.MAX_RETRY_ATTEMPTS_REACHED)
+                        .deadLetteredAt(Instant.now())
+                        .originalMessage(getMessageContent(message))
+                        .build();
+
+        try {
+            /*
+             * The retry queue message must be deleted only after the dead-letter
+             * message has been successfully persisted. This prevents message loss
+             * if Blob Storage is temporarily unavailable.
+             */
+            deadLetterService.sendToDeadLetter(deadLetterMessage);
+
+            queueClient.deleteMessage(
+                    message.getMessageId(),
+                    message.getPopReceipt());
+
+            log.warn(
+                    "[paSendRT] Maximum retry attempts reached. Message moved to dead-letter storage "
+                            + "[messageId={},dequeueCount={}]",
+                    message.getMessageId(),
+                    message.getDequeueCount());
+
+        } catch (RuntimeException e) {
+            /*
+             * Keep the message in the retry queue if dead-letter persistence fails.
+             * It will become visible again after the queue visibility timeout.
+             */
+            log.error(
+                    "[paSendRT] Unable to move message to dead-letter storage. "
+                            + "The message will remain in the retry queue "
+                            + "[messageId={},dequeueCount={}]",
+                    message.getMessageId(),
+                    message.getDequeueCount(),
+                    e);
         }
     }
 }
