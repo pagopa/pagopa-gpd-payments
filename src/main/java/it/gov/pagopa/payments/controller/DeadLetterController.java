@@ -15,6 +15,8 @@ import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.DeadLetterMessageSummary;
 import it.gov.pagopa.payments.service.DeadLetterService;
 import java.util.List;
+import java.util.regex.Pattern;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -34,6 +36,11 @@ public class DeadLetterController {
 
 	static final int DEFAULT_MAX_MESSAGES = 50;
 	static final int MAX_MESSAGES = 100;
+	private static final Pattern DEAD_LETTER_FILE_PATTERN =
+		    Pattern.compile(
+		        "^\\d{4}/(?:0[1-9]|1[0-2])/(?:0[1-9]|[12]\\d|3[01])/"
+		            + "(?:[01]\\d|2[0-3])/[^/]+/"
+		            + "MAX_RETRY_ATTEMPTS_REACHED_\\d+\\.json$");
 
 	private final DeadLetterService deadLetterService;
 
@@ -45,9 +52,10 @@ public class DeadLetterController {
 			@ApiResponse(responseCode = "500", description = "Dead-letter storage unavailable.", content = @Content) })
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<List<DeadLetterMessageSummary>> getDeadLetters(
-			@Parameter(description = "Maximum number of dead-letter messages to return.", 
-			schema = @Schema(type = "integer", format = "int32", defaultValue = "50", minimum = "1", maximum = "100")) 
-			@RequestParam(name = "maxMessages", defaultValue = "50") int maxMessages) {
+			@Parameter(description = "Maximum number of dead-letter messages to return.", schema = @Schema(type = "integer", format = "int32", defaultValue = ""
+					+ DEFAULT_MAX_MESSAGES, minimum = "1", maximum = ""
+							+ MAX_MESSAGES)) @RequestParam(name = "maxMessages", defaultValue = ""
+									+ DEFAULT_MAX_MESSAGES) int maxMessages) {
 
 		validateMaxMessages(maxMessages);
 
@@ -96,10 +104,13 @@ public class DeadLetterController {
 
 	private void validateFileName(String fileName) {
 
-		if (fileName == null || fileName.isBlank() || !fileName.endsWith(".json")) {
+	    if (fileName == null
+	            || fileName.isBlank()
+	            || !DEAD_LETTER_FILE_PATTERN.matcher(fileName).matches()) {
 
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-					"'filename' must identify a JSON dead-letter message");
-		}
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "'filename' must identify a valid dead-letter message");
+	    }
 	}
 }

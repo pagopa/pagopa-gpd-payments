@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.controller;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -171,15 +172,49 @@ class DeadLetterControllerTest {
     }
 
     @Test
-    void getDeadLetterShouldRejectInvalidFileName()
+    void getDeadLetterShouldRejectJsonOutsideDeadLetterPath()
             throws Exception {
 
         mockMvc.perform(
                         get("/error-messages/detail")
                                 .param(
                                         "filename",
-                                        "invalid-file.txt"))
+                                        "other-folder/message.json"))
                 .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(deadLetterService);
+    }
+    
+    @Test
+    void getDeadLetterShouldRejectUnexpectedDeadLetterReason()
+            throws Exception {
+
+        String fileName =
+                "2026/08/31/10/message-1/"
+                        + "OTHER_REASON_1000.json";
+
+        mockMvc.perform(
+                        get("/error-messages/detail")
+                                .param("filename", fileName))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(deadLetterService);
+    }
+    
+    @Test
+    void getDeadLetterShouldRejectInvalidDeadLetterPath()
+            throws Exception {
+
+        String fileName =
+                "2026/99/31/25/message-1/"
+                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json";
+
+        mockMvc.perform(
+                        get("/error-messages/detail")
+                                .param("filename", fileName))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(deadLetterService);
     }
 
     @Test
@@ -189,6 +224,8 @@ class DeadLetterControllerTest {
         mockMvc.perform(
                         get("/error-messages/detail"))
                 .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(deadLetterService);
     }
     
     @Test

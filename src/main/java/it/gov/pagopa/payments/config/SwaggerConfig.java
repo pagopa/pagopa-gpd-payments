@@ -131,6 +131,8 @@ public class SwaggerConfig {
     return GroupedOpenApi.builder()
         .group("external")
         .pathsToMatch("/info", "/payments/**")
+        .addOpenApiCustomiser(addCommonHeaders())
+        .addOpenApiCustomiser(sortOperationsAlphabetically())
         .build();
   }
 
@@ -139,6 +141,8 @@ public class SwaggerConfig {
     return GroupedOpenApi.builder()
         .group("helpdesk")
         .pathsToMatch("/error-messages", "/error-messages/**")
+        .addOpenApiCustomiser(addCommonHeaders())
+        .addOpenApiCustomiser(sortOperationsAlphabetically())
         .build();
   }
 }
