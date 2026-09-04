@@ -21,7 +21,7 @@ import it.gov.pagopa.payments.mock.*;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.client.GpdClient;
-import it.gov.pagopa.payments.client.GpsClient;
+import it.gov.pagopa.payments.config.VerticalServicesConfig;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.ClassRule;
@@ -37,6 +37,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.web.client.RestTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -68,7 +69,9 @@ class SchedulerServiceTest {
 
   @Mock private GpdClient gpdClient;
 
-  @Mock private GpsClient gpsClient;
+  @Mock private VerticalServicesConfig verticalServicesConfig;
+
+  @Mock private RestTemplate restTemplate;
 
   private String genericService = "/xsd/general-service.xsd";
   ResourceLoader resourceLoader = new DefaultResourceLoader();
@@ -105,12 +108,15 @@ class SchedulerServiceTest {
                     new PartnerService(
                             resource,
                             queueSendInvisibilityTime,
+                            List.of(),
+                            List.of(),
                             factory,
                             gpdClient,
-                            gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper, List.of(), List.of()));
+                            customizedModelMapper,
+                            verticalServicesConfig,
+                            restTemplate));
 
     var schedService =
             spy(
@@ -171,12 +177,15 @@ class SchedulerServiceTest {
                     new PartnerService(
                             resource,
                             queueSendInvisibilityTime,
+                            List.of(),
+                            List.of(),
                             factory,
                             gpdClient,
-                            gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper, List.of(), List.of()));
+                            customizedModelMapper,
+                            verticalServicesConfig,
+                            restTemplate));
 
     var schedService =
             spy(
@@ -237,12 +246,15 @@ class SchedulerServiceTest {
                     new PartnerService(
                             resource,
                             queueSendInvisibilityTime,
+                            List.of(),
+                            List.of(),
                             factory,
                             gpdClient,
-                            gpsClient,
                             tableClientConfiguration(),
                             queueClientConfiguration(),
-                            customizedModelMapper, List.of(), List.of()));
+                            customizedModelMapper,
+                            verticalServicesConfig,
+                            restTemplate));
 
     var schedService =
             spy(

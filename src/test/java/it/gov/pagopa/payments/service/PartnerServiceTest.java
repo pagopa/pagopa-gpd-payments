@@ -48,7 +48,7 @@ import it.gov.pagopa.payments.model.partner.StAmountOption;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.model.spontaneous.PaymentPositionModel;
 import it.gov.pagopa.payments.client.GpdClient;
-import it.gov.pagopa.payments.client.GpsClient;
+import it.gov.pagopa.payments.config.VerticalServicesConfig;
 import it.gov.pagopa.payments.utils.AzuriteStorageUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import java.io.IOException;
@@ -80,6 +80,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.web.client.RestTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -98,7 +99,9 @@ class PartnerServiceTest {
 
   @Mock private GpdClient gpdClient;
 
-  @Mock private GpsClient gpsClient;
+  @Mock private VerticalServicesConfig verticalServicesConfig;
+
+  @Mock private RestTemplate restTemplate;
 
   private String genericService = "/xsd/general-service.xsd";
   ResourceLoader resourceLoader = new DefaultResourceLoader();
@@ -444,12 +447,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("34");
@@ -492,12 +498,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
@@ -540,12 +549,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
@@ -594,12 +606,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock(iuv);
@@ -644,12 +659,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222224");
@@ -692,12 +710,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
@@ -739,12 +760,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
@@ -796,12 +820,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
@@ -817,7 +844,7 @@ class PartnerServiceTest {
     var paymentModel =
         MockUtil.readModelFromFile(
             "gps/createSpontaneousPayments.json", PaymentPositionModel.class);
-    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenReturn(paymentModel);
+//    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenReturn(paymentModel);
 
     // Test execution
     var responseBody = pService.paDemandPaymentNotice(requestBody);
@@ -843,19 +870,22 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
 
     var e = Mockito.mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
+//    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
 
     var paymentModel =
         MockUtil.readModelFromFile(
@@ -879,12 +909,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -945,12 +978,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -991,12 +1027,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockTransferTypePAGOPA();
@@ -1080,12 +1119,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -1194,12 +1236,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222231");
@@ -1242,12 +1287,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
@@ -1290,12 +1338,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
@@ -1344,12 +1395,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2(iuv);
@@ -1394,12 +1448,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222234");
@@ -1442,12 +1499,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
 
@@ -1489,12 +1549,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222236");
@@ -1537,12 +1600,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222239");
@@ -1588,12 +1654,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222240");
@@ -1639,12 +1708,15 @@ class PartnerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
-                customizedModelMapper, List.of(), List.of()));
+                customizedModelMapper,
+                verticalServicesConfig,
+                restTemplate));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
