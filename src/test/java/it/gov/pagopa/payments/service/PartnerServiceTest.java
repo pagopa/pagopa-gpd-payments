@@ -31,9 +31,12 @@ import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeReqMock;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.partner.CtMapEntry;
 import it.gov.pagopa.payments.model.partner.CtMetadata;
+import it.gov.pagopa.payments.model.partner.CtPaymentOptionDescriptionPA;
+import it.gov.pagopa.payments.model.partner.CtPaymentOptionsDescriptionListPA;
 import it.gov.pagopa.payments.model.partner.CtTransferPA;
 import it.gov.pagopa.payments.model.partner.CtTransferPAV2;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
+import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Request;
@@ -56,6 +59,7 @@ import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.List;
+import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
@@ -65,12 +69,12 @@ import javax.xml.stream.XMLStreamException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -80,6 +84,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -93,7 +100,12 @@ import org.xml.sax.SAXException;
 @SpringBootTest
 class PartnerServiceTest {
 
-  @InjectMocks private PartnerService partnerService;
+  // NOTE: PartnerService's constructor has too many parameters (Resource, primitives, Lists, ...)
+  // for Mockito's @InjectMocks to reliably resolve by type: it silently creates brand-new mocks
+  // instead of reusing the ones declared/stubbed below, so stubs are never actually hit. Built
+  // explicitly here (same pattern used elsewhere in this class via "new PartnerService(...)"),
+  // with null for the Azure table/queue clients that these tests don't exercise.
+  private PartnerService partnerService;
 
   @Mock private ObjectFactory factory;
 
@@ -130,6 +142,23 @@ class PartnerServiceTest {
           azurite.getMappedPort(10001),
           azurite.getContainerIpAddress(),
           azurite.getMappedPort(10000));
+
+  @BeforeEach
+  void setUpPartnerService() {
+    partnerService =
+        new PartnerService(
+            resource,
+            queueSendInvisibilityTime,
+            List.of(),
+            List.of(),
+            factory,
+            gpdClient,
+            null,
+            null,
+            customizedModelMapper,
+            verticalServicesConfig,
+            restTemplate);
+  }
 
   @Test
   void paVerifyPaymentNoticeTest() throws DatatypeConfigurationException, IOException {
@@ -812,9 +841,7 @@ class PartnerServiceTest {
   }
 
   @Test
-  void paDemandPaymentNoticeTest()
-      throws DatatypeConfigurationException, IOException, XMLStreamException,
-          ParserConfigurationException, SAXException {
+  void paDemandPaymentNoticeTest() {
     var pService =
         spy(
             new PartnerService(
@@ -833,18 +860,35 @@ class PartnerServiceTest {
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
 
-    when(factory.createPaDemandPaymentNoticeResponse())
-        .thenReturn(factoryUtil.createPaDemandPaymentNoticeResponse());
-    when(factory.createCtQrCode()).thenReturn(factoryUtil.createCtQrCode());
-    when(factory.createCtPaymentOptionsDescriptionListPA())
-        .thenReturn(factoryUtil.createCtPaymentOptionsDescriptionListPA());
-    when(factory.createCtPaymentOptionDescriptionPA())
-        .thenReturn(factoryUtil.createCtPaymentOptionDescriptionPA());
+    when(verticalServicesConfig.getUrlByServiceId(requestBody.getIdServizio()))
+        .thenReturn("http://vertical-service.example/demand-payment-notice");
+    when(verticalServicesConfig.getSubscriptionKeyByServiceId(requestBody.getIdServizio()))
+        .thenReturn("subscription-key");
+    when(factory.createPaDemandPaymentNoticeRequest(requestBody))
+        .thenReturn(factoryUtil.createPaDemandPaymentNoticeRequest(requestBody));
 
-    var paymentModel =
-        MockUtil.readModelFromFile(
-            "gps/createSpontaneousPayments.json", PaymentPositionModel.class);
-//    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenReturn(paymentModel);
+    CtPaymentOptionDescriptionPA paymentOptionDescription =
+        factoryUtil.createCtPaymentOptionDescriptionPA();
+    paymentOptionDescription.setAllCCP(false);
+    paymentOptionDescription.setAmount(new BigDecimal(1055));
+    paymentOptionDescription.setOptions(StAmountOption.EQ);
+    CtPaymentOptionsDescriptionListPA paymentList =
+        factoryUtil.createCtPaymentOptionsDescriptionListPA();
+    paymentList.setPaymentOptionDescription(paymentOptionDescription);
+
+    PaDemandPaymentNoticeResponse verticalServiceResponse =
+        factoryUtil.createPaDemandPaymentNoticeResponse();
+    verticalServiceResponse.setOutcome(StOutcome.OK);
+    verticalServiceResponse.setPaymentList(paymentList);
+    verticalServiceResponse.setFiscalCodePA("77777777777");
+    verticalServiceResponse.setPaymentDescription("string");
+
+    when(restTemplate.exchange(
+            anyString(), eq(HttpMethod.POST), any(), eq(JAXBElement.class)))
+        .thenReturn(
+            new ResponseEntity<>(
+                factoryUtil.createPaDemandPaymentNoticeResponse(verticalServiceResponse),
+                HttpStatus.OK));
 
     // Test execution
     var responseBody = pService.paDemandPaymentNotice(requestBody);
@@ -861,9 +905,7 @@ class PartnerServiceTest {
   }
 
   @Test
-  void paDemandPaymentNoticeNotFoundTest()
-      throws IOException, DatatypeConfigurationException, XMLStreamException,
-          ParserConfigurationException, SAXException {
+  void paDemandPaymentNoticeNotFoundTest() {
 
     var pService =
         spy(
@@ -885,11 +927,15 @@ class PartnerServiceTest {
 
     var e = Mockito.mock(FeignException.NotFound.class);
     lenient().when(e.getSuppressed()).thenReturn(new Throwable[0]);
-//    when(gpsClient.createSpontaneousPayments(anyString(), any())).thenThrow(e);
 
-    var paymentModel =
-        MockUtil.readModelFromFile(
-            "gps/createSpontaneousPayments.json", PaymentPositionModel.class);
+    when(verticalServicesConfig.getUrlByServiceId(requestBody.getIdServizio()))
+        .thenReturn("http://vertical-service.example/demand-payment-notice");
+    when(factory.createPaDemandPaymentNoticeRequest(requestBody))
+        .thenReturn(factoryUtil.createPaDemandPaymentNoticeRequest(requestBody));
+    when(restTemplate.exchange(
+            anyString(), eq(HttpMethod.POST), any(), eq(JAXBElement.class)))
+        .thenThrow(e);
+
     // Test execution
     try {
       pService.paDemandPaymentNotice(requestBody);
