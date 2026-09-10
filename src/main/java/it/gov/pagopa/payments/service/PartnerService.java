@@ -272,7 +272,7 @@ public class PartnerService {
     try {
       String urlTarget = verticalServicesConfig.getUrlByServiceId(request.getIdServizio());
       String subscriptionKey = verticalServicesConfig.getSubscriptionKeyByServiceId(request.getIdServizio());
-      log.debug("[paDemandPaymentNotice] call vertical service mapped on idServizio {}: {}", request.getIdServizio(), urlTarget);
+      log.debug("[paDemandPaymentNotice] Call vertical service mapped on idServizio {}: {} {}", request.getIdServizio(), urlTarget, request);
 
       HttpHeaders headers = new HttpHeaders();
       if (subscriptionKey != null) {
@@ -282,11 +282,11 @@ public class PartnerService {
       HttpEntity<JAXBElement<PaDemandPaymentNoticeRequest>> httpEntity =
           new HttpEntity<>(factory.createPaDemandPaymentNoticeRequest(request), headers);
 
-//      log.debug(
-//          "[paDemandPaymentNotice] vertical services request: url=[{}], headers=[{}], body=[{}]",
-//          urlTarget,
-//          httpEntity.getHeaders(),
-//          httpEntity.getBody());
+      log.debug(
+          "[paDemandPaymentNotice] vertical services request: url=[{}], headers=[{}], body=[{}]",
+          urlTarget,
+          httpEntity.getHeaders(),
+          httpEntity.getBody());
 
       // The vertical service returns the paForNode element paDemandPaymentNoticeResponse, which is
       // not annotated with @XmlRootElement, so JAXB unmarshals it into a JAXBElement wrapper.
@@ -297,13 +297,15 @@ public class PartnerService {
                   restTemplate.exchange(
                       urlTarget, HttpMethod.POST, httpEntity, JAXBElement.class);
 
-//      log.debug(
-//          "[paDemandPaymentNotice] vertical services response: status=[{}], headers=[{}], body=[{}]",
-//          response.getStatusCode(),
-//          response.getHeaders(),
-//          response.getBody());
+      log.debug(
+          "[paDemandPaymentNotice] vertical services response: status=[{}], headers=[{}], body=[{}]",
+          response.getStatusCode(),
+          response.getHeaders(),
+          response.getBody());
 
-      return response.getBody().getValue();
+      PaDemandPaymentNoticeResponse responseBody = response.getBody().getValue();
+      log.debug("[paDemandPaymentNotice] Vertical Service response: {}", responseBody);
+      return responseBody;
     } catch (FeignException.NotFound e) {
       log.error("[paDemandPaymentNotice] Vertical Service not found", e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);

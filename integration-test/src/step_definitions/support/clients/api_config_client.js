@@ -29,7 +29,7 @@ function createCreditorInstitution(body) {
 
 
 function readCreditorInstitutionIbans(orgId) {
-    return get(api_config_host + `/creditorinstitutions/${orgId}/ibans/enhanced`, {
+    return get(api_config_host + `/creditorinstitutions/${orgId}/ibans`, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }

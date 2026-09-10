@@ -4,62 +4,26 @@ function getTestIban() {
     return process.env.test_iban || "IT30N0103076271000001823603";
 }
 
-function buildGPSServiceCreationRequest(serviceId, donation_host) {
-    return {
-        "id": serviceId,
-        "name": "DonationpagoPAservice",
-        "description": "DonationpagoPAservice",
-        "transferCategory": "tassonomia-1",
-        "status": "ENABLED",
-        "endpoint": donation_host,
-        "basePath": "/donations/paymentoptions",
-        "properties": [
-            {
-                "name": "amount",
-                "type": "NUMBER",
-                "required": true
-            },
-            {
-                "name": "description",
-                "type": "STRING"
-            }
-        ]
-    }
-}
-
-function buildGPSOrganizationCreationRequest(serviceId) {
-    return {
-        "companyName": "Comune di Milano",
-        "enrollments": [
-            {
-                "serviceId": serviceId,
-                "iban": "IT00000000000000001",
-                "officeName": "Ufficio Tributi",
-                "segregationCode": "77",
-                "remittanceInformation": "causale di pagamento"
-            }
-        ]
-    };
-}
-
-
-function buildDemandPaymentNoticeRequest(gpsSessionBundle) {
+function buildPaDemandPaymentNoticeRequest(gpsSessionBundle) {
     const organizationCode = gpsSessionBundle.organizationCode;
     const brokerCode = gpsSessionBundle.brokerCode;
     const stationCode = gpsSessionBundle.stationCode;
     const serviceCode = gpsSessionBundle.serviceCode;
     const base64ServiceData = gpsSessionBundle.serviceData;
-    return `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    const req = `<soapenv:Envelope xmlns:pafn="http://pagopa-api.pagopa.gov.it/pa/paForNode.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
         <soapenv:Body>
             <pafn:paDemandPaymentNoticeRequest>
                 <idPA>${organizationCode}</idPA>
                 <idBrokerPA>${brokerCode}</idBrokerPA>
                 <idStation>${stationCode}</idStation>
                 <idServizio>${serviceCode}</idServizio>
+                <idSoggettoServizio>${serviceCode}</idSoggettoServizio>
                 <datiSpecificiServizioRequest>${base64ServiceData}</datiSpecificiServizioRequest>
             </pafn:paDemandPaymentNoticeRequest>
         </soapenv:Body>
     </soapenv:Envelope>`;
+    console.log("\nREQUEST: ", req);
+    return req;
 }
 
 function buildDebtPositionDynamicData(gpdSessionBundle) {    
@@ -449,9 +413,7 @@ module.exports = {
 	    buildActivatePaymentNoticeRequest,
 	    buildCreateDebtPositionRequest,
 	    buildDebtPositionDynamicData,
-	    buildDemandPaymentNoticeRequest,
-	    buildGPSOrganizationCreationRequest,
-	    buildGPSServiceCreationRequest,
+	    buildPaDemandPaymentNoticeRequest: buildPaDemandPaymentNoticeRequest,
 	    buildSendPaymentOutcomeRequest,
 	    buildSendRTRequest,
 	    buildVerifyPaymentNoticeRequest,
