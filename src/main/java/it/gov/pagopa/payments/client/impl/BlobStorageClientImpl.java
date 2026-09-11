@@ -16,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -32,7 +33,7 @@ public class BlobStorageClientImpl implements BlobStorageClient {
 
 		try (InputStream inputStream = new ByteArrayInputStream(content)) {
 			BlobClient blobClient = blobContainerClient.getBlobClient(fileName + FILE_EXTENSION);
-			blobClient.upload(inputStream, content.length);
+			blobClient.upload(inputStream, content.length, true);
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to persist dead-letter message", e);
 		}
@@ -40,13 +41,23 @@ public class BlobStorageClientImpl implements BlobStorageClient {
 
 	@Override
 	public List<String> listJsonBlobs(int maxMessages) {
-		try {
-			return blobContainerClient.listBlobs().stream().map(BlobItem::getName)
-					.filter(name -> name.endsWith(FILE_EXTENSION)).limit(maxMessages).toList();
+	    try {
+	        return blobContainerClient.listBlobs().stream()
+	                .filter(blob -> blob.getName().endsWith(FILE_EXTENSION))
+	                .sorted(
+	                        Comparator.comparing(
+	                                        (BlobItem blob) ->
+	                                                blob.getProperties().getLastModified())
+	                                .reversed())
+	                .limit(maxMessages)
+	                .map(BlobItem::getName)
+	                .toList();
 
-		} catch (BlobStorageException e) {
-			throw new DeadLetterAccessException("Unable to list dead-letter messages", e);
-		}
+	    } catch (BlobStorageException e) {
+	        throw new DeadLetterAccessException(
+	                "Unable to list dead-letter messages",
+	                e);
+	    }
 	}
 
 	@Override

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.when;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -26,6 +28,7 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobItemProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 
 import it.gov.pagopa.payments.exception.DeadLetterAccessException;
@@ -56,50 +59,68 @@ class BlobStorageClientImplTest {
         verify(blobContainerClient)
                 .getBlobClient("path/message.json");
 
-        verify(blobClient)
-                .upload(any(InputStream.class), anyLong());
+		verify(blobClient).upload(any(InputStream.class), anyLong(), eq(true));
     }
     
     @Test
-    void listJsonBlobsShouldReturnAtMostConfiguredNumberOfJsonFiles() {
+    void listJsonBlobsShouldReturnMostRecentJsonFilesUpToConfiguredLimit() {
 
         @SuppressWarnings("unchecked")
         PagedIterable<BlobItem> pagedIterable =
                 mock(PagedIterable.class);
 
-        BlobItem firstBlob =
+        BlobItem olderBlob =
                 new BlobItem()
                         .setName(
                                 "2026/08/31/10/message-1/"
-                                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json");
+                                        + "MAX_RETRY_ATTEMPTS_REACHED_1000.json")
+                        .setProperties(
+                                new BlobItemProperties()
+                                        .setLastModified(
+                                                OffsetDateTime.parse(
+                                                        "2026-08-31T10:00:00Z")));
 
-        BlobItem secondBlob =
+        BlobItem newerBlob =
                 new BlobItem()
                         .setName(
                                 "2026/08/31/11/message-2/"
-                                        + "MAX_RETRY_ATTEMPTS_REACHED_2000.json");
+                                        + "MAX_RETRY_ATTEMPTS_REACHED_2000.json")
+                        .setProperties(
+                                new BlobItemProperties()
+                                        .setLastModified(
+                                                OffsetDateTime.parse(
+                                                        "2026-08-31T11:00:00Z")));
 
         BlobItem nonJsonBlob =
                 new BlobItem()
-                        .setName("ignored.txt");
+                        .setName("ignored.txt")
+                        .setProperties(
+                                new BlobItemProperties()
+                                        .setLastModified(
+                                                OffsetDateTime.parse(
+                                                        "2026-08-31T12:00:00Z")));
 
         when(blobContainerClient.listBlobs())
                 .thenReturn(pagedIterable);
 
+        /*
+         * The oldest JSON blob is intentionally returned first by Azure.
+         * The client must sort by lastModified before applying the limit.
+         */
         when(pagedIterable.stream())
                 .thenReturn(
                         Stream.of(
                                 nonJsonBlob,
-                                firstBlob,
-                                secondBlob));
+                                olderBlob,
+                                newerBlob));
 
         List<String> result =
                 sut.listJsonBlobs(1);
 
         assertEquals(
                 List.of(
-                        "2026/08/31/10/message-1/"
-                                + "MAX_RETRY_ATTEMPTS_REACHED_1000.json"),
+                        "2026/08/31/11/message-2/"
+                                + "MAX_RETRY_ATTEMPTS_REACHED_2000.json"),
                 result);
 
         verify(blobContainerClient)
