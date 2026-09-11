@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.5-1-PIDM-2311-dead-letter-queue"
+    tag: "0.13.6"
     pullPolicy: Always
   livenessProbe:
     httpGet:
