@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.5</version>
+    <version>0.13.5-1-PIDM-2311-dead-letter-queue</version>
     <name>Payments</name>
     <description>Payments</description>
 

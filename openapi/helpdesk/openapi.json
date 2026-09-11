@@ -35,11 +35,16 @@
           }
         } ],
         "responses" : {
-          "400" : {
-            "description" : "Invalid maxMessages parameter."
-          },
           "200" : {
             "description" : "Dead-letter messages retrieved successfully.",
+            "headers" : {
+              "X-Request-Id" : {
+                "description" : "This header identifies the call",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -51,14 +56,41 @@
               }
             }
           },
+          "400" : {
+            "description" : "Invalid maxMessages parameter.",
+            "headers" : {
+              "X-Request-Id" : {
+                "description" : "This header identifies the call",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
           "500" : {
-            "description" : "Dead-letter storage unavailable."
+            "description" : "Dead-letter storage unavailable.",
+            "headers" : {
+              "X-Request-Id" : {
+                "description" : "This header identifies the call",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           }
         },
         "security" : [ {
           "ApiKey" : [ ]
         } ]
-      }
+      },
+      "parameters" : [ {
+        "name" : "X-Request-Id",
+        "in" : "header",
+        "description" : "This header identifies the call, if not passed it is self-generated. This ID is returned in the response.",
+        "schema" : {
+          "type" : "string"
+        }
+      } ]
     },
     "/error-messages/detail" : {
       "get" : {
@@ -79,6 +111,14 @@
         "responses" : {
           "200" : {
             "description" : "Dead-letter message retrieved successfully.",
+            "headers" : {
+              "X-Request-Id" : {
+                "description" : "This header identifies the call",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -87,20 +127,52 @@
               }
             }
           },
-          "500" : {
-            "description" : "Dead-letter storage unavailable."
-          },
           "400" : {
-            "description" : "Invalid or missing filename."
+            "description" : "Invalid or missing filename.",
+            "headers" : {
+              "X-Request-Id" : {
+                "description" : "This header identifies the call",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "404" : {
-            "description" : "Dead-letter message not found."
+            "description" : "Dead-letter message not found.",
+            "headers" : {
+              "X-Request-Id" : {
+                "description" : "This header identifies the call",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Dead-letter storage unavailable.",
+            "headers" : {
+              "X-Request-Id" : {
+                "description" : "This header identifies the call",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           }
         },
         "security" : [ {
           "ApiKey" : [ ]
         } ]
-      }
+      },
+      "parameters" : [ {
+        "name" : "X-Request-Id",
+        "in" : "header",
+        "description" : "This header identifies the call, if not passed it is self-generated. This ID is returned in the response.",
+        "schema" : {
+          "type" : "string"
+        }
+      } ]
     }
   },
   "components" : {
