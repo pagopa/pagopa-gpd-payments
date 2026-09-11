@@ -22,7 +22,7 @@ import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
 import it.gov.pagopa.payments.model.partner.*;
 import it.gov.pagopa.payments.client.GpdClient;
-import it.gov.pagopa.payments.client.GpsClient;
+import it.gov.pagopa.payments.config.VerticalServicesConfig;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.ClassRule;
@@ -38,6 +38,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.web.client.RestTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -70,7 +71,9 @@ class SchedulerServiceTest {
 
   @Mock private GpdClient gpdClient;
 
-  @Mock private GpsClient gpsClient;
+  @Mock private VerticalServicesConfig verticalServicesConfig;
+
+  @Mock private RestTemplate restTemplate;
 
   @Mock private DeadLetterService deadLetterService;
 
@@ -116,14 +119,15 @@ class SchedulerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
-                factory,
-                gpdClient,
-                gpsClient,
-                tableClientConfiguration(),
-                queueClientConfiguration(),
-                customizedModelMapper,
                 List.of(),
-                List.of()));
+                            List.of(),
+                            factory,
+                            gpdClient,
+                            tableClientConfiguration(),
+                            queueClientConfiguration(),
+                            customizedModelMapper,
+                            verticalServicesConfig,
+                            restTemplate));
 
     var schedService =
     		spy(new SchedulerService(
@@ -249,14 +253,15 @@ class SchedulerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
-                factory,
-                gpdClient,
-                gpsClient,
-                tableClientConfiguration(),
-                queueClientConfiguration(),
-                customizedModelMapper,
                 List.of(),
-                List.of()));
+                            List.of(),
+                            factory,
+                            gpdClient,
+                            tableClientConfiguration(),
+                            queueClientConfiguration(),
+                            customizedModelMapper,
+                            verticalServicesConfig,
+                            restTemplate));
 
     var schedService =
     		spy(new SchedulerService(
@@ -381,14 +386,15 @@ class SchedulerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
-                factory,
-                gpdClient,
-                gpsClient,
-                tableClientConfiguration(),
-                queueClientConfiguration(),
-                customizedModelMapper,
                 List.of(),
-                List.of()));
+                            List.of(),
+                            factory,
+                            gpdClient,
+                            tableClientConfiguration(),
+                            queueClientConfiguration(),
+                            customizedModelMapper,
+                            verticalServicesConfig,
+                            restTemplate));
 
     var schedService =
     		spy(new SchedulerService(
@@ -689,7 +695,7 @@ class SchedulerServiceTest {
             .toList()
             .size());
   }
-  
+
   @Test
   void calculateRetryVisibilityTimeoutShouldIncreaseExponentiallyAndRespectMaxDelay() {
 
@@ -724,7 +730,7 @@ class SchedulerServiceTest {
               10L,
               schedService.calculateRetryVisibilityTimeout(5));
   }
-  
+
   @Test
   void checkQueueCountValidityShouldAcceptMessagesUpToConfiguredLimit() {
 

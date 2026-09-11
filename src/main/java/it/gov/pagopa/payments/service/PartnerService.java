@@ -10,7 +10,7 @@ import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.client.GpdClient;
-import it.gov.pagopa.payments.client.GpsClient;
+import it.gov.pagopa.payments.config.VerticalServicesConfig;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
@@ -52,24 +52,25 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 import org.xml.sax.SAXException;
 
 @Service
 @Slf4j
-@NoArgsConstructor
-@AllArgsConstructor
 public class PartnerService {
 
-  private static final String DEBT_POSITION_STATUS_ERROR =
-      "[Check DP] Debt position status error: ";
+  private static final String DEBT_POSITION_STATUS_ERROR = "[Check DP] Debt position status error: ";
+
   public static final String TEXT_XML_NODE = "#text";
 
   public static final String DEBTOR_PROPERTY = "debtor";
@@ -84,32 +85,55 @@ public class PartnerService {
 
   public static final String SERVICE_TYPE_ACA = "ACA";
 
-  @Value(value = "${xsd.generic-service}")
-  private Resource xsdGenericService;
+  private static final String DBERROR = "Error in organization table connection";
 
-  @Value(value = "${azure.queue.send.invisibilityTime}")
-  private Long queueSendInvisibilityTime;
+  private final Resource xsdGenericService;
 
-  @Autowired private ObjectFactory factory;
+  private final Long queueSendInvisibilityTime;
 
-  @Autowired private GpdClient gpdClient;
+  private final ObjectFactory factory;
 
-  @Autowired private GpsClient gpsClient;
+  private final GpdClient gpdClient;
 
-  @Autowired private TableClient tableClient;
+  private final TableClient tableClient;
 
-  @Autowired private QueueClient queueClient;
+  private final QueueClient queueClient;
 
-  @Autowired private CustomizedMapper customizedModelMapper;
+  private final VerticalServicesConfig verticalServicesConfig;
 
-  @Value(value = "${suppressedErrors.stations}")
-  private List<String> stationsWithSuppressedErrors;
+  private final RestTemplate restTemplate;
+
+  private final CustomizedMapper customizedModelMapper;
+
+  private final List<String> stationsWithSuppressedErrors;
 
   // PaaErrorEnum.java fault codes subset
-  @Value(value = "${suppressedErrors.values}")
-  private List<String> suppressedErrorsValues;
+  private final List<String> suppressedErrorsValues;
 
-  private static final String DBERROR = "Error in organization table connection";
+  public PartnerService(
+      @Value(value = "${xsd.generic-service}") Resource xsdGenericService,
+      @Value(value = "${azure.queue.send.invisibilityTime}") Long queueSendInvisibilityTime,
+      @Value(value = "${suppressedErrors.stations}") List<String> stationsWithSuppressedErrors,
+      @Value(value = "${suppressedErrors.values}") List<String> suppressedErrorsValues,
+      ObjectFactory factory,
+      GpdClient gpdClient,
+      TableClient tableClient,
+      QueueClient queueClient,
+      CustomizedMapper customizedModelMapper,
+      VerticalServicesConfig verticalServicesConfig,
+      RestTemplate restTemplate) {
+    this.xsdGenericService = xsdGenericService;
+    this.queueSendInvisibilityTime = queueSendInvisibilityTime;
+    this.factory = factory;
+    this.gpdClient = gpdClient;
+    this.verticalServicesConfig = verticalServicesConfig;
+    this.restTemplate = restTemplate;
+    this.tableClient = tableClient;
+    this.queueClient = queueClient;
+    this.customizedModelMapper = customizedModelMapper;
+    this.stationsWithSuppressedErrors = stationsWithSuppressedErrors;
+    this.suppressedErrorsValues = suppressedErrorsValues;
+  }
 
   @Transactional(readOnly = true)
   public PaVerifyPaymentNoticeRes paVerifyPaymentNotice(
@@ -243,109 +267,52 @@ public class PartnerService {
   }
 
   @Transactional
-  public PaDemandPaymentNoticeResponse paDemandPaymentNotice(PaDemandPaymentNoticeRequest request)
-      throws DatatypeConfigurationException, ParserConfigurationException, IOException,
-          SAXException, XMLStreamException {
+  public PaDemandPaymentNoticeResponse paDemandPaymentNotice(PaDemandPaymentNoticeRequest request) {
 
-    List<ServicePropertyModel> attributes = mapDatiSpecificiServizio(request);
-
-    SpontaneousPaymentModel spontaneousPayment =
-        SpontaneousPaymentModel.builder()
-            .service(
-                ServiceModel.builder().id(request.getIdServizio()).properties(attributes).build())
-            .debtor(
-                DebtorModel.builder() // TODO: take the info from the request
-                    .type(Type.F)
-                    .fiscalCode("ANONIMO")
-                    .fullName("ANONIMO")
-                    .build())
-            .build();
-
-    PaymentPositionModel gpsResponse;
     try {
-      log.debug("[paDemandPaymentNotice] call GPS");
-      gpsResponse = gpsClient.createSpontaneousPayments(request.getIdPA(), spontaneousPayment);
+      String urlTarget = verticalServicesConfig.getUrlByServiceId(request.getIdServizio());
+      String subscriptionKey = verticalServicesConfig.getSubscriptionKeyByServiceId(request.getIdServizio());
+      log.debug("[paDemandPaymentNotice] Call vertical service mapped on idServizio {}: {} {}", request.getIdServizio(), urlTarget, request);
+
+      HttpHeaders headers = new HttpHeaders();
+      if (subscriptionKey != null) {
+        headers.set("Ocp-Apim-Subscription-Key", subscriptionKey);
+      }
+      headers.set("Content-Type", MediaType.APPLICATION_XML_VALUE);
+      HttpEntity<JAXBElement<PaDemandPaymentNoticeRequest>> httpEntity =
+          new HttpEntity<>(factory.createPaDemandPaymentNoticeRequest(request), headers);
+
+      log.debug(
+          "[paDemandPaymentNotice] vertical services request: url=[{}], headers=[{}], body=[{}]",
+          urlTarget,
+          httpEntity.getHeaders(),
+          httpEntity.getBody());
+
+      // The vertical service returns the paForNode element paDemandPaymentNoticeResponse, which is
+      // not annotated with @XmlRootElement, so JAXB unmarshals it into a JAXBElement wrapper.
+      @SuppressWarnings("unchecked")
+      ResponseEntity<JAXBElement<PaDemandPaymentNoticeResponse>> response =
+          (ResponseEntity<JAXBElement<PaDemandPaymentNoticeResponse>>)
+              (ResponseEntity<?>)
+                  restTemplate.exchange(
+                      urlTarget, HttpMethod.POST, httpEntity, JAXBElement.class);
+
+      log.debug(
+          "[paDemandPaymentNotice] vertical services response: status=[{}], headers=[{}], body=[{}]",
+          response.getStatusCode(),
+          response.getHeaders(),
+          response.getBody());
+
+      PaDemandPaymentNoticeResponse responseBody = response.getBody().getValue();
+      log.debug("[paDemandPaymentNotice] Vertical Service response: {}", responseBody);
+      return responseBody;
     } catch (FeignException.NotFound e) {
-      log.error("[paDemandPaymentNotice] GPS Error not found", e);
+      log.error("[paDemandPaymentNotice] Vertical Service not found", e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (Exception e) {
-      log.error("[paDemandPaymentNotice] GPS Generic Error", e);
+      log.error("[paDemandPaymentNotice] Vertical Service Generic Error", e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
-    return createPaDemandPaymentNoticeResponse(gpsResponse);
-  }
-
-  private List<ServicePropertyModel> mapDatiSpecificiServizio(PaDemandPaymentNoticeRequest request)
-      throws ParserConfigurationException, SAXException, IOException, XMLStreamException {
-    CommonUtil.syntacticValidationXml(
-        request.getDatiSpecificiServizioRequest(), xsdGenericService.getFile());
-
-    // parse XML into Document
-    DocumentBuilderFactory xmlFactory = DocumentBuilderFactory.newInstance();
-    xmlFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-    DocumentBuilder builder = xmlFactory.newDocumentBuilder();
-    var document =
-        builder.parse(new ByteArrayInputStream(request.getDatiSpecificiServizioRequest()));
-
-    // map XML tags into list of ServicePropertyModel
-    var nodes = document.getElementsByTagName("service").item(0).getChildNodes();
-    List<ServicePropertyModel> attributes = new ArrayList<>(nodes.getLength());
-    for (int i = 0; i < nodes.getLength(); i++) {
-      var node = nodes.item(i);
-      if (!TEXT_XML_NODE.equals(node.getNodeName())) {
-        var name = node.getNodeName();
-        var value = node.getTextContent();
-        attributes.add(ServicePropertyModel.builder().name(name).value(value).build());
-      }
-    }
-    return attributes;
-  }
-
-  private PaDemandPaymentNoticeResponse createPaDemandPaymentNoticeResponse(
-      PaymentPositionModel gpsResponse) throws DatatypeConfigurationException {
-    var result = factory.createPaDemandPaymentNoticeResponse();
-    result.setOutcome(StOutcome.OK);
-    result.setFiscalCodePA(gpsResponse.getPaymentOption().get(0).getOrganizationFiscalCode());
-
-    CtQrCode ctQrCode = factory.createCtQrCode();
-    ctQrCode.setFiscalCode(gpsResponse.getPaymentOption().get(0).getOrganizationFiscalCode());
-    ctQrCode.setNoticeNumber(gpsResponse.getPaymentOption().get(0).getNav());
-    result.setQrCode(ctQrCode);
-
-    result.setCompanyName(Validator.validateCompanyName(gpsResponse.getCompanyName()));
-    result.setOfficeName(Validator.validateOfficeName(gpsResponse.getOfficeName()));
-    result.setPaymentDescription(
-        Validator.validatePaymentOptionDescription(
-            gpsResponse.getPaymentOption().get(0).getDescription()));
-    CtPaymentOptionsDescriptionListPA ctPaymentOptionsDescriptionListPA =
-        factory.createCtPaymentOptionsDescriptionListPA();
-
-    CtPaymentOptionDescriptionPA ctPaymentOptionDescriptionPA =
-        factory.createCtPaymentOptionDescriptionPA();
-
-    var ccp =
-        gpsResponse
-            .getPaymentOption()
-            .get(0)
-            .getTransfer()
-            .stream()
-            .noneMatch(elem -> elem.getPostalIban() == null || elem.getPostalIban().isBlank());
-    ctPaymentOptionDescriptionPA.setAllCCP(ccp);
-
-    ctPaymentOptionDescriptionPA.setAmount(
-        BigDecimal.valueOf(gpsResponse.getPaymentOption().get(0).getAmount()));
-
-    var date = gpsResponse.getPaymentOption().get(0).getDueDate();
-    ctPaymentOptionDescriptionPA.setDueDate(
-        DatatypeFactory.newInstance().newXMLGregorianCalendar(String.valueOf(date)));
-
-    ctPaymentOptionDescriptionPA.setOptions(StAmountOption.EQ);
-    ctPaymentOptionDescriptionPA.setDetailDescription(
-        Validator.validatePaymentOptionDescription(
-            gpsResponse.getPaymentOption().get(0).getDescription()));
-    ctPaymentOptionsDescriptionListPA.setPaymentOptionDescription(ctPaymentOptionDescriptionPA);
-    result.setPaymentList(ctPaymentOptionsDescriptionListPA);
-    return result;
   }
 
   /**

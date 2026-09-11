@@ -69,7 +69,7 @@ function healthCheck() {
     })
 }
 
-function demandPaymentNotice(body) {
+function paDemandPaymentNotice(body) {
     return post(payments_host, body, {
         timeout: 10000,
         headers: {
@@ -80,7 +80,7 @@ function demandPaymentNotice(body) {
     })
 }
 
-function verifyPaymentNotice(body) {
+function paVerifyPaymentNotice(body) {
     const url = payments_host;
     const config = {
         timeout: 10000,
@@ -91,7 +91,7 @@ function verifyPaymentNotice(body) {
         }
     };
 
-    logSoapRequest("verifyPaymentNotice", url, body, config);
+    logSoapRequest("paVerifyPaymentNotice", url, body, config);
 
     return post(url, body, config);
 }
@@ -141,14 +141,14 @@ function sendRTV2(body) {
 }
 
 function activatePaymentNotice(body) {
-	const url = nodo_host + "/nodo/node-for-psp/v1";
+	const url = nodo_host + "/node-for-psp/v1";
 	
 	const config = {
 	        timeout: 10000,
 	        headers: {
 			  'Content-Type': 'text/xml; charset=utf-8',
 			  'SOAPAction': '"activatePaymentNoticeV2"',
-		      "Ocp-Apim-Subscription-Key": `${process.env.SUBKEY};product=nodo`
+              'Ocp-Apim-Subscription-Key': `${process.env.NODO_AUTH_SUBKEY}`
 	        }
 	};
 	
@@ -158,24 +158,24 @@ function activatePaymentNotice(body) {
 }
 
 function sendPaymentOutcome(body) {
-    return post(nodo_host + "/nodo/node-for-psp/v1", body, {
+    return post(nodo_host + "/node-for-psp/v1", body, {
         timeout: 10000,
         headers: {
             'Content-Type': 'text/xml',
             'SOAPAction': 'sendPaymentOutcome',
-            "Ocp-Apim-Subscription-Key": process.env.SUBKEY
+            "Ocp-Apim-Subscription-Key": `${process.env.NODO_AUTH_SUBKEY};product=nodo-auth`
         }
     });
 }
 
 module.exports = {
     activatePaymentNotice,
-    demandPaymentNotice,
+    paDemandPaymentNotice: paDemandPaymentNotice,
     getPayment,
     getPaymentV2,
     healthCheck,
     sendPaymentOutcome,
     sendRT,
     sendRTV2,
-    verifyPaymentNotice,
+    verifyPaymentNotice: paVerifyPaymentNotice,
 }
