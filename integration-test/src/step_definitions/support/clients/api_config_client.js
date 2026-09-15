@@ -110,7 +110,6 @@ module.exports = {
     readECStationAssociation,
     readStation,
     createCreditorInstitution,
-    createCreditorInstitutionIbans,
     createCreditorInstitutionBroker,
     createStation,
     createECStationAssociation,
