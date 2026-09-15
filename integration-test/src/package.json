@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "test:local": "dotenv -e ./config/.env.local yarn cucumber",
+    "test:local-ff": "dotenv -e ./config/.env.local yarn cucumber -- --fail-fast --publish-quiet ./features/gpd_payments.activate_phase.feature",
     "test:dev": "dotenv -e ./config/.env.dev yarn cucumber",
     "test:uat": "dotenv -e ./config/.env.uat yarn cucumber",
     "test:prod": "dotenv -e ./config/.env.prod yarn cucumber",

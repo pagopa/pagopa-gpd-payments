@@ -6,7 +6,6 @@ const {
     readECStationAssociation,
     readStation,
     createCreditorInstitution,
-    createCreditorInstitutionIbans,
     createCreditorInstitutionBroker,
     refreshConfig
 } = require("../clients/api_config_client");

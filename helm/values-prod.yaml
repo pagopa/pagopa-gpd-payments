@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.6"
+    tag: "0.13.6-1-PAGOPA-3737"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -85,9 +85,9 @@ microservice-chart:
     CACHE_EXPIRATION_TIME: "1d"
     AZURE_TABLES_TABLENAME: "gpdpaymentsreceiptstable"
     API_CONFIG_HOST: "https://api.platform.pagopa.it/apiconfig/auth/api/v1"
-    GPS_HOST: "https://api.platform.pagopa.it/spontaneous-payments-service/v1"
-    GPD_HOST: "https://api.platform.pagopa.it/gpd/api/v1"
     API_CONFIG_CACHE_HOST: "https://api.platform.pagopa.it/api-config-cache/p/v1"
+    EBOLLO_2_0_HOST: "https://api.platform.pagopa.it/pagopa-gps-mbd-service/v1/mbd/paymentOption"
+    GPD_HOST: "https://api.platform.pagopa.it/gpd/api/v1"
     QUEUE_NAME: "gpd-receipt-poison-queue" # Queue used for active paSendRT retries
     DEAD_LETTER_STORAGE_CONTAINER_NAME: "gpd-receipt-dead-letter" # Blob container used as terminal dead-letter storage after max retry attempts
     DEQUEUE_LIMIT: "10"
@@ -97,7 +97,7 @@ microservice-chart:
     QUEUE_RETRY_MAX_DELAY: "3600" # Maximum visibility delay allowed for exponential retry backoff
     QUEUE_RETRY_MULTIPLIER: "2.0" # Multiplier used to increase the retry delay exponentially after each failed processing attempt.
     CRON_JOB_SCHEDULE_RETRY_ENABLED: "true"
-    # Poll the retry queue every minute. Messages still inside their visibility timeout are not returned by Azure Storage Queue, 
+    # Poll the retry queue every minute. Messages still inside their visibility timeout are not returned by Azure Storage Queue,
     # so the actual retry timing continues to be controlled by the exponential backoff.
     CRON_JOB_SCHEDULE_RETRY_TRIGGER: "0 * * * * *"
     SERVICE_NAME: "pagopa-gpd-payments"
