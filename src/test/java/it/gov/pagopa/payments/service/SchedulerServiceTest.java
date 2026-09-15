@@ -547,14 +547,15 @@ class SchedulerServiceTest {
             new PartnerService(
                 resource,
                 queueSendInvisibilityTime,
+                List.of(),
+                List.of(),
                 factory,
                 gpdClient,
-                gpsClient,
                 tableClientConfiguration(),
                 queueClientConfiguration(),
                 customizedModelMapper,
-                List.of(),
-                List.of()));
+                verticalServicesConfig,
+                restTemplate));
 
     var schedService =
     		spy(new SchedulerService(
