@@ -29,7 +29,8 @@ function createCreditorInstitution(body) {
 
 
 function readCreditorInstitutionIbans(orgId) {
-    return get(api_config_host + `/creditorinstitutions/${orgId}/ibans/enhanced`, {
+    console.log(`GET ${api_config_host}/creditorinstitutions/${orgId}/ibans`)
+    return get(api_config_host + `/creditorinstitutions/${orgId}/ibans`, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.SUBKEY
         }
@@ -37,6 +38,7 @@ function readCreditorInstitutionIbans(orgId) {
 }
 
 function createCreditorInstitutionIbans(orgId, body) {
+    console.log(`POST ${api_config_host}/creditorinstitutions/${orgId}/ibans`)
     return post(api_config_host + `/creditorinstitutions/${orgId}/ibans`, body, {
         headers: {
             "Ocp-Apim-Subscription-Key": process.env.SUBKEY
@@ -108,7 +110,6 @@ module.exports = {
     readECStationAssociation,
     readStation,
     createCreditorInstitution,
-    createCreditorInstitutionIbans,
     createCreditorInstitutionBroker,
     createStation,
     createECStationAssociation,

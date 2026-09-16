@@ -41,7 +41,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
           project_key: ${{env.PROJECT_KEY}}
-          coverage_exclusions: "**/config/*,**/*Mock*,**/model/**,**/entity/*"
+          coverage_exclusions: "**/config/*,**/*Mock*,**/model/**,**/entity/*,**/exception/*"
           cpd_exclusions: "**/model/**,**/entity/*"
           java_version: 17
 
@@ -77,6 +77,7 @@ jobs:
         id: run_integration_test
         run: |
           export SUBKEY=${{ secrets.SUBKEY }}      
+          export NODO_AUTH_SUBKEY=${{ secrets.NODO_PAGOPA_SUBKEY }}
           export CANARY=${{ inputs.canary }}      
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
           

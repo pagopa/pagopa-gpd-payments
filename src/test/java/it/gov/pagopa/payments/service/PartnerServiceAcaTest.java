@@ -13,7 +13,6 @@ import it.gov.pagopa.payments.model.partner.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -23,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import javax.xml.datatype.DatatypeConfigurationException;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,15 +36,31 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 class PartnerServiceAcaTest {
 
-    @InjectMocks
-    private PartnerService partnerService;
-
     @Mock
     private ObjectFactory factory;
 
     @Mock private GpdClient gpdClient;
 
     private final ObjectFactory factoryUtil = new ObjectFactory();
+
+    // PartnerService has too many constructor parameters (Resource, primitives, Lists, ...)
+    // for Mockito's @InjectMocks to reliably resolve by type: it silently creates a brand-new
+    // GpdClient mock instead of reusing the one stubbed above, so gpdClient stubs are never hit.
+    // Building the service explicitly (same pattern used in PartnerServiceTest) avoids this.
+    private PartnerService buildPartnerService() {
+        return new PartnerService(
+                null,
+                null,
+                List.of(),
+                List.of(),
+                factory,
+                gpdClient,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
 
     @Test
     void paVerifyPaymentNoticeTestACA() throws DatatypeConfigurationException, IOException {
@@ -74,7 +90,7 @@ class PartnerServiceAcaTest {
             mockedConfigData.when(() -> ConfigCacheData.getCreditorInstitutionStation(anyString(), anyString())).thenReturn(stationCI);
 
             // Test execution
-            PaVerifyPaymentNoticeRes responseBody = partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+            PaVerifyPaymentNoticeRes responseBody = buildPartnerService().paVerifyPaymentNotice(requestBody, "ACA");
 
             // Test post condition
             assertThat(responseBody.getOutcome()).isEqualTo(StOutcome.OK);
@@ -107,7 +123,7 @@ class PartnerServiceAcaTest {
 
             try {
                 // Test execution
-                partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+                buildPartnerService().paVerifyPaymentNotice(requestBody, "ACA");
                 fail();
             } catch (PartnerValidationException ex) {
                 // Test post condition
@@ -129,7 +145,7 @@ class PartnerServiceAcaTest {
 
             try {
                 // Test execution
-                partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+                buildPartnerService().paVerifyPaymentNotice(requestBody, "ACA");
                 fail();
             } catch (PartnerValidationException ex) {
                 // Test post condition
@@ -151,7 +167,7 @@ class PartnerServiceAcaTest {
 
             try {
                 // Test execution
-                partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+                buildPartnerService().paVerifyPaymentNotice(requestBody, "ACA");
                 fail();
             } catch (PartnerValidationException ex) {
                 // Test post condition
@@ -174,7 +190,7 @@ class PartnerServiceAcaTest {
 
         try {
             // Test execution
-            partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+            buildPartnerService().paVerifyPaymentNotice(requestBody, "ACA");
             fail();
         } catch (PartnerValidationException ex) {
             // Test post condition
@@ -201,7 +217,7 @@ class PartnerServiceAcaTest {
 
             try {
                 // Test execution
-                partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+                buildPartnerService().paVerifyPaymentNotice(requestBody, "ACA");
                 fail();
             } catch (PartnerValidationException ex) {
                 // Test post condition
@@ -232,7 +248,7 @@ class PartnerServiceAcaTest {
 
             try {
                 // Test execution
-                partnerService.paVerifyPaymentNotice(requestBody, "ACA");
+                buildPartnerService().paVerifyPaymentNotice(requestBody, "ACA");
                 fail();
             } catch (PartnerValidationException ex) {
                 // Test post condition

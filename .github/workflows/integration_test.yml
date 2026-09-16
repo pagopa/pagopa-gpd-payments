@@ -54,6 +54,7 @@ jobs:
         shell: bash
         run: |
           export SUBKEY=${{ secrets.SUBKEY }}
+          export NODO_AUTH_SUBKEY=${{ secrets.NODO_PAGOPA_SUBKEY }}
           export CANARY=${{ inputs.canary }}
           export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
 

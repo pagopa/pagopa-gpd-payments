@@ -40,6 +40,8 @@ locals {
     "BOT_TOKEN_GITHUB" : data.azurerm_key_vault_secret.key_vault_bot_token.value,
     "CUCUMBER_PUBLISH_TOKEN" : data.azurerm_key_vault_secret.key_vault_cucumber_token.value,
     "SUBKEY" : data.azurerm_key_vault_secret.key_vault_integration_test_subkey.value,
+    "NODO_AUTH_SUBKEY" : data.azurerm_key_vault_secret.key_vault_nodo_auth_subkey.value
+    "NODO_PAGOPA_SUBKEY" : data.azurerm_key_vault_secret.key_vault_nodo_pagopa_subkey.value
   }
 }
 
