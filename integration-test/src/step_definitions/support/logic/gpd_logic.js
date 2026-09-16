@@ -198,10 +198,6 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
     const data = response?.data;
     const ibansEnhanced = "ibans" in data ? data["ibans"] : [];
-    console.log("IBAN ENHANCED", ibansEnhanced);
-        // data?.ibans_enhanced ??
-        // data?.ibansEnhanced ??
-        // (Array.isArray(data) ? data : []);
 
     assert.ok(
         Array.isArray(ibansEnhanced),
