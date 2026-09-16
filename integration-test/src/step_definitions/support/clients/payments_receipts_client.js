@@ -7,6 +7,7 @@ if (!paymentsReceiptsHost) {
 }
 
 function getOrganizationReceipts(orgFiscalCode, queryParams = "") {
+    console.log(`[payments_receipts_client] getOrganizationReceipts: ${paymentsReceiptsHost}/payments/${orgFiscalCode}/receipts${queryParams}`);
     return get(
         `${paymentsReceiptsHost}/payments/${orgFiscalCode}/receipts${queryParams}`,
         {
