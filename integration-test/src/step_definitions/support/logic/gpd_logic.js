@@ -190,7 +190,6 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
 	if (response.status === 404) {
 	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
-	    console.log("readCreditorInstitutionIbans returned 404, using fallback IBAN configuration");
 	    return;
 	}
 
