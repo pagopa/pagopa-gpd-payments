@@ -712,10 +712,12 @@ public class PartnerService {
       TableEntity tableEntity = getTableEntity(receiptEntity);
       tableClient.createEntity(tableEntity);
     } catch (TableServiceException e) {
-      log.error(DBERROR, e);
       if (e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
+        // expected outcome: the receipt was already stored
+        log.info("[saveReceipt] Receipt already stored [iuv={}]", receiptEntity.getIuv());
         throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
       }
+      log.error(DBERROR, e);
       throw new AppException(AppError.DB_ERROR);
     }
   }
@@ -738,9 +740,13 @@ public class PartnerService {
       TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
+      if (e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) {
+        // expected outcome: the caller handles the absent receipt
+        log.debug("[getReceipt] Receipt not found [iuv={}]", iuv);
+        return null;
+      }
       log.error(DBERROR, e);
-      if (e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) return null;
-      else throw new AppException(AppError.DB_ERROR);
+      throw new AppException(AppError.DB_ERROR);
     }
   }
 
