@@ -59,7 +59,6 @@ class SoapFaultDefinitionExceptionResolverTest {
 
     ILoggingEvent event = appender.list.get(0);
     assertEquals(Level.ERROR, event.getLevel());
-    assertEquals(
-        IllegalStateException.class.getName(), event.getThrowableProxy().getClassName());
+    assertEquals(IllegalStateException.class.getName(), event.getThrowableProxy().getClassName());
   }
 }

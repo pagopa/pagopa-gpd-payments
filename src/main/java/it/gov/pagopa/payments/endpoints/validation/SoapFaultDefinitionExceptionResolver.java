@@ -18,8 +18,7 @@ public class SoapFaultDefinitionExceptionResolver implements EndpointExceptionRe
     if (ex instanceof PartnerValidationException partnerValidationException) {
       // expected negative business outcome: no stack trace, the fault code is the useful signal
       log.info(
-          "Request rejected [faultCode={}]",
-          partnerValidationException.getError().getFaultCode());
+          "Request rejected [faultCode={}]", partnerValidationException.getError().getFaultCode());
       throw partnerValidationException;
     }
 

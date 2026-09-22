@@ -18,9 +18,9 @@ import it.gov.pagopa.payments.client.GpdClient;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.mock.MockUtil;
 import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeReqMock;
+import it.gov.pagopa.payments.model.DebtPositionStatus;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
-import it.gov.pagopa.payments.model.DebtPositionStatus;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeReq;
 import java.io.IOException;
 import java.util.List;
@@ -63,8 +63,7 @@ class PartnerServiceLoggingTest {
   }
 
   @Test
-  void debtPositionNotFoundIsLoggedAtInfoWithoutStackTrace()
-      throws DatatypeConfigurationException {
+  void debtPositionNotFoundIsLoggedAtInfoWithoutStackTrace() throws DatatypeConfigurationException {
     PaVerifyPaymentNoticeReq request = PaVerifyPaymentNoticeReqMock.getMock();
     FeignException.NotFound notFound = Mockito.mock(FeignException.NotFound.class);
     lenient().when(notFound.getSuppressed()).thenReturn(new Throwable[0]);
