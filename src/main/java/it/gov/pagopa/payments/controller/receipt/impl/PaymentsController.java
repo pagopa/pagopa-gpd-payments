@@ -47,7 +47,7 @@ public class PaymentsController implements IPaymentsController {
             String from,
             String to,
             @LogDetails(name = "segregationCodes") String segregationCodes,
-            @LogDetails(name = "segregationCodes", mask = true) String debtorOrIuv) {
+            @LogDetails(name = "debtor_or_iuv", mask = true) String debtorOrIuv) {
 
         ArrayList<String> segCodesList =
                 segregationCodes != null

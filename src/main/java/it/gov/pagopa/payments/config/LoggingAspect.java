@@ -1,7 +1,13 @@
 package it.gov.pagopa.payments.config;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import it.gov.pagopa.payments.utils.LogMasker;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -13,346 +19,270 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.*;
-import java.util.Map.Entry;
-
 /**
- * Milestone-driven logging.
- *
- * <p>A single log event is emitted for each completed business action or I/O boundary: no
- * start/end pairs and no intermediate steps at INFO level. The message is always a short static
- * string, while every variable information is published as an ECS field: business identifiers as
- * isolated top level {@code ctx.*} fields and volatile technical data under {@code ctx.details.*}.
- *
- * <p>Request and response payloads are never serialized into the logs, to avoid disclosing PII
- * (names, e-mails, addresses, personal fiscal codes) and financial data (IBAN).
+ * Milestone-driven logging: one event per completed business action or I/O boundary, never a
+ * start/end pair. Payloads are never serialized and identifiers are read through a whitelist, so
+ * debtor data cannot reach a log event.
  */
 @Aspect
 @Component
 @Slf4j
 public class LoggingAspect {
 
-    public static final String EVENT_ACTION = "event.action";
-    public static final String CORRELATION_ID = "correlation.id";
-    public static final String ENTITY_ID = "entity.id";
-    public static final String EVENT_OUTCOME = "event.outcome";
-    public static final String ERROR_MESSAGE = "error.message";
-    public static final String ERROR_STACK_TRACE = "error.stack_trace";
-    public static final String ERROR_TYPE = "error.type";
-    public static final String DEPENDENCY = "dependency";
-    public static final String PATH = "path";
+  public static final String EVENT_ACTION = "event_action";
+  public static final String EVENT_OUTCOME = "event_outcome";
+  public static final String CORRELATION_ID = "correlation_id";
 
-    public static final String CTX_DETAILS = "ctx.details";
-    public static final String START_TIME = "startTime";
-    public static final String HTTP_CODE = "httpCode";
-    public static final String RESPONSE_TIME = "responseTime";
-    public static final String METHOD = "method";
+  public static final String CTX_DETAILS_PATH = LogContext.CTX_DETAILS_PREFIX + "path";
+  public static final String CTX_DETAILS_HTTP_CODE = LogContext.CTX_DETAILS_PREFIX + "http_code";
+  public static final String CTX_DETAILS_RESPONSE_TIME =
+      LogContext.CTX_DETAILS_PREFIX + "response_time_ms";
+  public static final String CTX_DETAILS_METHOD = LogContext.CTX_DETAILS_PREFIX + "method";
 
+  /** In the MDC only to compute the duration: removed before the milestone is emitted. */
+  public static final String START_TIME = "startTime";
 
-    public static final String OUTCOME_SUCCESS = "success";
-    public static final String OUTCOME_FAILURE = "failure";
+  public static final String OUTCOME_SUCCESS = "success";
+  public static final String OUTCOME_FAILURE = "failure";
 
-    private static final String API_OPERATION_COMPLETED = "Completed API operation";
-    public static final String API_OPERATION_FAILED = "Failed API operation";
-    private static final String IO_OPERATION_COMPLETED = "Completed I/O operation";
-    private static final String IO_OPERATION_FAILED = "Failed I/O operation";
-    private static final String INTERNAL_OPERATION_COMPLETED = "Completed internal operation";
-    private static final String INTERNAL_OPERATION_FAILED = "Failed internal operation";
+  private static final String API_OPERATION_COMPLETED = "Completed API operation";
 
-    final HttpServletRequest httRequest;
-    final HttpServletResponse httpResponse;
+  /** Emitted by the outcome owner, never by the aspect: only it knows the fault code. */
+  public static final String API_OPERATION_FAILED = "Failed API operation";
 
-    @Value("${info.application.name}")
-    private String name;
+  private static final String IO_OPERATION_COMPLETED = "Completed I/O operation";
+  private static final String INTERNAL_OPERATION_COMPLETED = "Completed internal operation";
 
-    @Value("${info.application.version}")
-    private String version;
+  /** JAXB classes generated from {@code paForNode.xsd}. */
+  private static final String SOAP_MODEL_PACKAGE = "it.gov.pagopa.payments.model.partner";
 
-    @Value("${info.properties.environment}")
-    private String environment;
+  final HttpServletRequest httRequest;
+  final HttpServletResponse httpResponse;
 
-    public LoggingAspect(HttpServletRequest httRequest, HttpServletResponse httpResponse) {
-        this.httRequest = httRequest;
-        this.httpResponse = httpResponse;
+  @Value("${info.application.name}")
+  private String name;
+
+  @Value("${info.application.version}")
+  private String version;
+
+  @Value("${info.properties.environment}")
+  private String environment;
+
+  public LoggingAspect(HttpServletRequest httRequest, HttpServletResponse httpResponse) {
+    this.httRequest = httRequest;
+    this.httpResponse = httpResponse;
+  }
+
+  @Pointcut(
+      "@within(org.springframework.web.bind.annotation.RestController)"
+          + " || @within(org.springframework.stereotype.Controller)")
+  public void restController() {
+    // all rest controllers
+  }
+
+  @Pointcut("@within(org.springframework.ws.server.endpoint.annotation.Endpoint)")
+  public void endpointClass() {
+    // all endpoint classes
+  }
+
+  @Pointcut("@within(org.springframework.stereotype.Repository)")
+  public void repository() {
+    // all repository methods
+  }
+
+  @Pointcut("@within(org.springframework.stereotype.Service)")
+  public void service() {
+    // all service methods
+  }
+
+  @Pointcut("@within(org.springframework.cloud.openfeign.FeignClient)")
+  public void feignClient() {
+    // all feign clients
+  }
+
+  /** Bootstrap is not a business milestone. */
+  @PostConstruct
+  public void logStartup() {
+    log.debug("Starting {} version {} - environment {}", name, version, environment);
+  }
+
+  /**
+   * Emits the end-of-call milestone of an API operation, REST or SOAP. On failure it logs nothing
+   * and leaves the context in place for the outcome owner; {@link RequestFilter} clears the MDC when
+   * the request ends, so nothing leaks into the next one.
+   */
+  @Around(value = "(restController() || endpointClass())")
+  public Object logApiInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
+    Set<String> managedKeys = new LinkedHashSet<>();
+    String method = httRequest.getMethod();
+    String uri = httRequest.getRequestURI();
+    String action =
+        method != null && uri != null ? method + " " + uri : joinPoint.getSignature().getName();
+
+    put(managedKeys, EVENT_ACTION, action);
+    put(managedKeys, CTX_DETAILS_METHOD, joinPoint.getSignature().getName());
+    put(managedKeys, START_TIME, String.valueOf(System.currentTimeMillis()));
+    addIdentifiersToContext(joinPoint, managedKeys);
+
+    try {
+      Object result = joinPoint.proceed();
+
+      put(managedKeys, EVENT_OUTCOME, OUTCOME_SUCCESS);
+      put(managedKeys, CTX_DETAILS_HTTP_CODE, String.valueOf(httpResponse.getStatus()));
+      put(managedKeys, CTX_DETAILS_RESPONSE_TIME, getExecutionTime());
+      MDC.remove(START_TIME);
+
+      log.info(API_OPERATION_COMPLETED);
+      return result;
+    } catch (Throwable e) {
+      MDC.put(EVENT_OUTCOME, OUTCOME_FAILURE);
+      throw e;
+    } finally {
+      if (OUTCOME_SUCCESS.equals(MDC.get(EVENT_OUTCOME))) {
+        managedKeys.forEach(MDC::remove);
+      }
+    }
+  }
+
+  /** Emits the milestone of an I/O operation towards a Feign client or the storage. */
+  @Around(value = "repository() || feignClient()")
+  public Object logIoInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
+    String previousPath = MDC.get(CTX_DETAILS_PATH);
+    MDC.put(CTX_DETAILS_PATH, joinPoint.getSignature().getName());
+    try {
+      Object result = joinPoint.proceed();
+      log.info(IO_OPERATION_COMPLETED);
+      return result;
+    } finally {
+      restore(CTX_DETAILS_PATH, previousPath);
+    }
+  }
+
+  /** Internal steps are volatile processing, not milestones: DEBUG only. */
+  @Around(value = "service()")
+  public Object logServiceInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
+    Object result = joinPoint.proceed();
+    if (log.isDebugEnabled()) {
+      log.debug("{} [{}]", INTERNAL_OPERATION_COMPLETED, joinPoint.getSignature().getName());
+    }
+    return result;
+  }
+
+  /** Milliseconds since the operation started, or {@code -} when unknown. */
+  public String getExecutionTime() {
+    String startTime = MDC.get(START_TIME);
+    if (startTime == null) {
+      return "-";
+    }
+    try {
+      return String.valueOf(System.currentTimeMillis() - Long.parseLong(startTime));
+    } catch (NumberFormatException e) {
+      return "-";
+    }
+  }
+
+  private void addIdentifiersToContext(JoinPoint joinPoint, Set<String> managedKeys) {
+    Object[] args = joinPoint.getArgs();
+    if (args == null || args.length == 0) {
+      return;
     }
 
-    public String getExecutionTime() {
-        Long startTime = getDetails(START_TIME, Long.class);
+    Annotation[][] parameterAnnotations = parameterAnnotations(joinPoint);
+    for (int i = 0; i < args.length; i++) {
+      if (i < parameterAnnotations.length) {
+        addAnnotatedValue(parameterAnnotations[i], args[i], managedKeys);
+      }
+      addSoapIdentifiers(args[i], managedKeys);
+    }
+  }
 
-        if (startTime != null) {
-            long endTime = System.currentTimeMillis();
-            long executionTime = endTime - startTime;
-            return String.valueOf(executionTime);
-        }
-        return "-";
+  private Annotation[][] parameterAnnotations(JoinPoint joinPoint) {
+    if (!(joinPoint.getSignature() instanceof MethodSignature signature)) {
+      return new Annotation[0][];
+    }
+    Method method = signature.getMethod();
+    return method != null ? method.getParameterAnnotations() : new Annotation[0][];
+  }
+
+  private void addAnnotatedValue(Annotation[] annotations, Object value, Set<String> managedKeys) {
+    if (annotations == null || value == null) {
+      return;
+    }
+    for (Annotation annotation : annotations) {
+      if (annotation instanceof LogEntity logEntity) {
+        put(managedKeys, logEntity.name(), resolve(value, logEntity.mask()));
+      } else if (annotation instanceof LogDetails logDetails) {
+        put(
+            managedKeys,
+            LogContext.CTX_DETAILS_PREFIX + logDetails.name(),
+            resolve(value, logDetails.mask()));
+      }
+    }
+  }
+
+  /**
+   * Reads the identifiers shared by every {@code paForNode.xsd} operation. The whitelist excludes
+   * the debtor, so a new schema element cannot silently start being logged.
+   */
+  private void addSoapIdentifiers(Object argument, Set<String> managedKeys) {
+    if (argument == null || !argument.getClass().getName().startsWith(SOAP_MODEL_PACKAGE)) {
+      return;
     }
 
-    @Pointcut(
-            "@within(org.springframework.web.bind.annotation.RestController)"
-                    + " || @within(org.springframework.stereotype.Controller)")
-    public void restController() {
-        // all rest controllers
+    put(managedKeys, LogContext.CTX_DETAILS_STATION, readString(argument, "getIdStation"));
+    String organizationFiscalCode = readString(argument, "getIdPA");
+
+    Object payment = read(argument, "getReceipt");
+    if (payment == null) {
+      payment = read(argument, "getQrCode");
     }
-
-    @Pointcut("@within(org.springframework.ws.server.endpoint.annotation.Endpoint)")
-    public void endpointClass() {
-        // all endpoint classes
+    if (payment != null) {
+      put(managedKeys, LogContext.CTX_NAV, readString(payment, "getNoticeNumber"));
+      put(managedKeys, LogContext.CTX_IUV, readString(payment, "getCreditorReferenceId"));
+      put(managedKeys, LogContext.CTX_TRANSACTION_ID, readString(payment, "getReceiptId"));
+      if (organizationFiscalCode == null) {
+        organizationFiscalCode = readString(payment, "getFiscalCode");
+      }
     }
+    put(
+        managedKeys,
+        LogContext.CTX_ORGANIZATION_FISCAL_CODE,
+        LogMasker.maskIfPersonal(organizationFiscalCode));
+  }
 
-    @Pointcut("@within(org.springframework.stereotype.Repository)")
-    public void repository() {
-        // all repository methods
+  private String resolve(Object value, boolean mask) {
+    String asString = String.valueOf(value);
+    return mask ? LogMasker.maskIfPersonal(asString) : asString;
+  }
+
+  private String readString(Object source, String getter) {
+    Object value = read(source, getter);
+    return value != null ? String.valueOf(value) : null;
+  }
+
+  private Object read(Object source, String getter) {
+    try {
+      Method method = source.getClass().getMethod(getter);
+      return method.invoke(source);
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      // absent getter or partial request: logging must never fail the business call
+      return null;
     }
+  }
 
-    @Pointcut("@within(org.springframework.stereotype.Service)")
-    public void service() {
-        // all service methods
+  private void put(Set<String> managedKeys, String key, String value) {
+    if (value == null) {
+      return;
     }
+    MDC.put(key, value);
+    managedKeys.add(key);
+  }
 
-    @Pointcut("@within(org.springframework.cloud.openfeign.FeignClient)")
-    public void feignClient() {
-        // all feign clients
+  private void restore(String key, String previousValue) {
+    if (previousValue != null) {
+      MDC.put(key, previousValue);
+    } else {
+      MDC.remove(key);
     }
-
-    /**
-     * Application bootstrap is not a business milestone: it is kept at DEBUG level.
-     */
-    @PostConstruct
-    public void logStartup() {
-        log.debug("Starting {} version {} - environment {}", name, version, environment);
-    }
-
-
-    @Around(
-            value =
-                    "(restController() || endpointClass())")
-    public Object logApiInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
-        String method = httRequest.getMethod();
-        String uri = httRequest.getRequestURI();
-        String action =
-                method != null && uri != null ? method + " " + uri : joinPoint.getSignature().getName();
-
-        MDC.put(EVENT_ACTION, action);
-        addDetails(METHOD, joinPoint.getSignature().getName());
-        addDetails(START_TIME, System.currentTimeMillis());
-        addAnnotatedArgumentsToContext(joinPoint);
-
-
-        try {
-
-            var result = joinPoint.proceed();
-            MDC.put(EVENT_OUTCOME, OUTCOME_SUCCESS);
-            addDetails(HTTP_CODE, httpResponse.getStatus());
-            addDetails(RESPONSE_TIME, getExecutionTime());
-
-            log.info(API_OPERATION_COMPLETED);
-            return result;
-        } catch (Throwable e) {
-            MDC.put(EVENT_OUTCOME, OUTCOME_FAILURE);
-            addDetails(ERROR_TYPE, e.getClass().getName());
-            addDetails(ERROR_MESSAGE, e.getMessage());
-            addDetails(ERROR_STACK_TRACE, Arrays.toString(e.getStackTrace()));
-            addDetails(HTTP_CODE, httpResponse.getStatus());
-            addDetails(RESPONSE_TIME, getExecutionTime());
-
-            log.error(API_OPERATION_FAILED, e);
-            throw e;
-        }
-
-
-    }
-
-    public void addDetails(String name, Object infoToAdd) {
-        String details = MDC.get(CTX_DETAILS);
-        ObjectMapper mapper = new ObjectMapper();
-
-        try {
-            if (details == null) {
-                details = mapper.writeValueAsString(new HashMap<>());
-            }
-            Map<String, Object> map = mapper.readValue(details, Map.class);
-            map.put(name, infoToAdd);
-            MDC.put(CTX_DETAILS, mapper.writeValueAsString(map));
-        } catch (JsonProcessingException e) {
-            MDC.put(CTX_DETAILS, "{\"" + name + "\":\"" + infoToAdd + "\"}");
-        }
-    }
-
-
-    public <T> T getDetails(String name, Class<T> valueType) {
-        String details = MDC.get(CTX_DETAILS);
-        ObjectMapper mapper = new ObjectMapper();
-
-        try {
-            if (details == null) {
-                details = mapper.writeValueAsString(new HashMap<>());
-            }
-            Map<String, Object> map = mapper.readValue(details, Map.class);
-            Object value = map.get(name);
-            return (T) value;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-
-    /**
-     * Logs the milestone of an I/O operation towards an external dependency (Feign client) or the
-     * storage (repository).
-     */
-    @Around(value = "repository() || feignClient()")
-    public Object logIoInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
-        addAnnotatedArgumentsToContext(joinPoint);
-        Object result = joinPoint.proceed();
-
-        log.info(IO_OPERATION_COMPLETED);
-        return result;
-    }
-
-    private void addAnnotatedArgumentsToContext(JoinPoint joinPoint) {
-        Object[] args = joinPoint.getArgs();
-        if (args == null || args.length == 0) {
-            return;
-        }
-
-        Set<Object> visited = Collections.newSetFromMap(new IdentityHashMap<>());
-        MethodSignature signature = joinPoint.getSignature() instanceof MethodSignature
-                ? (MethodSignature) joinPoint.getSignature()
-                : null;
-        Annotation[][] parameterAnnotations = signature != null
-                ? signature.getMethod().getParameterAnnotations()
-                : new Annotation[0][];
-
-        for (int i = 0; i < args.length; i++) {
-            Object argument = args[i];
-            if (i < parameterAnnotations.length) {
-                addAnnotatedValue(parameterAnnotations[i], argument);
-            }
-            scanAnnotatedFields(argument, visited);
-        }
-    }
-
-    private void addAnnotatedValue(Annotation[] annotations, Object value) {
-        if (annotations == null || value == null) {
-            return;
-        }
-        for (Annotation annotation : annotations) {
-            if (annotation instanceof LogEntity logEntity) {
-                if (logEntity.mask()) {
-                    // diplay only first 3 characters the rest is replaced by *
-                    String stringValue = String.valueOf(value);
-                    String maskedValue = stringValue.length() > 3
-                            ? stringValue.substring(0, 3) + "*".repeat(stringValue.length() - 3)
-                            : stringValue;
-                    MDC.put(logEntity.name(), maskedValue);
-                } else {
-                    MDC.put(logEntity.name(), String.valueOf(value));
-                }
-            } else if (annotation instanceof LogDetails logDetails) {
-                if (logDetails.mask()) {
-                    // diplay only first 3 characters the rest is replaced by *
-                    String stringValue = String.valueOf(value);
-                    String maskedValue = stringValue.length() > 3
-                            ? stringValue.substring(0, 3) + "*".repeat(stringValue.length() - 3)
-                            : stringValue;
-                    addDetails(logDetails.name(), maskedValue);
-                } else {
-                    addDetails(logDetails.name(), value);
-                }
-            }
-        }
-    }
-
-    private void scanAnnotatedFields(Object source, Set<Object> visited) {
-        if (source == null || isTerminalType(source.getClass()) || !visited.add(source)) {
-            return;
-        }
-
-        if (source.getClass().isArray()) {
-            int length = Array.getLength(source);
-            for (int i = 0; i < length; i++) {
-                scanAnnotatedFields(Array.get(source, i), visited);
-            }
-            return;
-        }
-
-        if (source instanceof Iterable<?> iterable) {
-            for (Object element : iterable) {
-                scanAnnotatedFields(element, visited);
-            }
-            return;
-        }
-
-        if (source instanceof Map<?, ?> map) {
-            for (Entry<?, ?> entry : map.entrySet()) {
-                scanAnnotatedFields(entry.getKey(), visited);
-                scanAnnotatedFields(entry.getValue(), visited);
-            }
-            return;
-        }
-
-        Class<?> current = source.getClass();
-        while (current != null && current != Object.class) {
-            Field[] fields = current.getDeclaredFields();
-            for (Field field : fields) {
-                if (Modifier.isStatic(field.getModifiers())) {
-                    continue;
-                }
-                Object fieldValue = readField(source, field);
-                if (fieldValue == null) {
-                    continue;
-                }
-                LogEntity logEntity = field.getAnnotation(LogEntity.class);
-                if (logEntity != null) {
-                    MDC.put(logEntity.name(), String.valueOf(fieldValue));
-                }
-                LogDetails logDetails = field.getAnnotation(LogDetails.class);
-                if (logDetails != null) {
-                    addDetails(logDetails.name(), fieldValue);
-                }
-                scanAnnotatedFields(fieldValue, visited);
-            }
-            current = current.getSuperclass();
-        }
-    }
-
-    private Object readField(Object source, Field field) {
-        boolean previousAccessible = field.canAccess(source);
-        try {
-            if (!previousAccessible) {
-                field.setAccessible(true);
-            }
-            return field.get(source);
-        } catch (IllegalAccessException ignored) {
-            return null;
-        } finally {
-            if (!previousAccessible) {
-                field.setAccessible(false);
-            }
-        }
-    }
-
-    private boolean isTerminalType(Class<?> type) {
-        if (type.isPrimitive() || type.isEnum()) {
-            return true;
-        }
-        if (Number.class.isAssignableFrom(type)
-                || CharSequence.class.isAssignableFrom(type)
-                || Boolean.class == type
-                || Character.class == type
-                || UUID.class == type) {
-            return true;
-        }
-        Package pkg = type.getPackage();
-        return pkg != null && pkg.getName().startsWith("java.");
-    }
-
-
+  }
 }
