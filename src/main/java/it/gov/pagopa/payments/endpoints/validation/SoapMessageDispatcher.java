@@ -77,7 +77,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
         }
         catch (PartnerValidationException e) {
 
-            log.error("Processing resulted in exception: " + e.getMessage());
+            log.info("Processing rejected [faultCode={}]", e.getError().getFaultCode());
             faultCode = e.getError().getFaultCode();
             faultString = e.getError().getFaultString();
             description = e.getError().getDescription();
@@ -85,7 +85,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
         } catch (Exception e) {
 
-            log.error("Processing resulted in generic exception: " + e.getMessage());
+            log.error("Processing resulted in generic exception", e);
             httpServletResponse.setStatus(500);
         }
 
@@ -191,7 +191,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
             } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
 
-                log.error("Processing resulted in generic exception: " + e.getMessage());
+                log.error("Failed to write the SOAP response", e);
                 httpServletResponse.setStatus(500);
             }
         }
