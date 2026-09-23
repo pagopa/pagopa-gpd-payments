@@ -297,7 +297,9 @@
                     <!-- docker-java defaults to the old API version 1.32, which recent Docker
                          engines (e.g. the one bundled with Rancher Desktop) reject. Force a
                          modern version so Testcontainers-based tests can talk to the daemon. -->
-                    <argLine>-Dapi.version=1.41</argLine>
+                    <!-- @{argLine} injects the JaCoCo javaagent set by the prepare-agent
+                         goal; without it, coverage instrumentation is silently skipped. -->
+                    <argLine>@{argLine} -Dapi.version=1.41</argLine>
                     <environmentVariables>
                         <!-- Docker engines running inside a VM (Rancher Desktop, Colima, ...)
                              expose the docker socket at a host path that only exists on the
