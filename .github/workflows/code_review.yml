@@ -75,12 +75,12 @@ jobs:
       - name: Run Integration Tests
         shell: bash
         id: run_integration_test
-        run: |
-          export SUBKEY=${{ secrets.SUBKEY }}      
-          export NODO_AUTH_SUBKEY=${{ secrets.NODO_PAGOPA_SUBKEY }}
-          export CANARY=${{ inputs.canary }}      
-          export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
-          
+        env:
+          SUBKEY: ${{ secrets.SUBKEY }}
+          NODO_AUTH_SUBKEY: ${{ secrets.NODO_PAGOPA_SUBKEY }}
+          CANARY: ${{ inputs.canary }}
+          CUCUMBER_PUBLISH_TOKEN: ${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
+        run: |          
           cd ./integration-test
           chmod +x ./run_integration_test.sh
           ./run_integration_test.sh local
