@@ -43,6 +43,7 @@ jobs:
           project_key: ${{env.PROJECT_KEY}}
           coverage_exclusions: "**/config/*,**/*Mock*,**/model/**,**/entity/*,**/exception/*"
           cpd_exclusions: "**/model/**,**/entity/*"
+          coverage_report_path: "./target/jacoco-report/jacoco.xml"
           java_version: 17
 
   smoke-test:
