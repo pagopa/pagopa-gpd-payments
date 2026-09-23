@@ -147,7 +147,6 @@ class PartnerServiceTest {
   void setUpPartnerService() {
     partnerService =
         new PartnerService(
-            resource,
             queueSendInvisibilityTime,
             List.of(),
             List.of(),
@@ -474,7 +473,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -525,7 +523,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -576,7 +573,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -633,7 +629,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -686,7 +681,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -737,7 +731,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -787,7 +780,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -845,7 +837,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -910,7 +901,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -953,7 +943,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1022,7 +1011,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1071,7 +1059,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1163,7 +1150,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1280,7 +1266,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1331,7 +1316,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1382,7 +1366,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1439,7 +1422,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1492,7 +1474,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1543,7 +1524,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1593,7 +1573,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1644,7 +1623,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1698,7 +1676,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1752,7 +1729,6 @@ class PartnerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),
@@ -1783,7 +1759,7 @@ class PartnerServiceTest {
       CloudQueue queue = cloudQueueClient.getQueueReference("testqueue");
       queue.createIfNotExists();
     } catch (Exception ex) {
-      log.info("Error during table creation", e);
+      log.info("Error during table creation", ex);
     }
 
     try {

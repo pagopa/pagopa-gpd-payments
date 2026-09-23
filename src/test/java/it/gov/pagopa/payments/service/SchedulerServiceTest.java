@@ -76,11 +76,7 @@ class SchedulerServiceTest {
   @Mock private RestTemplate restTemplate;
 
   @Mock private DeadLetterService deadLetterService;
-
-  private String genericService = "/xsd/general-service.xsd";
-  ResourceLoader resourceLoader = new DefaultResourceLoader();
-  Resource resource = resourceLoader.getResource(genericService);
-
+  
   @Value(value = "${azure.queue.send.invisibilityTime}")
   private Long queueSendInvisibilityTime;
   private final ObjectFactory factoryUtil = new ObjectFactory();
@@ -117,7 +113,6 @@ class SchedulerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                             List.of(),
@@ -251,7 +246,6 @@ class SchedulerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                             List.of(),
@@ -384,7 +378,6 @@ class SchedulerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                             List.of(),
@@ -545,7 +538,6 @@ class SchedulerServiceTest {
     var pService =
         spy(
             new PartnerService(
-                resource,
                 queueSendInvisibilityTime,
                 List.of(),
                 List.of(),

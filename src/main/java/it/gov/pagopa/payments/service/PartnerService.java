@@ -24,8 +24,6 @@ import it.gov.pagopa.payments.model.spontaneous.*;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import it.gov.pagopa.payments.utils.CustomizedMapper;
 import it.gov.pagopa.payments.utils.Validator;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -48,10 +46,6 @@ import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLStreamException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -63,7 +57,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-import org.xml.sax.SAXException;
 
 @Service
 @Slf4j
@@ -87,8 +80,6 @@ public class PartnerService {
 
   private static final String DBERROR = "Error in organization table connection";
 
-  private final Resource xsdGenericService;
-
   private final Long queueSendInvisibilityTime;
 
   private final ObjectFactory factory;
@@ -111,7 +102,6 @@ public class PartnerService {
   private final List<String> suppressedErrorsValues;
 
   public PartnerService(
-      @Value(value = "${xsd.generic-service}") Resource xsdGenericService,
       @Value(value = "${azure.queue.send.invisibilityTime}") Long queueSendInvisibilityTime,
       @Value(value = "${suppressedErrors.stations}") List<String> stationsWithSuppressedErrors,
       @Value(value = "${suppressedErrors.values}") List<String> suppressedErrorsValues,
@@ -122,7 +112,6 @@ public class PartnerService {
       CustomizedMapper customizedModelMapper,
       VerticalServicesConfig verticalServicesConfig,
       RestTemplate restTemplate) {
-    this.xsdGenericService = xsdGenericService;
     this.queueSendInvisibilityTime = queueSendInvisibilityTime;
     this.factory = factory;
     this.gpdClient = gpdClient;

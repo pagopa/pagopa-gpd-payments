@@ -50,7 +50,6 @@ class PartnerServiceAcaTest {
     private PartnerService buildPartnerService() {
         return new PartnerService(
                 null,
-                null,
                 List.of(),
                 List.of(),
                 factory,
