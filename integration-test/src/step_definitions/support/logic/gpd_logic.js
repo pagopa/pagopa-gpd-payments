@@ -6,7 +6,6 @@ const {
     readECStationAssociation,
     readStation,
     createCreditorInstitution,
-    createCreditorInstitutionIbans,
     createCreditorInstitutionBroker,
     refreshConfig
 } = require("../clients/api_config_client");
@@ -191,17 +190,13 @@ async function readCreditorInstitutionInfo(bundle, creditorInstitutionId) {
 
 	if (response.status === 404) {
 	    bundle.debtPosition.iban = process.env.test_iban || "IT30N0103076271000001823603";
-	    console.log("readCreditorInstitutionIbans returned 404, using fallback IBAN configuration");
 	    return;
 	}
 
     assert.strictEqual(response.status, 200);
 
     const data = response?.data;
-    const ibansEnhanced =
-        data?.ibans_enhanced ??
-        data?.ibansEnhanced ??
-        (Array.isArray(data) ? data : []);
+    const ibansEnhanced = "ibans" in data ? data["ibans"] : [];
 
     assert.ok(
         Array.isArray(ibansEnhanced),
