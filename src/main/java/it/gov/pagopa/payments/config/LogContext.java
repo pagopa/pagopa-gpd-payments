@@ -1,10 +1,6 @@
 package it.gov.pagopa.payments.config;
 
-/**
- * ECS field names published as MDC keys. First level {@code ctx_*} fields are searchable business
- * identifiers; keys under {@code ctx_details.} are contextual only, and Elasticsearch expands the
- * dot into a nested object.
- */
+/** OER MDC keys: {@code ctx_*} are searchable identifiers, {@code ctx_details.*} context only. */
 public final class LogContext {
 
   public static final String CTX_NAV = "ctx_nav";

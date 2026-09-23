@@ -19,11 +19,7 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Milestone-driven logging: one event per completed business action or I/O boundary, never a
- * start/end pair. Payloads are never serialized and identifiers are read through a whitelist, so
- * debtor data cannot reach a log event.
- */
+/** OER milestone logging: one event per completed API call or I/O boundary, payloads never logged. */
 @Aspect
 @Component
 @Slf4j
@@ -39,17 +35,10 @@ public class LoggingAspect {
       LogContext.CTX_DETAILS_PREFIX + "response_time_ms";
   public static final String CTX_DETAILS_METHOD = LogContext.CTX_DETAILS_PREFIX + "method";
 
-  /** In the MDC only to compute the duration: removed before the milestone is emitted. */
-  public static final String START_TIME = "startTime";
-
   public static final String OUTCOME_SUCCESS = "success";
   public static final String OUTCOME_FAILURE = "failure";
 
   private static final String API_OPERATION_COMPLETED = "Completed API operation";
-
-  /** Emitted by the outcome owner, never by the aspect: only it knows the fault code. */
-  public static final String API_OPERATION_FAILED = "Failed API operation";
-
   private static final String IO_OPERATION_COMPLETED = "Completed I/O operation";
   private static final String INTERNAL_OPERATION_COMPLETED = "Completed internal operation";
 
@@ -100,19 +89,18 @@ public class LoggingAspect {
     // all feign clients
   }
 
-  /** Bootstrap is not a business milestone. */
   @PostConstruct
   public void logStartup() {
     log.debug("Starting {} version {} - environment {}", name, version, environment);
   }
 
   /**
-   * Emits the end-of-call milestone of an API operation, REST or SOAP. On failure it logs nothing
-   * and leaves the context in place for the outcome owner; {@link RequestFilter} clears the MDC when
-   * the request ends, so nothing leaks into the next one.
+   * On failure logs nothing and keeps the context for the fault handler, which owns the outcome;
+   * {@link RequestFilter} clears the MDC at the end of the request.
    */
-  @Around(value = "(restController() || endpointClass())")
+  @Around(value = "restController() || endpointClass()")
   public Object logApiInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
+    long start = System.currentTimeMillis();
     Set<String> managedKeys = new LinkedHashSet<>();
     String method = httRequest.getMethod();
     String uri = httRequest.getRequestURI();
@@ -121,30 +109,27 @@ public class LoggingAspect {
 
     put(managedKeys, EVENT_ACTION, action);
     put(managedKeys, CTX_DETAILS_METHOD, joinPoint.getSignature().getName());
-    put(managedKeys, START_TIME, String.valueOf(System.currentTimeMillis()));
     addIdentifiersToContext(joinPoint, managedKeys);
 
+    Object result;
     try {
-      Object result = joinPoint.proceed();
-
-      put(managedKeys, EVENT_OUTCOME, OUTCOME_SUCCESS);
-      put(managedKeys, CTX_DETAILS_HTTP_CODE, String.valueOf(httpResponse.getStatus()));
-      put(managedKeys, CTX_DETAILS_RESPONSE_TIME, getExecutionTime());
-      MDC.remove(START_TIME);
-
-      log.info(API_OPERATION_COMPLETED);
-      return result;
+      result = joinPoint.proceed();
     } catch (Throwable e) {
       MDC.put(EVENT_OUTCOME, OUTCOME_FAILURE);
       throw e;
-    } finally {
-      if (OUTCOME_SUCCESS.equals(MDC.get(EVENT_OUTCOME))) {
-        managedKeys.forEach(MDC::remove);
-      }
     }
+
+    put(managedKeys, EVENT_OUTCOME, OUTCOME_SUCCESS);
+    put(managedKeys, CTX_DETAILS_HTTP_CODE, String.valueOf(httpResponse.getStatus()));
+    put(
+        managedKeys,
+        CTX_DETAILS_RESPONSE_TIME,
+        String.valueOf(System.currentTimeMillis() - start));
+    log.info(API_OPERATION_COMPLETED);
+    managedKeys.forEach(MDC::remove);
+    return result;
   }
 
-  /** Emits the milestone of an I/O operation towards a Feign client or the storage. */
   @Around(value = "repository() || feignClient()")
   public Object logIoInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
     String previousPath = MDC.get(CTX_DETAILS_PATH);
@@ -158,27 +143,11 @@ public class LoggingAspect {
     }
   }
 
-  /** Internal steps are volatile processing, not milestones: DEBUG only. */
   @Around(value = "service()")
   public Object logServiceInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
     Object result = joinPoint.proceed();
-    if (log.isDebugEnabled()) {
-      log.debug("{} [{}]", INTERNAL_OPERATION_COMPLETED, joinPoint.getSignature().getName());
-    }
+    log.debug("{} [{}]", INTERNAL_OPERATION_COMPLETED, joinPoint.getSignature().getName());
     return result;
-  }
-
-  /** Milliseconds since the operation started, or {@code -} when unknown. */
-  public String getExecutionTime() {
-    String startTime = MDC.get(START_TIME);
-    if (startTime == null) {
-      return "-";
-    }
-    try {
-      return String.valueOf(System.currentTimeMillis() - Long.parseLong(startTime));
-    } catch (NumberFormatException e) {
-      return "-";
-    }
   }
 
   private void addIdentifiersToContext(JoinPoint joinPoint, Set<String> managedKeys) {
@@ -220,10 +189,7 @@ public class LoggingAspect {
     }
   }
 
-  /**
-   * Reads the identifiers shared by every {@code paForNode.xsd} operation. The whitelist excludes
-   * the debtor, so a new schema element cannot silently start being logged.
-   */
+  /** Getter whitelist, so a new {@code paForNode.xsd} element (e.g. debtor data) is never logged. */
   private void addSoapIdentifiers(Object argument, Set<String> managedKeys) {
     if (argument == null || !argument.getClass().getName().startsWith(SOAP_MODEL_PACKAGE)) {
       return;

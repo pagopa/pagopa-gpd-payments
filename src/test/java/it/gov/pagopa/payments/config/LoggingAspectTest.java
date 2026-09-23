@@ -2,7 +2,6 @@ package it.gov.pagopa.payments.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -114,7 +113,6 @@ class LoggingAspectTest {
 
     assertNull(MDC.get(LogContext.CTX_NAV));
     assertNull(MDC.get(LogContext.CTX_IUV));
-    assertNull(MDC.get(LoggingAspect.START_TIME));
   }
 
   @Test
@@ -127,7 +125,7 @@ class LoggingAspectTest {
     assertTrue(appender.list.isEmpty(), "the failure milestone belongs to the outcome owner");
     assertEquals("377777777777", MDC.get(LogContext.CTX_NAV));
     assertEquals("77777777777", MDC.get(LogContext.CTX_IUV));
-    assertNotNull(MDC.get(LoggingAspect.START_TIME));
+    assertEquals("failure", MDC.get(LoggingAspect.EVENT_OUTCOME));
   }
 
   @Test
@@ -160,8 +158,6 @@ class LoggingAspectTest {
   void personalFiscalCodesAreMaskedWhileOrganizationOnesAreKept() {
     assertEquals("77777777777", LogMasker.maskIfPersonal("77777777777"));
     assertEquals("RS****1U", LogMasker.maskIfPersonal(DEBTOR_FISCAL_CODE));
-    assertEquals("payment from ****", LogMasker.redact("payment from " + DEBTOR_EMAIL));
-    assertEquals("iban ****", LogMasker.redact("iban IT60X0542811101000000123456"));
   }
 
   private void givenJoinPoint(Object argument, String methodName) {

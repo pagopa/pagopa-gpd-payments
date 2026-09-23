@@ -1,6 +1,5 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
-import it.gov.pagopa.payments.config.LoggingAspect;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.partner.CtFaultBean;
 import it.gov.pagopa.payments.model.partner.CtResponse;
@@ -78,7 +77,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
         }
         catch (PartnerValidationException e) {
 
-            log.warn(LoggingAspect.API_OPERATION_FAILED, e);
+            log.error("Processing resulted in exception: " + e.getMessage());
             faultCode = e.getError().getFaultCode();
             faultString = e.getError().getFaultString();
             description = e.getError().getDescription();
@@ -86,7 +85,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
         } catch (Exception e) {
 
-            log.error(LoggingAspect.API_OPERATION_FAILED, e);
+            log.error("Processing resulted in generic exception: " + e.getMessage());
             httpServletResponse.setStatus(500);
         }
 
@@ -192,7 +191,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
             } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
 
-                log.error("SOAP fault response generation failed", e);
+                log.error("Processing resulted in generic exception: " + e.getMessage());
                 httpServletResponse.setStatus(500);
             }
         }

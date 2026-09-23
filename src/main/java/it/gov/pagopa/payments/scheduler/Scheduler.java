@@ -31,7 +31,6 @@ public class Scheduler {
     @Scheduled(cron = "${cron.job.schedule.expression.retry.trigger}")
     public void retryPaSendRT() {
         try {
-            updateMDCForStartExecution("retryPaSendRT", "");
             log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now(ZoneId.systemDefault()))));
             schedulerService.retryFailedPaSendRT();
             this.threadOfExecution = Thread.currentThread();

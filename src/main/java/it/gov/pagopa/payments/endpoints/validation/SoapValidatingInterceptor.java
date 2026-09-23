@@ -41,7 +41,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
                           + "]: "
                           + error.getMessage())
               .collect(Collectors.joining(" -- "));
-      log.error("SOAP request failed the XSD validation");
+      log.error(validationErrorsString);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }
     return true;
@@ -70,7 +70,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       soapMessage.saveChanges();
     } catch (SOAPException e) {
 
-      log.error("SOAP response post processing failed", e);
+      log.error("Processing resulted in exception: " + e.getMessage());
     }
   }
 

@@ -132,8 +132,7 @@ Logs follow the pagoPA OER logging guidelines and are emitted as single line ECS
   SOAP identifiers are read through the getter whitelist in `LoggingAspect.addSoapIdentifiers`, so a
   new identifier in `paForNode.xsd` is not logged until it is added there.
 - **Personal data.** Never log payloads, tokens, citizen fiscal codes, e-mails or IBANs. Use
-  `mask = true` on the annotations, `LogMasker.maskIfPersonal` for identifiers and
-  `LogMasker.redact` for free text.
+  `mask = true` on the annotations or `LogMasker.maskIfPersonal` for identifiers.
 
 ## Mainteiners 👨‍💻
 
