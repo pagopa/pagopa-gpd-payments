@@ -2,8 +2,8 @@ package it.gov.pagopa.payments.endpoints.validation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -18,37 +18,32 @@ import org.slf4j.LoggerFactory;
 
 class SoapFaultDefinitionExceptionResolverTest {
 
-  private ListAppender<ILoggingEvent> appender;
-  private SoapFaultDefinitionExceptionResolver resolver;
+  private final Logger logger =
+      (Logger) LoggerFactory.getLogger(SoapFaultDefinitionExceptionResolver.class);
+  private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+  private final SoapFaultDefinitionExceptionResolver resolver =
+      new SoapFaultDefinitionExceptionResolver();
 
   @BeforeEach
   void setUp() {
-    appender = new ListAppender<>();
     appender.start();
-    ((Logger) LoggerFactory.getLogger(SoapFaultDefinitionExceptionResolver.class))
-        .addAppender(appender);
-    resolver = new SoapFaultDefinitionExceptionResolver();
+    logger.addAppender(appender);
   }
 
   @AfterEach
   void tearDown() {
-    ((Logger) LoggerFactory.getLogger(SoapFaultDefinitionExceptionResolver.class))
-        .detachAppender(appender);
+    logger.detachAppender(appender);
   }
 
   @Test
-  void handledFaultIsLoggedAtInfoWithoutStackTrace() {
+  void handledFaultIsRethrownWithoutLogging() {
     PartnerValidationException exception =
         new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
 
     assertThrows(
         PartnerValidationException.class, () -> resolver.resolveException(null, null, exception));
 
-    assertEquals(1, appender.list.size());
-    ILoggingEvent event = appender.list.get(0);
-    assertEquals(Level.INFO, event.getLevel());
-    assertNull(event.getThrowableProxy(), "a handled fault must not carry a stack trace");
-    assertFalse(event.getFormattedMessage().contains("Exception"));
+    assertTrue(appender.list.isEmpty());
   }
 
   @Test

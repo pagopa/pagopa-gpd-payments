@@ -41,7 +41,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
                           + "]: "
                           + error.getMessage())
               .collect(Collectors.joining(" -- "));
-      // malformed input from the caller: unexpected but handled with a fault
+      // caller's malformed input, answered with a fault
       log.warn(validationErrorsString);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }

@@ -150,7 +150,6 @@ class PartnerServiceTest {
         .detachAppender(logAppender);
   }
 
-  /** A handled fault is an expected business outcome: never ERROR, never a stack trace. */
   private void assertHandledFaultIsNotAnError() {
     assertThat(logAppender.list)
         .noneMatch(event -> Level.ERROR.equals(event.getLevel()))
@@ -206,6 +205,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      assertHandledFaultIsNotAnError();
     }
   }
 
@@ -226,6 +226,9 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
+      assertThat(logAppender.list)
+          .anyMatch(
+              event -> Level.ERROR.equals(event.getLevel()) && event.getThrowableProxy() != null);
     }
   }
 
@@ -256,6 +259,7 @@ class PartnerServiceTest {
       } else {
         fail();
       }
+      assertHandledFaultIsNotAnError();
     }
   }
 

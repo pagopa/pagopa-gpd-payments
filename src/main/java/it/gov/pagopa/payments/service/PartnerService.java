@@ -134,7 +134,7 @@ public class PartnerService {
           request.getQrCode().getNoticeNumber());
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (PartnerValidationException e) {
-      // already logged where it was raised: caught only to keep it out of the generic catch
+      // already logged where raised
       throw e;
     } catch (Exception e) {
       log.error(
@@ -713,7 +713,6 @@ public class PartnerService {
       tableClient.createEntity(tableEntity);
     } catch (TableServiceException e) {
       if (e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
-        // expected outcome: the receipt was already stored
         log.info("[saveReceipt] Receipt already stored [iuv={}]", receiptEntity.getIuv());
         throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
       }
@@ -741,7 +740,6 @@ public class PartnerService {
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
       if (e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) {
-        // expected outcome: the caller handles the absent receipt
         log.debug("[getReceipt] Receipt not found [iuv={}]", iuv);
         return null;
       }
@@ -811,7 +809,7 @@ public class PartnerService {
           qrCode.getNoticeNumber());
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (PartnerValidationException e) {
-      // already logged where it was raised: caught only to keep it out of the generic catch
+      // already logged where raised
       throw e;
     } catch (Exception e) {
       log.error(
