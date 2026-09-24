@@ -1,5 +1,4 @@
 const assert = require("assert");
-const { executeGPSDataDeletion } = require("./gps_logic");
 
 async function assertAmount(bundle, amount) {
     assertOutcome(bundle, "OK");
@@ -34,9 +33,8 @@ async function assertStatusCode(bundle, statusCode) {
 }
 
 async function executeAfterAllStep(gpsSessionBundle) {
-    if (gpsSessionBundle.isExecuting) {
-        await executeGPSDataDeletion(gpsSessionBundle);
-    }
+    // No-op: the vertical service is statically configured per serviceId,
+    // there is no runtime-created organization/service data to clean up.
 }
 
 module.exports = {

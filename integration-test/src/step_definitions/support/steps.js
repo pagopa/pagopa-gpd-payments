@@ -1,10 +1,9 @@
 const {Given, When, Then, AfterAll, Before, setDefaultTimeout} = require('@cucumber/cucumber')
 const { 
     executeHealthCheckForAPIConfig,
-    executeHealthCheckForDonations,
     executeHealthCheckForGPD,
     executeHealthCheckForGPDPayments,
-    executeHealthCheckForGPS,
+    executeHealthCheckForVerticalService,
     executeHealthCheckForIUVGenerator
 } = require('./logic/health_checks_logic');
 const { 
@@ -27,7 +26,7 @@ const {
     refreshNodeConfig
 } = require('./logic/gpd_logic');
 const { assertAmount, assertFaultCode, assertOutcome, assertStatusCode, executeAfterAllStep, assertPaymentAmount, assertIbanInTransferList } = require('./logic/common_logic');
-const { createOrganizationInfo, createServiceInfo, sendInvalidDemandPaymentNoticeRequest, sendValidDemandPaymentNoticeRequest } = require('./logic/gps_logic');
+const { setVerticalServiceInfo, sendInvalidDemandPaymentNoticeRequest, sendValidDemandPaymentNoticeRequest } = require('./logic/vertical_service_logic');
 const { gpdSessionBundle, gpsSessionBundle } = require('./utility/data');
 const { getValidBundle } = require('./utility/helpers');
 const {
@@ -61,10 +60,9 @@ setDefaultTimeout(120000);
  *  'Given' precondition for health checks on various services. 
  */
 Given('Payments running', () => executeHealthCheckForGPDPayments());
-Given('GPS running', () => executeHealthCheckForGPS());
+Given('Vertical service running', () => executeHealthCheckForVerticalService());
 Given('GPD running', () => executeHealthCheckForGPD());
 Given('IUV Generator running', () => executeHealthCheckForIUVGenerator());
-Given('DonationService running', () => executeHealthCheckForDonations());
 Given('ApiConfig running', () => executeHealthCheckForAPIConfig());
 
 
@@ -119,19 +117,18 @@ When('the client sends the GetPaymentV2Request', () => sendGetPaymentV2Request(g
 
 
 /* 
- *  GPS section.
- *  'Given' precondition for retrieving data
+ *  Vertical service section (replaces the legacy GPS organization/service registry).
+ *  'Given' precondition for pointing the demand request to the pre-configured serviceId.
  */
-Given('the service {string} for donations', (serviceId) => createServiceInfo(gpsSessionBundle, serviceId));
-Given('the creditor institution {string} enrolled to donation service {string}', (orgId, serviceId) => createOrganizationInfo(gpsSessionBundle, orgId, serviceId));
+Given('the creditor institution {string} enrolled to the vertical service {string}', (orgId, serviceId) => setVerticalServiceInfo(gpsSessionBundle, orgId, serviceId));
 
 
 /* 
- *  GPS section.
+ *  Vertical service section.
  *  'When' clauses for retrieving data to be analyzed.
  */
-When('the client sends the DemandPaymentNoticeRequest', () => sendValidDemandPaymentNoticeRequest(gpsSessionBundle));
-When('the client sends a wrong DemandPaymentNoticeRequest', () => sendInvalidDemandPaymentNoticeRequest(gpsSessionBundle));
+When('the client sends the paDemandPaymentNoticeRequest', () => sendValidDemandPaymentNoticeRequest(gpsSessionBundle));
+When('the client sends a wrong paDemandPaymentNoticeRequest', () => sendInvalidDemandPaymentNoticeRequest(gpsSessionBundle));
 
 
 /* 
@@ -188,7 +185,7 @@ Before({tags: '@GPDScenario'}, async function () {
 });
 
 Before({tags: '@GPSScenario'}, async function () {
-    console.log("\nGPS - Starting new scenario");
+    console.log("\nVertical service - Starting new scenario");
     gpdSessionBundle.isExecuting = false;
     gpsSessionBundle.isExecuting = true;
 });

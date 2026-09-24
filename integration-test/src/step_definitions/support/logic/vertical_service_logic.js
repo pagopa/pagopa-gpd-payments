@@ -1,0 +1,30 @@
+const { paDemandPaymentNotice } = require("../clients/payments_client");
+const { buildPaDemandPaymentNoticeRequest } = require("../utility/request_builders");
+
+// The vertical service is now statically mapped by "idServizio" in the GPD
+// Payments configuration (service.gps.vertical.service-map.<idServizio>), so
+// there is no organization/service to create at runtime anymore: the test
+// only needs to point the request to a pre-configured serviceId.
+function setVerticalServiceInfo(bundle, organizationCode, serviceId) {
+    bundle.isExecuting = true;
+    bundle.organizationCode = organizationCode;
+    bundle.serviceCode = serviceId;
+}
+
+async function sendInvalidDemandPaymentNoticeRequest(bundle) {
+    bundle.serviceData = "PHNlcnZpY2UgeG1sbnM9Imh0dHA6Ly9QdW50b0FjY2Vzc29QU1Auc3Bjb29wLmdvdi5pdC9HZW5lcmFsU2VydmljZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vUHVudG9BY2Nlc3NvUFNQLnNwY29vcC5nb3YuaXQvR2VuZXJhbFNlcnZpY2Ugc2NoZW1hLnhzZCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSI+CiAgPGRlc2NyaXB0aW9uPmRvbmF0aW9uPC9kZXNjcmlwdGlvbj4KPC9zZXJ2aWNlPg==";
+    bundle.responseToCheck = await paDemandPaymentNotice(buildPaDemandPaymentNoticeRequest(bundle));
+}
+
+// ebollo example service
+async function sendValidDemandPaymentNoticeRequest(bundle) {
+    bundle.serviceData = "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/Pgo8bnM0Om1hcmNhRGFCb2xsbyB4bWxuczpuczU9Imh0dHA6Ly9wYWdvcGEtYXBpLnBhZ29wYS5nb3YuaXQvcGEvcGFGb3JOb2RlLnhzZCIgeG1sbnM6bnMyPSJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy9zb2FwL2VudmVsb3BlLyIgeG1sbnM6bnM0PSJodHRwOi8vcGFnb3BhLWFwaS5wYWdvcGEuZ292Lml0L3BhL01hcmNhRGFCb2xsbyIgeG1sbnM6bnMzPSJodHRwOi8vcGFnb3BhLWFwaS5wYWdvcGEuZ292Lml0L25vZGUvbm9kZUZvclBzcC54c2QiPgogICAgPGFtb3VudD4xNi4wMDwvYW1vdW50PgogICAgPGRlYnRvcj4KICAgICAgICA8dW5pcXVlSWRlbnRpZmllcj4KICAgICAgICAgICAgPGVudGl0eVVuaXF1ZUlkZW50aWZpZXJUeXBlPkY8L2VudGl0eVVuaXF1ZUlkZW50aWZpZXJUeXBlPgogICAgICAgICAgICA8ZW50aXR5VW5pcXVlSWRlbnRpZmllclZhbHVlPkpITkRPRTAwQTAxQjE1N048L2VudGl0eVVuaXF1ZUlkZW50aWZpZXJWYWx1ZT4KICAgICAgICA8L3VuaXF1ZUlkZW50aWZpZXI+CiAgICAgICAgPGZ1bGxOYW1lPk1hcmlvIFJvc3NpPC9mdWxsTmFtZT4KICAgICAgICA8ZW1haWw+bWFyaW8ucm9zc2lAdGVzdC50ZXN0PC9lbWFpbD4KICAgIDwvZGVidG9yPgogICAgPGZpc2NhbENvZGU+OTk5OTkwMDAwMTM8L2Zpc2NhbENvZGU+CiAgICA8cHJvdmluY2U+Uk08L3Byb3ZpbmNlPgogICAgPGRvY3VtZW50SGFzaD5jM1J5YVc1bmMzUnlhVzVuYzNSeWFXNW5jM1J5YVc1bmMzUnlhVzVuYzNSeWFXNW5jM1J5YVc1bmMzUT08L2RvY3VtZW50SGFzaD4KPC9uczQ6bWFyY2FEYUJvbGxvPgo=";
+    bundle.responseToCheck = await paDemandPaymentNotice(buildPaDemandPaymentNoticeRequest(bundle));
+}
+
+
+module.exports = {
+    setVerticalServiceInfo,
+    sendInvalidDemandPaymentNoticeRequest,
+    sendValidDemandPaymentNoticeRequest,
+}

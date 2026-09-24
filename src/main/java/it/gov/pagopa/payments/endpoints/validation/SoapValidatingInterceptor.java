@@ -22,6 +22,7 @@ import org.xml.sax.SAXParseException;
 public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
 
   private static final String SOAP_PREFIX = "soapenv";
+  private static final String EXCLUDED_PRIMITIVES = "paDemandPaymentNoticeResponse";
   private final List<String> amountNodeElements =
       List.of("paymentAmount", "amount", "transferAmount");
 
@@ -75,6 +76,13 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
   }
 
   private void fixNumberAmountFormat(SOAPMessage soapMessage) throws SOAPException {
+    var bodyElement = soapMessage.getSOAPBody().getFirstChild();
+    if (bodyElement != null && EXCLUDED_PRIMITIVES.contains(bodyElement.getLocalName())) {
+      // The vertical service already returns amounts in euros (e.g. "16.00"),
+      // applying the cents-to-euros conversion here would corrupt the value (e.g. "0.16").
+      return;
+    }
+
     for (String nodeElement : amountNodeElements) {
       var nodeList = soapMessage.getSOAPBody().getElementsByTagName(nodeElement);
       for (int i = 0; i < nodeList.getLength(); i++) {
