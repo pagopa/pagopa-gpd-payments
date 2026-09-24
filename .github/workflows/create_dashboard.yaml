@@ -2,14 +2,6 @@ name: Create Dashboard
 
 # Controls when the workflow will run
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'openapi/**'
-      - '.github/workflows/create_dashboard.yaml'
-      - '.opex/**'
-
   workflow_dispatch:
 
 permissions:
@@ -26,8 +18,7 @@ jobs:
     strategy:
       matrix:
         environment: [prod]
-        # product: [apim_v1, apim_v2]
-        product: [apim_v2]
+        product: [v1]
       max-parallel: 1
     environment:
       name: ${{ matrix.environment }}
@@ -40,14 +31,51 @@ jobs:
         with:
           persist-credentials: false
 
-      # from https://github.com/pagopa/opex-dashboard-azure-action/
-      - uses: pagopa/opex-dashboard-azure-action@ece3bc2b133be74cabb50aec14cdb9b8051b886f # v1.1.2
+      - run: |
+          python -m venv venv
+          source venv/bin/activate
+          git clone --branch fix-availability-dashboard https://github.com/pagopa/opex-dashboard
+          cd opex-dashboard
+          git checkout 6c6b91d31133081d4b954e6be0a8f941e3559733
+          pip install -e .
+          cd ..
+          source venv/bin/activate
+          venv/bin/opex_dashboard generate \
+            --template-name azure-dashboard \
+            --package ./dashboard \
+            --config-file .opex/${{ matrix.product }}/env/${{ matrix.environment }}/config.yaml
+
+      # we need to set env variables in the folder /azure-dashboard
+      - name: Copy Environments
+        shell: bash
+        run: |
+          cp -R .opex/${{ matrix.product }}/env ./dashboard/azure-dashboard
+
+      - name: Setup Terraform
+        id: setup_terraform
+        # from https://github.com/hashicorp/setup-terraform/commits/main
+        uses: hashicorp/setup-terraform@8feba2b913ea459066180f9cb177f58a881cf146
         with:
-          environment: ${{ matrix.environment }}
-          api-name: ${{ matrix.product }}
-          config: .opex/${{ matrix.product }}/env/${{ matrix.environment }}/config.yaml
-          client-id: ${{ secrets.CLIENT_ID }}
+          terraform_version: 1.9.8
+
+      - name: Login
+        id: login
+        # from https://github.com/Azure/login/commits/master
+        uses: azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2
+        with:
+          client-id: ${{ secrets.CD_CLIENT_ID }}
           tenant-id: ${{ secrets.TENANT_ID }}
           subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
-          # from https://github.com/pagopa/opex-dashboard-azure-action/pkgs/container/opex-dashboard-azure-action
-          docker-version: sha256:e4245954566cd3470e1b5527d33bb58ca132ce7493eac01be9e808fd25a11c8d
+
+      # now is possible to launch the command: terraform apply
+      - name: Terraform Apply
+        shell: bash
+        env:
+          ARM_CLIENT_ID: ${{ secrets.CD_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: true
+        run: |
+          cd ./dashboard/azure-dashboard
+
+          bash ./terraform.sh apply ${{ matrix.environment }} -auto-approve
