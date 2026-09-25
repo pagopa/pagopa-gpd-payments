@@ -12,6 +12,7 @@ import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
 import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -42,6 +43,11 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
     private ObjectFactory factory;
 
     private static final String SOAP_PREFIX = "soapenv";
+
+    // OER keys, same names LoggingAspect uses for the API milestone
+    private static final String EVENT_ACTION = "event_action";
+    private static final String EVENT_OUTCOME = "event_outcome";
+    private static final String CTX_DETAILS_FAULT_CODE = "ctx_details.fault_code";
 
     @Value("${pt.id_intermediario}")
     private String intermediario;
@@ -77,15 +83,15 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
         }
         catch (PartnerValidationException e) {
 
-            log.error("Processing resulted in exception: " + e.getMessage());
             faultCode = e.getError().getFaultCode();
             faultString = e.getError().getFaultString();
             description = e.getError().getDescription();
+            logRejectedOperation(soapAction, faultCode);
             httpServletResponse.setStatus(200);
 
         } catch (Exception e) {
 
-            log.error("Processing resulted in generic exception: " + e.getMessage());
+            log.error("Processing resulted in generic exception", e);
             httpServletResponse.setStatus(500);
         }
 
@@ -191,7 +197,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
             } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
 
-                log.error("Processing resulted in generic exception: " + e.getMessage());
+                log.error("Failed to write the SOAP response", e);
                 httpServletResponse.setStatus(500);
             }
         }
@@ -201,5 +207,16 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
             HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
             throws Exception {
         super.doService(httpServletRequest, httpServletResponse);
+    }
+
+    /** Single end-of-call milestone of a handled fault; RequestFilter clears the MDC. */
+    private void logRejectedOperation(String soapAction, String faultCode) {
+        if (MDC.get(EVENT_ACTION) == null && soapAction != null) {
+            // faults raised before the endpoint (e.g. XSD validation) have no API context yet
+            MDC.put(EVENT_ACTION, soapAction);
+        }
+        MDC.put(EVENT_OUTCOME, "failure");
+        MDC.put(CTX_DETAILS_FAULT_CODE, faultCode);
+        log.info("Completed API operation");
     }
 }

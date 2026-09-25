@@ -80,6 +80,11 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.junit.jupiter.api.AfterEach;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
@@ -143,6 +148,8 @@ class PartnerServiceTest {
           azurite.getContainerIpAddress(),
           azurite.getMappedPort(10000));
 
+  private ListAppender<ILoggingEvent> logAppender;
+
   @BeforeEach
   void setUpPartnerService() {
     partnerService =
@@ -157,6 +164,23 @@ class PartnerServiceTest {
             customizedModelMapper,
             verticalServicesConfig,
             restTemplate);
+    logAppender = new ListAppender<>();
+    logAppender.start();
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(PartnerService.class))
+        .addAppender(logAppender);
+  }
+
+  @AfterEach
+  void detachLogAppender() {
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(PartnerService.class))
+        .detachAppender(logAppender);
+  }
+
+  // the INFO outcome of a handled fault is logged once, by SoapMessageDispatcher
+  private void assertHandledFaultIsLoggedAtDebugOnly() {
+    assertThat(logAppender.list)
+        .noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.INFO))
+        .noneMatch(event -> event.getThrowableProxy() != null);
   }
 
   @Test
@@ -208,6 +232,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -228,6 +253,9 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, ex.getError());
+      assertThat(logAppender.list)
+          .anyMatch(
+              event -> Level.ERROR.equals(event.getLevel()) && event.getThrowableProxy() != null);
     }
   }
 
@@ -258,6 +286,7 @@ class PartnerServiceTest {
       } else {
         fail();
       }
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -444,6 +473,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -933,6 +963,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -1237,6 +1268,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -1668,6 +1700,7 @@ class PartnerServiceTest {
     // Test post condition
     assertEquals(
         "PAA_RECEIPT_DUPLICATA, L'id del pagamento ricevuto  e' duplicato", e.getMessage());
+    assertHandledFaultIsLoggedAtDebugOnly();
   }
 
   @Test
@@ -1721,6 +1754,7 @@ class PartnerServiceTest {
     // Test post condition
     assertEquals(
         "PAA_RECEIPT_DUPLICATA, L'id del pagamento ricevuto  e' duplicato", e.getMessage());
+    assertHandledFaultIsLoggedAtDebugOnly();
   }
 
   @Test
