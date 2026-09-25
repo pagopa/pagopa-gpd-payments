@@ -52,11 +52,13 @@ jobs:
 
       - name: Run Integration Tests
         shell: bash
+        secret:
+          SUBKEY: ${{ secrets.SUBKEY }}
+          NODO_AUTH_SUBKEY: ${{ secrets.NODO_AUTH_SUBKEY }}
+          CUCUMBER_PUBLISH_TOKEN: ${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
         run: |
-          export SUBKEY=${{ secrets.SUBKEY }}
           export CANARY=${{ inputs.canary }}
-          export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
-
+          
           cd ./integration-test
           chmod +x ./run_integration_test.sh
           ./run_integration_test.sh ${{( github.event.inputs == null && 'uat') || inputs.environment }}
