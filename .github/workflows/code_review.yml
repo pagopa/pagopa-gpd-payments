@@ -36,13 +36,14 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Code Review
-        uses: pagopa/github-actions-template/maven-code-review@525266fb788f4da438e5919fcf660fe8637271ed # 2.2
+        uses: pagopa/github-actions-template/maven-code-review@b134fb7af9a4d8b9b933eafb5cf5e12d88ee8ff1 # v2.2.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
           project_key: ${{env.PROJECT_KEY}}
-          coverage_exclusions: "**/config/*,**/*Mock*,**/model/**,**/entity/*"
+          coverage_exclusions: "**/config/*,**/*Mock*,**/model/**,**/entity/*,**/exception/*"
           cpd_exclusions: "**/model/**,**/entity/*"
+          coverage_report_path: "./target/site/jacoco/jacoco.xml"
           java_version: 17
 
   smoke-test:
@@ -75,11 +76,12 @@ jobs:
       - name: Run Integration Tests
         shell: bash
         id: run_integration_test
-        run: |
-          export SUBKEY=${{ secrets.SUBKEY }}      
-          export CANARY=${{ inputs.canary }}      
-          export CUCUMBER_PUBLISH_TOKEN=${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
-          
+        env:
+          SUBKEY: ${{ secrets.SUBKEY }}
+          NODO_AUTH_SUBKEY: ${{ secrets.NODO_PAGOPA_SUBKEY }}
+          CANARY: ${{ inputs.canary }}
+          CUCUMBER_PUBLISH_TOKEN: ${{ secrets.CUCUMBER_PUBLISH_TOKEN }}
+        run: |          
           cd ./integration-test
           chmod +x ./run_integration_test.sh
           ./run_integration_test.sh local
