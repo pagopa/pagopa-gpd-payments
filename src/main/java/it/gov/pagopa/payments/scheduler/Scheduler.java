@@ -23,6 +23,7 @@ public class Scheduler {
 
     private static final String LOG_BASE_HEADER_INFO = "[OperationType: %s] - [ClassMethod: %s] - [MethodParamsToLog: %s]";
     private static final String CRON_JOB = "CRON JOB";
+    private static final String RETRY_PA_SEND_RT = "retryPaSendRT";
     private Thread threadOfExecution;
 
     @Autowired
@@ -31,14 +32,13 @@ public class Scheduler {
     @Scheduled(cron = "${cron.job.schedule.expression.retry.trigger}")
     public void retryPaSendRT() {
         try {
-            updateMDCForStartExecution("retryPaSendRT", "");
             log.debug(String.format(LOG_BASE_HEADER_INFO, CRON_JOB, "retry sendRT", "Running at " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now(ZoneId.systemDefault()))));
             schedulerService.retryFailedPaSendRT();
             this.threadOfExecution = Thread.currentThread();
-            updateMDCForEndExecution();
+            logJobCompleted(RETRY_PA_SEND_RT);
         }
         catch (Exception e){
-            updateMDCError(e, "retryPaSendRT");
+            logJobFailed(RETRY_PA_SEND_RT, e);
             throw e;
         }
         finally {

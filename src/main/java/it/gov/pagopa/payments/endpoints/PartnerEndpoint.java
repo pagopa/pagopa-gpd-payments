@@ -24,7 +24,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
 
 import it.gov.pagopa.payments.utils.CommonUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
@@ -37,7 +36,6 @@ import org.springframework.ws.transport.http.HttpServletConnection;
 import org.xml.sax.SAXException;
 
 @Endpoint
-@Slf4j
 public class PartnerEndpoint {
 
   @Autowired private PartnerService partnerService;
@@ -51,7 +49,6 @@ public class PartnerEndpoint {
       @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request)
       throws DatatypeConfigurationException, PartnerValidationException {
 
-    log.debug(" paVerifyPaymentNotice START ");
     return factory.createPaVerifyPaymentNoticeRes(
         partnerService.paVerifyPaymentNotice(request.getValue(), CommonUtil.getServiceType()));
   }
@@ -63,7 +60,6 @@ public class PartnerEndpoint {
           @RequestPayload JAXBElement<PaGetPaymentReq> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
-    log.debug(" paGetPayment START ");
     return factory.createPaGetPaymentRes(partnerService.paGetPayment(request.getValue(), CommonUtil.getServiceType()));
   }
 
@@ -74,7 +70,6 @@ public class PartnerEndpoint {
           @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
 
-    log.debug(" paGetPaymentV2 START ");
     return factory.createPaGetPaymentV2Response(partnerService.paGetPaymentV2(request.getValue(), CommonUtil.getServiceType()));
   }
 
@@ -83,7 +78,6 @@ public class PartnerEndpoint {
   @ResponsePayload
   public JAXBElement<PaSendRTRes> paSendRT(@RequestPayload JAXBElement<PaSendRTReq> request) {
 
-    log.debug("paSendRT START [noticeNumber={}]", request.getValue().getReceipt().getNoticeNumber());
     return factory.createPaSendRTRes(partnerService.paSendRT(request.getValue()));
   }
 
@@ -93,7 +87,6 @@ public class PartnerEndpoint {
   public JAXBElement<PaSendRTV2Response> paSendRTV2(
       @RequestPayload JAXBElement<PaSendRTV2Request> request) {
 
-    log.debug("paSendRTV2 START ");
     return factory.createPaSendRTV2Response(partnerService.paSendRTV2(request.getValue()));
   }
 
@@ -105,7 +98,6 @@ public class PartnerEndpoint {
       throws DatatypeConfigurationException, ParserConfigurationException, IOException,
           SAXException, XMLStreamException {
 
-    log.debug(" paDemandPaymentNotice START ");
     return factory.createPaDemandPaymentNoticeResponse(
         partnerService.paDemandPaymentNotice(request.getValue()));
   }

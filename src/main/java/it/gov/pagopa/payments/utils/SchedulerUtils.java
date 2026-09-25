@@ -1,36 +1,31 @@
 package it.gov.pagopa.payments.utils;
 
-import static it.gov.pagopa.payments.config.LoggingAspect.*;
+import static it.gov.pagopa.payments.config.LoggingAspect.ERROR_TYPE;
+import static it.gov.pagopa.payments.config.LoggingAspect.EVENT_ACTION;
+import static it.gov.pagopa.payments.config.LoggingAspect.EVENT_OUTCOME;
+import static it.gov.pagopa.payments.config.LoggingAspect.OUTCOME_FAILURE;
+import static it.gov.pagopa.payments.config.LoggingAspect.OUTCOME_SUCCESS;
 
-import java.util.Calendar;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
+/** OER milestone of a scheduled job: {@code event_action} is the job name. */
 @Slf4j
 public class SchedulerUtils {
 
-  public static void updateMDCForStartExecution(String method, String args) {
-    MDC.put(METHOD, method);
-    MDC.put(START_TIME, String.valueOf(Calendar.getInstance().getTimeInMillis()));
-    MDC.put(REQUEST_ID, UUID.randomUUID().toString());
-    MDC.put(OPERATION_ID, UUID.randomUUID().toString());
-    MDC.put(ARGS, args);
+  private static final String JOB_COMPLETED = "Completed scheduled job";
+
+  public static void logJobCompleted(String job) {
+    MDC.put(EVENT_ACTION, job);
+    MDC.put(EVENT_OUTCOME, OUTCOME_SUCCESS);
+    log.info(JOB_COMPLETED);
   }
 
-  public static void updateMDCForEndExecution() {
-    MDC.put(STATUS, "OK");
-    MDC.put(CODE, "201");
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    log.info("Scheduled job finished successfully");
-  }
-
-  public static void updateMDCError(Exception e, String method) {
-    MDC.put(STATUS, "KO");
-    MDC.put(CODE, "500");
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    MDC.put(FAULT_CODE, method);
-    MDC.put(FAULT_DETAIL, e.getMessage());
-    log.info("An error occurring during a scheduled job");
+  /** No stack trace: the job rethrows and Spring's scheduler logs it at ERROR. */
+  public static void logJobFailed(String job, Exception e) {
+    MDC.put(EVENT_ACTION, job);
+    MDC.put(EVENT_OUTCOME, OUTCOME_FAILURE);
+    MDC.put(ERROR_TYPE, e.getClass().getName());
+    log.info(JOB_COMPLETED);
   }
 }
