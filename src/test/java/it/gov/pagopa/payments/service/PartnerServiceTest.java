@@ -84,7 +84,6 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -149,6 +148,8 @@ class PartnerServiceTest {
           azurite.getContainerIpAddress(),
           azurite.getMappedPort(10000));
 
+  private ListAppender<ILoggingEvent> logAppender;
+
   @BeforeEach
   void setUpPartnerService() {
     partnerService =
@@ -163,12 +164,6 @@ class PartnerServiceTest {
             customizedModelMapper,
             verticalServicesConfig,
             restTemplate);
-  }
-
-  private ListAppender<ILoggingEvent> logAppender;
-
-  @BeforeEach
-  void attachLogAppender() {
     logAppender = new ListAppender<>();
     logAppender.start();
     ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(PartnerService.class))
