@@ -176,9 +176,10 @@ class PartnerServiceTest {
         .detachAppender(logAppender);
   }
 
-  private void assertHandledFaultIsNotAnError() {
+  // the INFO outcome of a handled fault is logged once, by SoapMessageDispatcher
+  private void assertHandledFaultIsLoggedAtDebugOnly() {
     assertThat(logAppender.list)
-        .noneMatch(event -> Level.ERROR.equals(event.getLevel()))
+        .noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.INFO))
         .noneMatch(event -> event.getThrowableProxy() != null);
   }
 
@@ -231,7 +232,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
-      assertHandledFaultIsNotAnError();
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -285,7 +286,7 @@ class PartnerServiceTest {
       } else {
         fail();
       }
-      assertHandledFaultIsNotAnError();
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -472,7 +473,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
-      assertHandledFaultIsNotAnError();
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -962,7 +963,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
-      assertHandledFaultIsNotAnError();
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -1267,7 +1268,7 @@ class PartnerServiceTest {
     } catch (PartnerValidationException ex) {
       // Test post condition
       assertEquals(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, ex.getError());
-      assertHandledFaultIsNotAnError();
+      assertHandledFaultIsLoggedAtDebugOnly();
     }
   }
 
@@ -1699,7 +1700,7 @@ class PartnerServiceTest {
     // Test post condition
     assertEquals(
         "PAA_RECEIPT_DUPLICATA, L'id del pagamento ricevuto  e' duplicato", e.getMessage());
-    assertHandledFaultIsNotAnError();
+    assertHandledFaultIsLoggedAtDebugOnly();
   }
 
   @Test
@@ -1753,7 +1754,7 @@ class PartnerServiceTest {
     // Test post condition
     assertEquals(
         "PAA_RECEIPT_DUPLICATA, L'id del pagamento ricevuto  e' duplicato", e.getMessage());
-    assertHandledFaultIsNotAnError();
+    assertHandledFaultIsLoggedAtDebugOnly();
   }
 
   @Test
