@@ -3,23 +3,34 @@ package it.gov.pagopa.payments.config;
 import it.gov.pagopa.payments.utils.LogMasker;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.bind.JAXBElement;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.ws.server.endpoint.annotation.Endpoint;
 
-/** OER milestone logging: one event per completed API call or I/O boundary, payloads never logged. */
+/** OER milestone logging: one event per completed API or I/O call, payloads never logged. */
 @Aspect
 @Component
 @Slf4j
@@ -34,6 +45,8 @@ public class LoggingAspect {
   public static final String CTX_DETAILS_RESPONSE_TIME =
       LogContext.CTX_DETAILS_PREFIX + "response_time_ms";
   public static final String CTX_DETAILS_METHOD = LogContext.CTX_DETAILS_PREFIX + "method";
+  public static final String CTX_DETAILS_DEPENDENCY = LogContext.CTX_DETAILS_PREFIX + "dependency";
+  public static final String ERROR_TYPE = "error.type";
 
   public static final String OUTCOME_SUCCESS = "success";
   public static final String OUTCOME_FAILURE = "failure";
@@ -44,6 +57,9 @@ public class LoggingAspect {
 
   /** JAXB classes generated from {@code paForNode.xsd}. */
   private static final String SOAP_MODEL_PACKAGE = "it.gov.pagopa.payments.model.partner";
+
+  private static final List<String> IO_KEYS =
+      List.of(CTX_DETAILS_DEPENDENCY, CTX_DETAILS_PATH, EVENT_OUTCOME, ERROR_TYPE);
 
   final HttpServletRequest httRequest;
   final HttpServletResponse httpResponse;
@@ -102,12 +118,8 @@ public class LoggingAspect {
   public Object logApiInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
     long start = System.currentTimeMillis();
     Set<String> managedKeys = new LinkedHashSet<>();
-    String method = httRequest.getMethod();
-    String uri = httRequest.getRequestURI();
-    String action =
-        method != null && uri != null ? method + " " + uri : joinPoint.getSignature().getName();
 
-    put(managedKeys, EVENT_ACTION, action);
+    put(managedKeys, EVENT_ACTION, action(joinPoint));
     put(managedKeys, CTX_DETAILS_METHOD, joinPoint.getSignature().getName());
     addIdentifiersToContext(joinPoint, managedKeys);
 
@@ -121,25 +133,45 @@ public class LoggingAspect {
 
     put(managedKeys, EVENT_OUTCOME, OUTCOME_SUCCESS);
     put(managedKeys, CTX_DETAILS_HTTP_CODE, String.valueOf(httpResponse.getStatus()));
-    put(
-        managedKeys,
-        CTX_DETAILS_RESPONSE_TIME,
-        String.valueOf(System.currentTimeMillis() - start));
+    put(managedKeys, CTX_DETAILS_RESPONSE_TIME, String.valueOf(System.currentTimeMillis() - start));
     log.info(API_OPERATION_COMPLETED);
     managedKeys.forEach(MDC::remove);
     return result;
   }
 
+  /** REST failure milestone: the API context is still in the MDC when the error handler answers. */
+  @AfterReturning(
+      value = "execution(* it.gov.pagopa.payments.exception.ErrorHandler.*(..))",
+      returning = "response")
+  public void logApiFailure(ResponseEntity<?> response) {
+    if (MDC.get(EVENT_ACTION) == null) {
+      // failed before reaching the controller, e.g. on parameter binding
+      MDC.put(EVENT_ACTION, httRequest.getMethod() + " " + httRequest.getRequestURI());
+    }
+    MDC.put(EVENT_OUTCOME, OUTCOME_FAILURE);
+    MDC.put(CTX_DETAILS_HTTP_CODE, String.valueOf(response.getStatusCodeValue()));
+    log.info(API_OPERATION_COMPLETED);
+  }
+
+  /** One event per I/O call, success or failure; the caller logs any stack trace. */
   @Around(value = "repository() || feignClient()")
   public Object logIoInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
-    String previousPath = MDC.get(CTX_DETAILS_PATH);
-    MDC.put(CTX_DETAILS_PATH, joinPoint.getSignature().getName());
+    Map<String, String> previous = new HashMap<>();
+    IO_KEYS.forEach(key -> previous.put(key, MDC.get(key)));
+    MDC.put(CTX_DETAILS_DEPENDENCY, dependency(joinPoint));
+    MDC.put(CTX_DETAILS_PATH, path(joinPoint));
     try {
       Object result = joinPoint.proceed();
+      MDC.put(EVENT_OUTCOME, OUTCOME_SUCCESS);
       log.info(IO_OPERATION_COMPLETED);
       return result;
+    } catch (Throwable e) {
+      MDC.put(EVENT_OUTCOME, OUTCOME_FAILURE);
+      MDC.put(ERROR_TYPE, e.getClass().getName());
+      log.info(IO_OPERATION_COMPLETED);
+      throw e;
     } finally {
-      restore(CTX_DETAILS_PATH, previousPath);
+      previous.forEach(this::restore);
     }
   }
 
@@ -148,6 +180,40 @@ public class LoggingAspect {
     Object result = joinPoint.proceed();
     log.debug("{} [{}]", INTERNAL_OPERATION_COMPLETED, joinPoint.getSignature().getName());
     return result;
+  }
+
+  /** Every SOAP call is {@code POST /partner}: the operation name tells them apart. */
+  private String action(JoinPoint joinPoint) {
+    String operation = joinPoint.getSignature().getName();
+    Class<?> type = joinPoint.getSignature().getDeclaringType();
+    if (type != null && type.isAnnotationPresent(Endpoint.class)) {
+      return operation;
+    }
+    String method = httRequest.getMethod();
+    String uri = httRequest.getRequestURI();
+    return method != null && uri != null ? method + " " + uri : operation;
+  }
+
+  private String dependency(JoinPoint joinPoint) {
+    Class<?> type = joinPoint.getSignature().getDeclaringType();
+    if (type == null) {
+      return joinPoint.getSignature().getName();
+    }
+    FeignClient feignClient = AnnotationUtils.findAnnotation(type, FeignClient.class);
+    return feignClient != null ? feignClient.value() : type.getSimpleName();
+  }
+
+  /** The dependency's endpoint template (no values), or the method name when there is none. */
+  private String path(JoinPoint joinPoint) {
+    if (joinPoint.getSignature() instanceof MethodSignature signature
+        && signature.getMethod() != null) {
+      RequestMapping mapping =
+          AnnotatedElementUtils.findMergedAnnotation(signature.getMethod(), RequestMapping.class);
+      if (mapping != null && mapping.path().length > 0) {
+        return mapping.path()[0];
+      }
+    }
+    return joinPoint.getSignature().getName();
   }
 
   private void addIdentifiersToContext(JoinPoint joinPoint, Set<String> managedKeys) {
@@ -189,8 +255,12 @@ public class LoggingAspect {
     }
   }
 
-  /** Getter whitelist, so a new {@code paForNode.xsd} element (e.g. debtor data) is never logged. */
+  /** Getter whitelist: a new {@code paForNode.xsd} element (e.g. debtor data) is not logged. */
   private void addSoapIdentifiers(Object argument, Set<String> managedKeys) {
+    if (argument instanceof JAXBElement<?> element) {
+      // endpoints receive the request wrapped in its @RequestPayload element
+      argument = element.getValue();
+    }
     if (argument == null || !argument.getClass().getName().startsWith(SOAP_MODEL_PACKAGE)) {
       return;
     }

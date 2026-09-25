@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.controller.receipt.impl;
 
+import it.gov.pagopa.payments.config.LogContext;
 import it.gov.pagopa.payments.config.LogDetails;
 import it.gov.pagopa.payments.config.LogEntity;
 import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
@@ -23,9 +24,10 @@ public class PaymentsController implements IPaymentsController {
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(
-      @LogEntity(name = "organizationFiscalCode") String organizationFiscalCode,
-      @LogEntity(name = "iuv") String iuv,
-      @LogDetails(name = "segregationCodes") String segregationCodes) {
+      @LogEntity(name = LogContext.CTX_ORGANIZATION_FISCAL_CODE, mask = true)
+          String organizationFiscalCode,
+      @LogEntity(name = LogContext.CTX_IUV) String iuv,
+      @LogDetails(name = "segregation_codes") String segregationCodes) {
     ArrayList<String> segCodesList =
         segregationCodes != null
             ? new ArrayList<>(Arrays.asList(segregationCodes.split(",")))
@@ -37,14 +39,15 @@ public class PaymentsController implements IPaymentsController {
 
   @Override
   public ResponseEntity<PaymentsResult<ReceiptModelResponse>> getOrganizationReceipts(
-      @LogEntity(name = "organizationFiscalCode") String organizationFiscalCode,
+      @LogEntity(name = LogContext.CTX_ORGANIZATION_FISCAL_CODE, mask = true)
+          String organizationFiscalCode,
       int pageNum,
       int pageSize,
       String debtor,
       String service,
       String from,
       String to,
-      @LogDetails(name = "segregationCodes") String segregationCodes,
+      @LogDetails(name = "segregation_codes") String segregationCodes,
       @LogDetails(name = "debtor_or_iuv", mask = true) String debtorOrIuv) {
 
     ArrayList<String> segCodesList =

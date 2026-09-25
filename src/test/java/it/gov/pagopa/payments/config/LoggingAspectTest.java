@@ -11,6 +11,8 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import it.gov.pagopa.payments.client.GpdClient;
+import it.gov.pagopa.payments.endpoints.PartnerEndpoint;
 import it.gov.pagopa.payments.mock.PaSendRTReqMock;
 import it.gov.pagopa.payments.model.partner.CtEntityUniqueIdentifier;
 import it.gov.pagopa.payments.model.partner.CtSubject;
@@ -18,6 +20,9 @@ import it.gov.pagopa.payments.model.partner.PaSendRTReq;
 import it.gov.pagopa.payments.model.partner.StEntityUniqueIdentifierType;
 import it.gov.pagopa.payments.utils.LogMasker;
 import java.util.List;
+import java.util.Map;
+import javax.xml.bind.JAXBElement;
+import javax.xml.namespace.QName;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.AfterEach;
@@ -30,6 +35,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -99,7 +106,8 @@ class LoggingAspectTest {
 
     ILoggingEvent event = appender.list.get(0);
     String loggedContent = event.getFormattedMessage() + event.getMDCPropertyMap();
-    assertFalse(loggedContent.contains(DEBTOR_FISCAL_CODE), "debtor fiscal code must not be logged");
+    assertFalse(
+        loggedContent.contains(DEBTOR_FISCAL_CODE), "debtor fiscal code must not be logged");
     assertFalse(loggedContent.contains(DEBTOR_FULL_NAME), "debtor name must not be logged");
     assertFalse(loggedContent.contains(DEBTOR_EMAIL), "debtor e-mail must not be logged");
   }
@@ -152,6 +160,71 @@ class LoggingAspectTest {
     assertEquals("Completed I/O operation", event.getFormattedMessage());
     assertEquals(
         "sendPaymentOptionReceipt", event.getMDCPropertyMap().get(LoggingAspect.CTX_DETAILS_PATH));
+    assertEquals("success", event.getMDCPropertyMap().get(LoggingAspect.EVENT_OUTCOME));
+  }
+
+  @Test
+  void soapIdentifiersAreReadFromTheRequestPayloadElement() throws Throwable {
+    JAXBElement<PaSendRTReq> payload =
+        new JAXBElement<>(new QName("paSendRTReq"), PaSendRTReq.class, requestWithDebtor());
+    givenJoinPoint(payload, "paSendRT");
+    when(signature.getDeclaringType()).thenReturn(PartnerEndpoint.class);
+    when(joinPoint.proceed()).thenReturn("response");
+
+    loggingAspect.logApiInvocation(joinPoint);
+
+    Map<String, String> mdc = appender.list.get(0).getMDCPropertyMap();
+    assertEquals("paSendRT", mdc.get(LoggingAspect.EVENT_ACTION));
+    assertEquals("377777777777", mdc.get(LogContext.CTX_NAV));
+    assertEquals("77777777777", mdc.get(LogContext.CTX_IUV));
+  }
+
+  @Test
+  void ioEventNamesTheDependencyAndItsEndpoint() throws Throwable {
+    givenJoinPoint("77777777777", "getPaymentOption");
+    when(signature.getDeclaringType()).thenReturn(GpdClient.class);
+    when(signature.getMethod())
+        .thenReturn(GpdClient.class.getMethod("getPaymentOption", String.class, String.class));
+    when(joinPoint.proceed()).thenReturn("response");
+
+    loggingAspect.logIoInvocation(joinPoint);
+
+    Map<String, String> mdc = appender.list.get(0).getMDCPropertyMap();
+    assertEquals("gpd", mdc.get(LoggingAspect.CTX_DETAILS_DEPENDENCY));
+    assertEquals(
+        "/organizations/{organizationfiscalcode}/paymentoptions/{nav}",
+        mdc.get(LoggingAspect.CTX_DETAILS_PATH));
+  }
+
+  @Test
+  void ioFailureIsASingleEventWithOutcomeAndErrorTypeButNoStackTrace() throws Throwable {
+    givenJoinPoint("77777777777", "getPaymentOption");
+    when(joinPoint.proceed()).thenThrow(new IllegalStateException("ko"));
+
+    assertThrows(IllegalStateException.class, () -> loggingAspect.logIoInvocation(joinPoint));
+
+    assertEquals(1, appender.list.size());
+    ILoggingEvent event = appender.list.get(0);
+    assertEquals(Level.INFO, event.getLevel());
+    assertNull(event.getThrowableProxy(), "the caller owns the stack trace");
+    assertEquals("failure", event.getMDCPropertyMap().get(LoggingAspect.EVENT_OUTCOME));
+    assertEquals(
+        IllegalStateException.class.getName(),
+        event.getMDCPropertyMap().get(LoggingAspect.ERROR_TYPE));
+    assertNull(MDC.get(LoggingAspect.EVENT_OUTCOME), "I/O keys must not leak into the API event");
+    assertNull(MDC.get(LoggingAspect.ERROR_TYPE));
+  }
+
+  @Test
+  void restFailureIsTheApiMilestoneWithTheAnsweredStatus() {
+    loggingAspect.logApiFailure(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+
+    ILoggingEvent event = appender.list.get(0);
+    assertEquals(Level.INFO, event.getLevel());
+    assertEquals("Completed API operation", event.getFormattedMessage());
+    assertEquals("failure", event.getMDCPropertyMap().get(LoggingAspect.EVENT_OUTCOME));
+    assertEquals("404", event.getMDCPropertyMap().get(LoggingAspect.CTX_DETAILS_HTTP_CODE));
+    assertEquals("POST /partner", event.getMDCPropertyMap().get(LoggingAspect.EVENT_ACTION));
   }
 
   @Test
