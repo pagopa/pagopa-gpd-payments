@@ -45,7 +45,8 @@ class SoapValidatingInterceptorTest {
           null,
           3,
           14),
-      new SAXParseException("Content is not allowed in prolog.", null, null, 1, 1)
+      new SAXParseException("Content is not allowed in prolog.", null, null, 1, 1),
+      new SAXParseException(null, null, null, 2, 5)
     };
 
     assertThrows(
@@ -56,7 +57,7 @@ class SoapValidatingInterceptorTest {
     assertEquals(Level.WARN, event.getLevel());
     assertEquals("Rejected SOAP request failing XSD validation", event.getFormattedMessage());
     String details = event.getMDCPropertyMap().get("ctx_details.xsd_errors");
-    assertEquals("[3,14]: cvc-pattern-valid -- [1,1]: invalid-xml", details);
+    assertEquals("[3,14]: cvc-pattern-valid -- [1,1]: invalid-xml -- [2,5]: invalid-xml", details);
     assertFalse(details.contains(DEBTOR_FISCAL_CODE));
   }
 }

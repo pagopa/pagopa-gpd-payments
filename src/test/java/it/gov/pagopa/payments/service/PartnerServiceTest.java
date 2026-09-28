@@ -1,6 +1,7 @@
 package it.gov.pagopa.payments.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -213,6 +214,25 @@ class PartnerServiceTest {
         .isEqualTo(StAmountOption.EQ); // de-scoping
     assertThat(responseBody.getFiscalCodePA()).isEqualTo("77777777777");
     assertThat(responseBody.getPaymentDescription()).isEqualTo("string");
+  }
+
+  @Test
+  void paVerifyPaymentResponseErrorDoesNotLogTheDebtor() throws IOException {
+    PaVerifyPaymentNoticeReq requestBody = PaVerifyPaymentNoticeReqMock.getMock();
+    PaymentsModelResponse paymentModel =
+        MockUtil.readModelFromFile(
+            "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
+    paymentModel.setFiscalCode("RSSMRA80A01H501U");
+    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
+    // factory not stubbed: building the response fails
+
+    assertThatThrownBy(() -> partnerService.paVerifyPaymentNotice(requestBody, "GPD"))
+        .isInstanceOf(NullPointerException.class);
+
+    assertThat(logAppender.list)
+        .anyMatch(
+            event -> Level.ERROR.equals(event.getLevel()) && event.getThrowableProxy() != null)
+        .noneMatch(event -> event.getFormattedMessage().contains("RSSMRA80A01H501U"));
   }
 
   @Test

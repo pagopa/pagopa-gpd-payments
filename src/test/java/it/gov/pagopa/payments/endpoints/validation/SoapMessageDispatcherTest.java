@@ -21,6 +21,7 @@ import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -42,9 +43,19 @@ class SoapMessageDispatcherTest {
 
   private final ObjectFactory factoryUtil = new ObjectFactory();
 
+  private final Logger logger = (Logger) LoggerFactory.getLogger(SoapMessageDispatcher.class);
+  private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+
+  @BeforeEach
+  void attachAppender() {
+    appender.start();
+    logger.addAppender(appender);
+  }
+
   // RequestFilter clears the MDC in production
   @AfterEach
-  void clearMdc() {
+  void detachAppenderAndClearMdc() {
+    logger.detachAppender(appender);
     MDC.clear();
   }
 
@@ -126,15 +137,7 @@ class SoapMessageDispatcherTest {
         .when(soapMessageDispatcher)
         .callService(any(), any());
 
-    Logger logger = (Logger) LoggerFactory.getLogger(SoapMessageDispatcher.class);
-    ListAppender<ILoggingEvent> appender = new ListAppender<>();
-    appender.start();
-    logger.addAppender(appender);
-    try {
-      soapMessageDispatcher.doService(request, response);
-    } finally {
-      logger.detachAppender(appender);
-    }
+    soapMessageDispatcher.doService(request, response);
 
     assertEquals(1, appender.list.size());
     ILoggingEvent event = appender.list.get(0);
@@ -145,6 +148,31 @@ class SoapMessageDispatcherTest {
     assertEquals("failure", event.getMDCPropertyMap().get("event_outcome"));
     assertEquals(
         "PAA_PAGAMENTO_SCONOSCIUTO", event.getMDCPropertyMap().get("ctx_details.fault_code"));
+  }
+
+  @Test
+  void handledFaultKeepsTheOperationSetByTheEndpointAspect() throws Exception {
+    MDC.put("event_action", "paGetPaymentV2");
+    doThrow(new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO))
+        .when(soapMessageDispatcher)
+        .callService(any(), any());
+
+    soapMessageDispatcher.doService(request, response);
+
+    assertEquals("paGetPaymentV2", appender.list.get(0).getMDCPropertyMap().get("event_action"));
+  }
+
+  @Test
+  void handledFaultWithoutSoapActionIsStillLogged() throws Exception {
+    doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD))
+        .when(soapMessageDispatcher)
+        .callService(any(), any());
+
+    soapMessageDispatcher.doService(request, response);
+
+    ILoggingEvent event = appender.list.get(0);
+    assertNull(event.getMDCPropertyMap().get("event_action"));
+    assertEquals("PAA_SINTASSI_XSD", event.getMDCPropertyMap().get("ctx_details.fault_code"));
   }
 
   @Test
