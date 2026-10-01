@@ -148,7 +148,7 @@ microservice-chart:
       weightPercent: 0
     image:
       repository: ghcr.io/pagopa/pagopa-gpd-payments
-      tag: "0.13.7"
+      tag: "0.13.8"
       pullPolicy: Always
     envConfig: {}
     envSecret: {}
