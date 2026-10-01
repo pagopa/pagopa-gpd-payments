@@ -110,7 +110,7 @@ microservice-chart:
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-u-connection-string'
     APICONFIG_SUBSCRIPTION_KEY: "gpd-u-apiconfig-subscription-key"
     GPD_SUBSCRIPTION_KEY: "gpd-u-gpd-subscription-key"
-    GPS_SUBSCRIPTION_KEY: "gpd-u-gps-subscription-key"
+    GPS_SUBSCRIPTION_KEY: "gpd-payments-to-vertical-services"
     CONFIG_CACHE_SUBSCRIPTION_KEY: "gpd-u-config-cache-subkey"
     AZURE_TABLES_CONNECTION_STRING: "gpd-payments-u-cosmos-connection-string"
     QUEUE_CONNECTION_STRING: "gpd-payments-u-queue-connection-string"
