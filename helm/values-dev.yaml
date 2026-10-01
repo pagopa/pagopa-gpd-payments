@@ -133,19 +133,13 @@ microservice-chart:
   canaryDelivery:
     create: false
     ingress:
-      create: true
-      canary:
-        type: header
-        headerName: X-Canary
-        headerValue: canary
-        weightPercent: 0
-    service:
-      create: true
-    deployment:
-      create: true
-      image:
-        repository: ghcr.io/pagopa/pagopa-gpd-payments
-        tag: "0.8.0-1-PAGOPA-1140-sviluppo-gpd-payments-gestione-enti-pluri-intermediati"
-        pullPolicy: Always
-      envConfig: {}
-      envSecret: {}
+      type: header
+      headerName: X-Canary
+      headerValue: canary
+      weightPercent: 0
+    image:
+      repository: ghcr.io/pagopa/pagopa-pagopa-gpd-payments
+      tag: "0.13.7"
+      pullPolicy: Always
+    envConfig: {}
+    envSecret: {}
