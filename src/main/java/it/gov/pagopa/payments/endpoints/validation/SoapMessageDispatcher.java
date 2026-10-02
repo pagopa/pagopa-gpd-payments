@@ -44,10 +44,10 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
     private static final String SOAP_PREFIX = "soapenv";
 
-    // OER keys, same names LoggingAspect uses for the API milestone
+    // OER keys: event_* match LoggingAspect, error.code is the ECS field for the fault code
     private static final String EVENT_ACTION = "event_action";
     private static final String EVENT_OUTCOME = "event_outcome";
-    private static final String CTX_DETAILS_FAULT_CODE = "ctx_details.fault_code";
+    private static final String ERROR_CODE = "error.code";
 
     @Value("${pt.id_intermediario}")
     private String intermediario;
@@ -216,7 +216,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
             MDC.put(EVENT_ACTION, soapAction);
         }
         MDC.put(EVENT_OUTCOME, "failure");
-        MDC.put(CTX_DETAILS_FAULT_CODE, faultCode);
+        MDC.put(ERROR_CODE, faultCode);
         log.info("Completed API operation");
     }
 }

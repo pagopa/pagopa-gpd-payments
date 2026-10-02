@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
@@ -25,7 +26,9 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
 
   private static final String SOAP_PREFIX = "soapenv";
   private static final String EXCLUDED_PRIMITIVES = "paDemandPaymentNoticeResponse";
-  private static final String CTX_DETAILS_XSD_ERRORS = "ctx_details.xsd_errors";
+  // OER: volatile details go in one JSON string under ctx_details
+  private static final String CTX_DETAILS = "ctx_details";
+  private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final Pattern XSD_ERROR_KEY = Pattern.compile("[\\w.-]+");
   private final List<String> amountNodeElements =
       List.of("paymentAmount", "amount", "transferAmount");
@@ -47,7 +50,9 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
                           + errorKey(error.getMessage()))
               .collect(Collectors.joining(" -- "));
       // caller's malformed input, answered with a fault
-      MDC.put(CTX_DETAILS_XSD_ERRORS, validationErrorsString);
+      MDC.put(
+          CTX_DETAILS,
+          MAPPER.createObjectNode().put("xsd_errors", validationErrorsString).toString());
       log.warn("Rejected SOAP request failing XSD validation");
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }

@@ -147,7 +147,7 @@ class SoapMessageDispatcherTest {
     assertEquals("paSendRT", event.getMDCPropertyMap().get("event_action"));
     assertEquals("failure", event.getMDCPropertyMap().get("event_outcome"));
     assertEquals(
-        "PAA_PAGAMENTO_SCONOSCIUTO", event.getMDCPropertyMap().get("ctx_details.fault_code"));
+        "PAA_PAGAMENTO_SCONOSCIUTO", event.getMDCPropertyMap().get("error.code"));
   }
 
   @Test
@@ -172,7 +172,7 @@ class SoapMessageDispatcherTest {
 
     ILoggingEvent event = appender.list.get(0);
     assertNull(event.getMDCPropertyMap().get("event_action"));
-    assertEquals("PAA_SINTASSI_XSD", event.getMDCPropertyMap().get("ctx_details.fault_code"));
+    assertEquals("PAA_SINTASSI_XSD", event.getMDCPropertyMap().get("error.code"));
   }
 
   @Test

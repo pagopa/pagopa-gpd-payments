@@ -56,8 +56,10 @@ class SoapValidatingInterceptorTest {
     ILoggingEvent event = appender.list.get(0);
     assertEquals(Level.WARN, event.getLevel());
     assertEquals("Rejected SOAP request failing XSD validation", event.getFormattedMessage());
-    String details = event.getMDCPropertyMap().get("ctx_details.xsd_errors");
-    assertEquals("[3,14]: cvc-pattern-valid -- [1,1]: invalid-xml -- [2,5]: invalid-xml", details);
+    String details = event.getMDCPropertyMap().get("ctx_details");
+    assertEquals(
+        "{\"xsd_errors\":\"[3,14]: cvc-pattern-valid -- [1,1]: invalid-xml -- [2,5]: invalid-xml\"}",
+        details);
     assertFalse(details.contains(DEBTOR_FISCAL_CODE));
   }
 }
