@@ -11,6 +11,8 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.client.GpdClient;
 import it.gov.pagopa.payments.endpoints.PartnerEndpoint;
 import it.gov.pagopa.payments.mock.PaSendRTReqMock;
@@ -93,7 +95,11 @@ class LoggingAspectTest {
         "c110729d258c4ab1b765fe902aae41d6",
         event.getMDCPropertyMap().get(LogContext.CTX_TRANSACTION_ID));
     assertEquals("success", event.getMDCPropertyMap().get(LoggingAspect.EVENT_OUTCOME));
-    assertEquals("77777777777_01", event.getMDCPropertyMap().get(LogContext.CTX_DETAILS_STATION));
+    assertEquals("77777777777_01", event.getMDCPropertyMap().get(LogContext.CTX_STATION));
+    JsonNode details = details(event.getMDCPropertyMap());
+    assertEquals("paSendRT", details.get(LoggingAspect.DETAILS_METHOD).asText());
+    assertEquals(200, details.get(LoggingAspect.DETAILS_HTTP_CODE).asInt());
+    assertTrue(details.get(LoggingAspect.DETAILS_RESPONSE_TIME).isNumber());
   }
 
   @Test
@@ -159,7 +165,8 @@ class LoggingAspectTest {
     assertEquals(Level.INFO, event.getLevel());
     assertEquals("Completed I/O operation", event.getFormattedMessage());
     assertEquals(
-        "sendPaymentOptionReceipt", event.getMDCPropertyMap().get(LoggingAspect.CTX_DETAILS_PATH));
+        "sendPaymentOptionReceipt",
+        details(event.getMDCPropertyMap()).get(LoggingAspect.DETAILS_PATH).asText());
     assertEquals("success", event.getMDCPropertyMap().get(LoggingAspect.EVENT_OUTCOME));
   }
 
@@ -189,11 +196,36 @@ class LoggingAspectTest {
 
     loggingAspect.logIoInvocation(joinPoint);
 
-    Map<String, String> mdc = appender.list.get(0).getMDCPropertyMap();
-    assertEquals("gpd", mdc.get(LoggingAspect.CTX_DETAILS_DEPENDENCY));
+    JsonNode details = details(appender.list.get(0).getMDCPropertyMap());
+    assertEquals("gpd", details.get(LoggingAspect.DETAILS_DEPENDENCY).asText());
     assertEquals(
         "/organizations/{organizationfiscalcode}/paymentoptions/{nav}",
-        mdc.get(LoggingAspect.CTX_DETAILS_PATH));
+        details.get(LoggingAspect.DETAILS_PATH).asText());
+  }
+
+  @Test
+  void ioDetailsExtendTheApiDetailsOnlyForTheIoEvent() throws Throwable {
+    LogContext.putDetail(LoggingAspect.DETAILS_METHOD, "paVerifyPaymentNotice");
+    String apiDetails = MDC.get(LogContext.CTX_DETAILS);
+    givenJoinPoint("77777777777", "getPaymentOption");
+    when(signature.getDeclaringType()).thenReturn(GpdClient.class);
+    when(joinPoint.proceed()).thenReturn("response");
+
+    loggingAspect.logIoInvocation(joinPoint);
+
+    JsonNode details = details(appender.list.get(0).getMDCPropertyMap());
+    assertEquals("paVerifyPaymentNotice", details.get(LoggingAspect.DETAILS_METHOD).asText());
+    assertEquals("gpd", details.get(LoggingAspect.DETAILS_DEPENDENCY).asText());
+    assertEquals(apiDetails, MDC.get(LogContext.CTX_DETAILS));
+  }
+
+  @Test
+  void detailsStartOverWhenTheMdcValueIsNotAJsonObject() throws Exception {
+    MDC.put(LogContext.CTX_DETAILS, "not json");
+
+    LogContext.putDetail("key", "value");
+
+    assertEquals("{\"key\":\"value\"}", MDC.get(LogContext.CTX_DETAILS));
   }
 
   @Test
@@ -216,14 +248,15 @@ class LoggingAspectTest {
   }
 
   @Test
-  void restFailureIsTheApiMilestoneWithTheAnsweredStatus() {
+  void restFailureIsTheApiMilestoneWithTheAnsweredStatus() throws Exception {
     loggingAspect.logApiFailure(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
 
     ILoggingEvent event = appender.list.get(0);
     assertEquals(Level.INFO, event.getLevel());
     assertEquals("Completed API operation", event.getFormattedMessage());
     assertEquals("failure", event.getMDCPropertyMap().get(LoggingAspect.EVENT_OUTCOME));
-    assertEquals("404", event.getMDCPropertyMap().get(LoggingAspect.CTX_DETAILS_HTTP_CODE));
+    assertEquals(
+        404, details(event.getMDCPropertyMap()).get(LoggingAspect.DETAILS_HTTP_CODE).asInt());
     assertEquals("POST /partner", event.getMDCPropertyMap().get(LoggingAspect.EVENT_ACTION));
   }
 
@@ -231,6 +264,10 @@ class LoggingAspectTest {
   void personalFiscalCodesAreMaskedWhileOrganizationOnesAreKept() {
     assertEquals("77777777777", LogMasker.maskIfPersonal("77777777777"));
     assertEquals("RS****1U", LogMasker.maskIfPersonal(DEBTOR_FISCAL_CODE));
+  }
+
+  private static JsonNode details(Map<String, String> mdc) throws Exception {
+    return new ObjectMapper().readTree(mdc.get(LogContext.CTX_DETAILS));
   }
 
   private void givenJoinPoint(Object argument, String methodName) {

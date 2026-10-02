@@ -40,12 +40,12 @@ public class LoggingAspect {
   public static final String EVENT_OUTCOME = "event_outcome";
   public static final String CORRELATION_ID = "correlation_id";
 
-  public static final String CTX_DETAILS_PATH = LogContext.CTX_DETAILS_PREFIX + "path";
-  public static final String CTX_DETAILS_HTTP_CODE = LogContext.CTX_DETAILS_PREFIX + "http_code";
-  public static final String CTX_DETAILS_RESPONSE_TIME =
-      LogContext.CTX_DETAILS_PREFIX + "response_time_ms";
-  public static final String CTX_DETAILS_METHOD = LogContext.CTX_DETAILS_PREFIX + "method";
-  public static final String CTX_DETAILS_DEPENDENCY = LogContext.CTX_DETAILS_PREFIX + "dependency";
+  // keys inside the ctx_details JSON
+  public static final String DETAILS_PATH = "path";
+  public static final String DETAILS_HTTP_CODE = "http_code";
+  public static final String DETAILS_RESPONSE_TIME = "response_time_ms";
+  public static final String DETAILS_METHOD = "method";
+  public static final String DETAILS_DEPENDENCY = "dependency";
   public static final String ERROR_TYPE = "error.type";
 
   public static final String OUTCOME_SUCCESS = "success";
@@ -59,7 +59,7 @@ public class LoggingAspect {
   private static final String SOAP_MODEL_PACKAGE = "it.gov.pagopa.payments.model.partner";
 
   private static final List<String> IO_KEYS =
-      List.of(CTX_DETAILS_DEPENDENCY, CTX_DETAILS_PATH, EVENT_OUTCOME, ERROR_TYPE);
+      List.of(LogContext.CTX_DETAILS, EVENT_OUTCOME, ERROR_TYPE);
 
   final HttpServletRequest httRequest;
   final HttpServletResponse httpResponse;
@@ -120,7 +120,7 @@ public class LoggingAspect {
     Set<String> managedKeys = new LinkedHashSet<>();
 
     put(managedKeys, EVENT_ACTION, action(joinPoint));
-    put(managedKeys, CTX_DETAILS_METHOD, joinPoint.getSignature().getName());
+    putDetail(managedKeys, DETAILS_METHOD, joinPoint.getSignature().getName());
     addIdentifiersToContext(joinPoint, managedKeys);
 
     Object result;
@@ -132,8 +132,8 @@ public class LoggingAspect {
     }
 
     put(managedKeys, EVENT_OUTCOME, OUTCOME_SUCCESS);
-    put(managedKeys, CTX_DETAILS_HTTP_CODE, String.valueOf(httpResponse.getStatus()));
-    put(managedKeys, CTX_DETAILS_RESPONSE_TIME, String.valueOf(System.currentTimeMillis() - start));
+    putDetail(managedKeys, DETAILS_HTTP_CODE, httpResponse.getStatus());
+    putDetail(managedKeys, DETAILS_RESPONSE_TIME, System.currentTimeMillis() - start);
     log.info(API_OPERATION_COMPLETED);
     managedKeys.forEach(MDC::remove);
     return result;
@@ -149,7 +149,7 @@ public class LoggingAspect {
       MDC.put(EVENT_ACTION, httRequest.getMethod() + " " + httRequest.getRequestURI());
     }
     MDC.put(EVENT_OUTCOME, OUTCOME_FAILURE);
-    MDC.put(CTX_DETAILS_HTTP_CODE, String.valueOf(response.getStatusCodeValue()));
+    LogContext.putDetail(DETAILS_HTTP_CODE, response.getStatusCodeValue());
     log.info(API_OPERATION_COMPLETED);
   }
 
@@ -158,8 +158,8 @@ public class LoggingAspect {
   public Object logIoInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
     Map<String, String> previous = new HashMap<>();
     IO_KEYS.forEach(key -> previous.put(key, MDC.get(key)));
-    MDC.put(CTX_DETAILS_DEPENDENCY, dependency(joinPoint));
-    MDC.put(CTX_DETAILS_PATH, path(joinPoint));
+    LogContext.putDetail(DETAILS_DEPENDENCY, dependency(joinPoint));
+    LogContext.putDetail(DETAILS_PATH, path(joinPoint));
     try {
       Object result = joinPoint.proceed();
       MDC.put(EVENT_OUTCOME, OUTCOME_SUCCESS);
@@ -247,10 +247,7 @@ public class LoggingAspect {
       if (annotation instanceof LogEntity logEntity) {
         put(managedKeys, logEntity.name(), resolve(value, logEntity.mask()));
       } else if (annotation instanceof LogDetails logDetails) {
-        put(
-            managedKeys,
-            LogContext.CTX_DETAILS_PREFIX + logDetails.name(),
-            resolve(value, logDetails.mask()));
+        putDetail(managedKeys, logDetails.name(), resolve(value, logDetails.mask()));
       }
     }
   }
@@ -265,7 +262,7 @@ public class LoggingAspect {
       return;
     }
 
-    put(managedKeys, LogContext.CTX_DETAILS_STATION, readString(argument, "getIdStation"));
+    put(managedKeys, LogContext.CTX_STATION, readString(argument, "getIdStation"));
     String organizationFiscalCode = readString(argument, "getIdPA");
 
     Object payment = read(argument, "getReceipt");
@@ -312,6 +309,11 @@ public class LoggingAspect {
     }
     MDC.put(key, value);
     managedKeys.add(key);
+  }
+
+  private void putDetail(Set<String> managedKeys, String key, Object value) {
+    LogContext.putDetail(key, value);
+    managedKeys.add(LogContext.CTX_DETAILS);
   }
 
   private void restore(String key, String previousValue) {

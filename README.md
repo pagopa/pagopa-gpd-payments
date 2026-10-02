@@ -127,14 +127,16 @@ Logs follow the pagoPA OER logging guidelines and are emitted as single line ECS
   SOAP). Scheduled jobs log `Completed scheduled job` with the job name as `event_action`. Do not add
   start/end logs; intermediate steps and validation checks are DEBUG.
 - **I/O boundaries.** Feign clients and repositories log one INFO `Completed I/O operation` per call,
-  success or failure, with `ctx_details.dependency` and `ctx_details.path`. Table, Queue, Blob and
+  success or failure, with `dependency` and `path` in `ctx_details`. Table, Queue, Blob and
   `RestTemplate` calls are not covered yet.
 - **Handled faults are not errors.** An expected negative outcome (debt position not found, expired,
-  already paid) is the INFO API milestone with `event_outcome=failure` and `ctx_details.fault_code`,
+  already paid) is the INFO API milestone with `event_outcome=failure` and the fault in `error.code`,
   without the throwable. ERROR with the throwable is only for blocking failures (`PAA_SYSTEM_ERROR`,
   storage unreachable, unexpected exceptions).
-- **Fields.** Searchable identifiers are first level `ctx_*` fields (constants in `LogContext`);
-  the rest goes under `ctx_details.*`. REST parameters opt in with `@LogEntity` / `@LogDetails`.
+- **Fields.** Searchable identifiers are first level `ctx_*` fields (constants in `LogContext`).
+  Context only data goes in `ctx_details`, a single JSON string that ELK does not index (same format
+  as the other pagoPA domains): never filter dashboards on it. REST parameters opt in with
+  `@LogEntity` / `@LogDetails`.
   SOAP identifiers are read through the getter whitelist in `LoggingAspect.addSoapIdentifiers`, so a
   new identifier in `paForNode.xsd` is not logged until it is added there.
 - **Personal data.** Never log payloads, tokens, citizen fiscal codes, e-mails or IBANs. Use
