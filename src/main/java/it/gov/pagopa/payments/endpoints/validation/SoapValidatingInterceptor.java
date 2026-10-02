@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
@@ -8,10 +9,12 @@ import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
 import org.springframework.ws.soap.server.endpoint.interceptor.PayloadValidatingInterceptor;
@@ -23,6 +26,10 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
 
   private static final String SOAP_PREFIX = "soapenv";
   private static final String EXCLUDED_PRIMITIVES = "paDemandPaymentNoticeResponse";
+  // OER: volatile details go in one JSON string under ctx_details
+  private static final String CTX_DETAILS = "ctx_details";
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Pattern XSD_ERROR_KEY = Pattern.compile("[\\w.-]+");
   private final List<String> amountNodeElements =
       List.of("paymentAmount", "amount", "transferAmount");
 
@@ -40,12 +47,22 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
                           + ","
                           + error.getColumnNumber()
                           + "]: "
-                          + error.getMessage())
+                          + errorKey(error.getMessage()))
               .collect(Collectors.joining(" -- "));
-      log.error(validationErrorsString);
+      // caller's malformed input, answered with a fault
+      MDC.put(
+          CTX_DETAILS,
+          MAPPER.createObjectNode().put("xsd_errors", validationErrorsString).toString());
+      log.warn("Rejected SOAP request failing XSD validation");
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }
     return true;
+  }
+
+  /** SAX messages echo the rejected value, which may be personal data: keep only the error key. */
+  private static String errorKey(String message) {
+    String key = message != null ? message.split(":", 2)[0] : "";
+    return XSD_ERROR_KEY.matcher(key).matches() ? key : "invalid-xml";
   }
 
   @Override
@@ -71,7 +88,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       soapMessage.saveChanges();
     } catch (SOAPException e) {
 
-      log.error("Processing resulted in exception: " + e.getMessage());
+      log.error("Failed to alter the SOAP envelope", e);
     }
   }
 
