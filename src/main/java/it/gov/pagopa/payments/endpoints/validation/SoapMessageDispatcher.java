@@ -111,7 +111,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
   /** Selects the response type matching the SOAP action and wraps it as a JAXB root element. */
   private JAXBElement<? extends CtResponse> buildFaultElement(
-      String soapAction, CtFaultBean faultBean) {
+      String soapAction, CtFaultBean faultBean) throws SOAPException {
     return switch (soapAction) {
       case "paVerifyPaymentNotice" ->
           factory.createPaVerifyPaymentNoticeRes(
@@ -127,8 +127,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
       case "paSendRTV2" ->
           factory.createPaSendRTV2Response(
               withFault(factory.createPaSendRTV2Response(), faultBean));
-      // paSendRT and any unmapped action fall back to PaSendRTRes
-      default -> factory.createPaSendRTRes(withFault(factory.createPaSendRTRes(), faultBean));
+      default -> throw new SOAPException("Unsupported SOAP action for fault response: " + soapAction);
     };
   }
 
