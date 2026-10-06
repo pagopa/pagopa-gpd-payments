@@ -44,6 +44,8 @@ public class LoggingAspect {
   public static final String REQUEST_ID = "requestId";
   public static final String OPERATION_ID = "operationId";
   public static final String ARGS = "args";
+  public static final String STATUS_OK = "OK";
+  public static final String STATUS_KO = "KO";
 
   final HttpServletRequest httRequest;
 
@@ -105,7 +107,7 @@ public class LoggingAspect {
 
     Object result = joinPoint.proceed();
 
-    MDC.put(STATUS, "OK");
+    MDC.put(STATUS, STATUS_OK);
     MDC.put(CODE, String.valueOf(httpResponse.getStatus()));
     MDC.put(RESPONSE_TIME, getExecutionTime());
     log.info(
@@ -129,7 +131,7 @@ public class LoggingAspect {
 
   @AfterReturning(value = "execution(* *..exception.ErrorHandler.*(..))", returning = "result")
   public void trowingApiInvocation(JoinPoint joinPoint, ResponseEntity<ProblemJson> result) {
-    MDC.put(STATUS, "KO");
+    MDC.put(STATUS, STATUS_KO);
     MDC.put(CODE, String.valueOf(result.getStatusCode().value()));
     MDC.put(RESPONSE_TIME, getExecutionTime());
     MDC.put(FAULT_CODE, getTitle(result));
