@@ -9,6 +9,7 @@ import it.gov.pagopa.payments.model.ProblemJson;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
@@ -60,42 +61,6 @@ public class LoggingAspect {
   public LoggingAspect(HttpServletRequest httRequest, HttpServletResponse httpResponse) {
     this.httRequest = httRequest;
     this.httpResponse = httpResponse;
-  }
-
-  private static String getDetail(ResponseEntity<ProblemJson> result) {
-    if (result != null && result.getBody() != null && result.getBody().getDetail() != null) {
-      return result.getBody().getDetail();
-    } else return AppError.UNKNOWN.getDetails();
-  }
-
-  private static String getTitle(ResponseEntity<ProblemJson> result) {
-    if (result != null && result.getBody() != null && result.getBody().getTitle() != null) {
-      return result.getBody().getTitle();
-    } else return AppError.UNKNOWN.getTitle();
-  }
-
-  public static String getExecutionTime() {
-    String startTime = MDC.get(START_TIME);
-    if (startTime != null) {
-      long endTime = System.currentTimeMillis();
-      long executionTime = endTime - Long.parseLong(startTime);
-      return String.valueOf(executionTime);
-    }
-    return "-";
-  }
-
-  private static Map<String, String> getParams(JoinPoint joinPoint) {
-    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    Method method = signature.getMethod();
-    Map<String, String> params = new HashMap<>();
-    int i = 0;
-    for (var parameter : method.getParameters()) {
-      var paramName = parameter.getName();
-      var arg = joinPoint.getArgs()[i++];
-      arg = jaxToString(arg);
-      params.put(paramName, deNull(arg));
-    }
-    return params;
   }
 
   @Pointcut("@within(org.springframework.web.bind.annotation.RestController)")
@@ -191,5 +156,43 @@ public class LoggingAspect {
       }
     }
     return arg;
+  }
+
+  private static String getDetail(ResponseEntity<ProblemJson> result) {
+    return Optional.ofNullable(result)
+        .map(ResponseEntity::getBody)
+        .map(ProblemJson::getDetail)
+        .orElseGet(AppError.UNKNOWN::getDetails);
+  }
+
+  private static String getTitle(ResponseEntity<ProblemJson> result) {
+    return Optional.ofNullable(result)
+        .map(ResponseEntity::getBody)
+        .map(ProblemJson::getTitle)
+        .orElseGet(AppError.UNKNOWN::getTitle);
+  }
+
+  public static String getExecutionTime() {
+    String startTime = MDC.get(START_TIME);
+    if (startTime != null) {
+      long endTime = System.currentTimeMillis();
+      long executionTime = endTime - Long.parseLong(startTime);
+      return String.valueOf(executionTime);
+    }
+    return "-";
+  }
+
+  private static Map<String, String> getParams(JoinPoint joinPoint) {
+    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    Method method = signature.getMethod();
+    Map<String, String> params = new HashMap<>();
+    int i = 0;
+    for (var parameter : method.getParameters()) {
+      var paramName = parameter.getName();
+      var arg = joinPoint.getArgs()[i++];
+      arg = jaxToString(arg);
+      params.put(paramName, deNull(arg));
+    }
+    return params;
   }
 }
