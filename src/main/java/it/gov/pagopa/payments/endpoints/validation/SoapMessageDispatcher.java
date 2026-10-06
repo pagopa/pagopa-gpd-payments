@@ -74,7 +74,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
    */
   private FaultInfo dispatch(HttpServletRequest request, HttpServletResponse response) {
     try {
-      super.doService(request, response);
+      callService(request, response);
       return null;
     } catch (PartnerValidationException e) {
       log.error("Processing resulted in exception: {}", e.getMessage());
@@ -85,6 +85,15 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
       return null;
     }
+  }
+
+  /**
+   * Seam that delegates to the standard Spring-WS dispatch. Extracted to allow the request
+   * processing to be stubbed in unit tests.
+   */
+  protected void callService(HttpServletRequest request, HttpServletResponse response)
+      throws Exception {
+    super.doService(request, response);
   }
 
   /** Builds the fault SOAP envelope for the given action and writes it to the response. */
@@ -124,10 +133,13 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
       case "paDemandPaymentNotice" ->
           factory.createPaDemandPaymentNoticeResponse(
               withFault(factory.createPaDemandPaymentNoticeResponse(), faultBean));
+      case "paSendRT" ->
+          factory.createPaSendRTRes(withFault(factory.createPaSendRTRes(), faultBean));
       case "paSendRTV2" ->
           factory.createPaSendRTV2Response(
               withFault(factory.createPaSendRTV2Response(), faultBean));
-      default -> throw new SOAPException("Unsupported SOAP action for fault response: " + soapAction);
+      default ->
+          throw new SOAPException("Unsupported SOAP action for fault response: " + soapAction);
     };
   }
 
