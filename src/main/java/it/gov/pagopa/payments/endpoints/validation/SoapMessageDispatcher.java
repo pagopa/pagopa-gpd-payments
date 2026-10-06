@@ -2,6 +2,12 @@ package it.gov.pagopa.payments.endpoints.validation;
 
 import static it.gov.pagopa.payments.config.LoggingAspect.STATUS_KO;
 import static it.gov.pagopa.payments.config.LoggingAspect.STATUS_OK;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_DEMAND_PAYMENT_NOTICE;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_GET_PAYMENT;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_GET_PAYMENT_V2;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT_V2;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_VERIFY_PAYMENT_NOTICE;
 
 import it.gov.pagopa.payments.config.LoggingAspect;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
@@ -29,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.ws.transport.TransportConstants;
 import org.springframework.ws.transport.http.MessageDispatcherServlet;
 import org.w3c.dom.Document;
 
@@ -122,20 +129,20 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
   private JAXBElement<? extends CtResponse> buildFaultElement(
       String soapAction, CtFaultBean faultBean) throws SOAPException {
     return switch (soapAction) {
-      case "paVerifyPaymentNotice" ->
+      case PA_VERIFY_PAYMENT_NOTICE ->
           factory.createPaVerifyPaymentNoticeRes(
               withFault(factory.createPaVerifyPaymentNoticeRes(), faultBean));
-      case "paGetPayment" ->
+      case PA_GET_PAYMENT ->
           factory.createPaGetPaymentRes(withFault(factory.createPaGetPaymentRes(), faultBean));
-      case "paGetPaymentV2" ->
+      case PA_GET_PAYMENT_V2 ->
           factory.createPaGetPaymentV2Response(
               withFault(factory.createPaGetPaymentV2Response(), faultBean));
-      case "paDemandPaymentNotice" ->
+      case PA_DEMAND_PAYMENT_NOTICE ->
           factory.createPaDemandPaymentNoticeResponse(
               withFault(factory.createPaDemandPaymentNoticeResponse(), faultBean));
-      case "paSendRT" ->
+      case PA_SEND_RT ->
           factory.createPaSendRTRes(withFault(factory.createPaSendRTRes(), faultBean));
-      case "paSendRTV2" ->
+      case PA_SEND_RT_V2 ->
           factory.createPaSendRTV2Response(
               withFault(factory.createPaSendRTV2Response(), faultBean));
       default ->
@@ -216,8 +223,7 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
   }
 
   private String getSOAPActionFromHeaders(HttpServletRequest request) {
-    return request.getHeader("SOAPAction") != null
-        ? request.getHeader("SOAPAction").replace("\"", "")
-        : null;
+    String soapAction = request.getHeader(TransportConstants.HEADER_SOAP_ACTION);
+    return soapAction != null ? soapAction.replace("\"", "") : null;
   }
 }

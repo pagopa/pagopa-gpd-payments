@@ -7,6 +7,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static it.gov.pagopa.payments.utils.SoapActions.PA_DEMAND_PAYMENT_NOTICE;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_GET_PAYMENT;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_GET_PAYMENT_V2;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT_V2;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_VERIFY_PAYMENT_NOTICE;
+
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
@@ -18,6 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.ws.transport.TransportConstants;
 
 @SpringBootTest
 class SoapMessageDispatcherTest {
@@ -44,7 +52,8 @@ class SoapMessageDispatcherTest {
             factoryUtil.createPaVerifyPaymentNoticeRes(
                 factoryUtil.createPaVerifyPaymentNoticeRes()));
 
-    when(request.getHeader("SOAPAction")).thenReturn("paVerifyPaymentNotice");
+    when(request.getHeader(TransportConstants.HEADER_SOAP_ACTION))
+        .thenReturn(PA_VERIFY_PAYMENT_NOTICE);
     when(response.getOutputStream()).thenReturn(outputStreamMock);
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA))
@@ -66,7 +75,8 @@ class SoapMessageDispatcherTest {
             factoryUtil.createPaDemandPaymentNoticeResponse(
                 factoryUtil.createPaDemandPaymentNoticeResponse()));
 
-    when(request.getHeader("SOAPAction")).thenReturn("paDemandPaymentNotice");
+    when(request.getHeader(TransportConstants.HEADER_SOAP_ACTION))
+        .thenReturn(PA_DEMAND_PAYMENT_NOTICE);
     when(response.getOutputStream()).thenReturn(outputStreamMock);
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA))
@@ -85,7 +95,7 @@ class SoapMessageDispatcherTest {
     when(factory.createPaGetPaymentRes(any()))
         .thenReturn(factoryUtil.createPaGetPaymentRes(factoryUtil.createPaGetPaymentRes()));
 
-    when(request.getHeader("SOAPAction")).thenReturn("paGetPayment");
+    when(request.getHeader(TransportConstants.HEADER_SOAP_ACTION)).thenReturn(PA_GET_PAYMENT);
     when(response.getOutputStream()).thenReturn(outputStreamMock);
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA))
@@ -106,7 +116,7 @@ class SoapMessageDispatcherTest {
         .thenReturn(
             factoryUtil.createPaGetPaymentV2Response(factoryUtil.createPaGetPaymentV2Response()));
 
-    when(request.getHeader("SOAPAction")).thenReturn("paGetPaymentV2");
+    when(request.getHeader(TransportConstants.HEADER_SOAP_ACTION)).thenReturn(PA_GET_PAYMENT_V2);
     when(response.getOutputStream()).thenReturn(outputStreamMock);
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA))
@@ -125,7 +135,7 @@ class SoapMessageDispatcherTest {
     when(factory.createPaSendRTRes(any()))
         .thenReturn(factoryUtil.createPaSendRTRes(factoryUtil.createPaSendRTRes()));
 
-    when(request.getHeader("SOAPAction")).thenReturn("paSendRT");
+    when(request.getHeader(TransportConstants.HEADER_SOAP_ACTION)).thenReturn(PA_SEND_RT);
     when(response.getOutputStream()).thenReturn(outputStreamMock);
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA))
@@ -144,7 +154,7 @@ class SoapMessageDispatcherTest {
     when(factory.createPaSendRTV2Response(any()))
         .thenReturn(factoryUtil.createPaSendRTV2Response(factoryUtil.createPaSendRTV2Response()));
 
-    when(request.getHeader("SOAPAction")).thenReturn("paSendRTV2");
+    when(request.getHeader(TransportConstants.HEADER_SOAP_ACTION)).thenReturn(PA_SEND_RT_V2);
     when(response.getOutputStream()).thenReturn(outputStreamMock);
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA))
@@ -160,7 +170,7 @@ class SoapMessageDispatcherTest {
   void doServiceDefault() throws Exception {
     when(factory.createCtFaultBean()).thenReturn(factoryUtil.createCtFaultBean());
 
-    when(request.getHeader("SOAPAction")).thenReturn("unknown");
+    when(request.getHeader(TransportConstants.HEADER_SOAP_ACTION)).thenReturn("unknown");
 
     doThrow(new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA))
         .when(soapMessageDispatcher)
