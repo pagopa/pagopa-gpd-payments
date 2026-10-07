@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.8</version>
+    <version>0.13.8-1-PAGOPA-3770-fix-dashboard-for-soap-endpioint</version>
     <name>Payments</name>
     <description>Payments</description>
 
