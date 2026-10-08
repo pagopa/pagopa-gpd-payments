@@ -69,7 +69,7 @@ jobs:
       - name: Terraform Apply
         shell: bash
         env:
-          ARM_CLIENT_ID: ${{ secrets.CD_CLIENT_ID }}
+          ARM_CLIENT_ID: ${{ secrets.CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
           ARM_USE_OIDC: true
