@@ -9,17 +9,17 @@
   "servers" : [ {
     "url" : "http://localhost:8080"
   }, {
-    "url" : "https://{host}/{basePath}/{version}",
+    "url" : "{host}{basePath}{version}",
     "variables" : {
       "host" : {
-        "default" : "api.dev.platform.pagopa.it",
-        "enum" : [ "api.dev.platform.pagopa.it", "api.uat.platform.pagopa.it", "api.platform.pagopa.it" ]
+        "default" : "https://api.platform.pagopa.it",
+        "enum" : [ "https://api.dev.platform.pagopa.it", "https://api.uat.platform.pagopa.it", "https://api.platform.pagopa.it" ]
       },
       "basePath" : {
-        "default" : "gpd/payments-receipts-service"
+        "default" : "/gpd/payments-receipts-service"
       },
       "version" : {
-        "default" : "v1"
+        "default" : "/v1"
       }
     }
   } ],

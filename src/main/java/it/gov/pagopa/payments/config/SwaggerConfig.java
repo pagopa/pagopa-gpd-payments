@@ -120,7 +120,7 @@ public class SwaggerConfig {
     return GroupedOpenApi.builder()
         .group("external")
         .pathsToMatch("/info", "/payments/**")
-        .addOpenApiCustomiser(customizeServer(createServers("gpd/payments-receipts-service")))
+        .addOpenApiCustomiser(customizeServer(createServers("/gpd/payments-receipts-service")))
         .addOpenApiCustomiser(addCommonHeaders())
         .addOpenApiCustomiser(sortOperationsAlphabetically())
         .build();
@@ -131,7 +131,7 @@ public class SwaggerConfig {
     return GroupedOpenApi.builder()
         .group("helpdesk")
         .pathsToMatch("/error-messages", "/error-messages/**")
-        .addOpenApiCustomiser(customizeServer(createServers("gpd-payments-helpdesk")))
+        .addOpenApiCustomiser(customizeServer(createServers("/gpd-payments-helpdesk")))
         .addOpenApiCustomiser(addCommonHeaders())
         .addOpenApiCustomiser(sortOperationsAlphabetically())
         .build();
@@ -151,7 +151,7 @@ public class SwaggerConfig {
     return List.of(
         new Server().url(localPath),
         new Server()
-            .url("https://{host}/{basePath}/{version}")
+            .url("{host}{basePath}{version}")
             .variables(
                 new ServerVariables()
                     .addServerVariable(
@@ -159,11 +159,11 @@ public class SwaggerConfig {
                         new ServerVariable()
                             ._enum(
                                 List.of(
-                                    "api.dev.platform.pagopa.it",
-                                    "api.uat.platform.pagopa.it",
-                                    "api.platform.pagopa.it"))
-                            ._default("api.dev.platform.pagopa.it"))
+                                    "https://api.dev.platform.pagopa.it",
+                                    "https://api.uat.platform.pagopa.it",
+                                    "https://api.platform.pagopa.it"))
+                            ._default("https://api.platform.pagopa.it"))
                     .addServerVariable("basePath", new ServerVariable()._default(service))
-                    .addServerVariable("version", new ServerVariable()._default("v1"))));
+                    .addServerVariable("version", new ServerVariable()._default("/v1"))));
   }
 }

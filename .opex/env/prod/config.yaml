@@ -10,4 +10,4 @@ action_groups:
 overrides:
   hosts: # Use these hosts instead of those inside the OpenApi spec
     - api.platform.pagopa.it
-  base_path: "/gpd/payments-receipts-service"
+  base_path: "/gpd/payments-receipts-service/v1"
