@@ -9,13 +9,17 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import io.swagger.v3.oas.models.servers.ServerVariable;
+import io.swagger.v3.oas.models.servers.ServerVariables;
+import java.util.List;
 import java.util.Map;
-
 import org.springdoc.core.GroupedOpenApi;
 import org.springdoc.core.customizers.OpenApiCustomiser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 
 @Configuration
 public class SwaggerConfig {
@@ -35,15 +39,6 @@ public class SwaggerConfig {
                         .type(SecurityScheme.Type.APIKEY)
                         .description("The API key to access this function app.")
                         .name("Ocp-Apim-Subscription-Key")
-                        .in(SecurityScheme.In.HEADER))
-                .addSecuritySchemes(
-                    "Authorization",
-                    new SecurityScheme()
-                        .type(SecurityScheme.Type.HTTP)
-                        .description("JWT token get after Azure Login")
-                        .name("Authorization")
-                        .scheme("bearer")
-                        .bearerFormat("JWT")
                         .in(SecurityScheme.In.HEADER)))
         .info(
             new Info()
@@ -57,10 +52,7 @@ public class SwaggerConfig {
   public OpenApiCustomiser sortOperationsAlphabetically() {
     return openApi -> {
       Paths paths =
-          openApi
-              .getPaths()
-              .entrySet()
-              .stream()
+          openApi.getPaths().entrySet().stream()
               .sorted(Map.Entry.comparingByKey())
               .collect(
                   Paths::new,
@@ -73,10 +65,7 @@ public class SwaggerConfig {
                   .forEach(
                       operation -> {
                         var responses =
-                            operation
-                                .getResponses()
-                                .entrySet()
-                                .stream()
+                            operation.getResponses().entrySet().stream()
                                 .sorted(Map.Entry.comparingByKey())
                                 .collect(
                                     ApiResponses::new,
@@ -125,12 +114,13 @@ public class SwaggerConfig {
                                                       "This header identifies the call"))));
                 });
   }
-  
+
   @Bean
   GroupedOpenApi externalOpenApi() {
     return GroupedOpenApi.builder()
         .group("external")
         .pathsToMatch("/info", "/payments/**")
+        .addOpenApiCustomiser(customizeServer(createServers("gpd/payments-receipts-service")))
         .addOpenApiCustomiser(addCommonHeaders())
         .addOpenApiCustomiser(sortOperationsAlphabetically())
         .build();
@@ -141,8 +131,39 @@ public class SwaggerConfig {
     return GroupedOpenApi.builder()
         .group("helpdesk")
         .pathsToMatch("/error-messages", "/error-messages/**")
+        .addOpenApiCustomiser(customizeServer(createServers("gpd-payments-helpdesk")))
         .addOpenApiCustomiser(addCommonHeaders())
         .addOpenApiCustomiser(sortOperationsAlphabetically())
         .build();
+  }
+
+  private OpenApiCustomiser customizeServer(List<Server> serverInfo) {
+    return openApi -> {
+      if (openApi.getPaths() == null) return;
+
+      // set servers
+      openApi.setServers(serverInfo);
+    };
+  }
+
+  private @NonNull List<Server> createServers(String service) {
+    String localPath = String.format("%s://%s:%s", "http", "localhost", 8080);
+    return List.of(
+        new Server().url(localPath),
+        new Server()
+            .url("https://{host}/{basePath}/{version}")
+            .variables(
+                new ServerVariables()
+                    .addServerVariable(
+                        "host",
+                        new ServerVariable()
+                            ._enum(
+                                List.of(
+                                    "api.dev.platform.pagopa.it",
+                                    "api.uat.platform.pagopa.it",
+                                    "api.platform.pagopa.it"))
+                            ._default("api.dev.platform.pagopa.it"))
+                    .addServerVariable("basePath", new ServerVariable()._default(service))
+                    .addServerVariable("version", new ServerVariable()._default("v1"))));
   }
 }
