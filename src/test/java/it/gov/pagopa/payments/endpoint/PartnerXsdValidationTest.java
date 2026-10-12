@@ -1,7 +1,14 @@
 package it.gov.pagopa.payments.endpoint;
 
-import javax.xml.datatype.DatatypeConfigurationException;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_VERIFY_PAYMENT_NOTICE;
 
+import it.gov.pagopa.payments.PaymentsApplication;
+import it.gov.pagopa.payments.config.WebServicesConfiguration;
+import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
+import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeResMock;
+import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
+import it.gov.pagopa.payments.service.PartnerService;
+import javax.xml.datatype.DatatypeConfigurationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -12,18 +19,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
-
-import it.gov.pagopa.payments.PaymentsApplication;
-import it.gov.pagopa.payments.config.WebServicesConfiguration;
-import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
-import it.gov.pagopa.payments.mock.PaVerifyPaymentNoticeResMock;
-import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
-import it.gov.pagopa.payments.service.PartnerService;
+import org.springframework.ws.transport.TransportConstants;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(
-    classes = {WebServicesConfiguration.class, PaymentsApplication.class})
+@ContextConfiguration(classes = {WebServicesConfiguration.class, PaymentsApplication.class})
 class PartnerXsdValidationTest {
 
   @Autowired private WebTestClient webClient;
@@ -43,7 +43,7 @@ class PartnerXsdValidationTest {
     this.webClient
         .post()
         .uri("/partner")
-        .header("SOAPAction", "paVerifyPaymentNotice")
+        .header(TransportConstants.HEADER_SOAP_ACTION, PA_VERIFY_PAYMENT_NOTICE)
         .contentType(MediaType.TEXT_XML)
         .bodyValue(request)
         .exchange()
@@ -65,7 +65,7 @@ class PartnerXsdValidationTest {
     this.webClient
         .post()
         .uri("/partner")
-        .header("SOAPAction", "paVerifyPaymentNotice")
+        .header(TransportConstants.HEADER_SOAP_ACTION, PA_VERIFY_PAYMENT_NOTICE)
         .contentType(MediaType.TEXT_XML)
         .bodyValue(request)
         .exchange()
@@ -79,7 +79,8 @@ class PartnerXsdValidationTest {
 
     PaVerifyPaymentNoticeRes responseBody = PaVerifyPaymentNoticeResMock.getMock();
 
-    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any(), Mockito.any())).thenReturn(responseBody);
+    Mockito.when(partnerService.paVerifyPaymentNotice(Mockito.any(), Mockito.any()))
+        .thenReturn(responseBody);
 
     String request =
         "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\""
@@ -88,7 +89,7 @@ class PartnerXsdValidationTest {
     this.webClient
         .post()
         .uri("/partner")
-        .header("SOAPAction", "paVerifyPaymentNotice")
+        .header(TransportConstants.HEADER_SOAP_ACTION, PA_VERIFY_PAYMENT_NOTICE)
         .contentType(MediaType.TEXT_XML)
         .bodyValue(request)
         .exchange()

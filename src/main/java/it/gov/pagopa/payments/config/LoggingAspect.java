@@ -9,6 +9,7 @@ import it.gov.pagopa.payments.model.ProblemJson;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.MDC;
@@ -42,6 +44,8 @@ public class LoggingAspect {
   public static final String REQUEST_ID = "requestId";
   public static final String OPERATION_ID = "operationId";
   public static final String ARGS = "args";
+  public static final String STATUS_OK = "OK";
+  public static final String STATUS_KO = "KO";
 
   final HttpServletRequest httRequest;
 
@@ -59,42 +63,6 @@ public class LoggingAspect {
   public LoggingAspect(HttpServletRequest httRequest, HttpServletResponse httpResponse) {
     this.httRequest = httRequest;
     this.httpResponse = httpResponse;
-  }
-
-  private static String getDetail(ResponseEntity<ProblemJson> result) {
-    if (result != null && result.getBody() != null && result.getBody().getDetail() != null) {
-      return result.getBody().getDetail();
-    } else return AppError.UNKNOWN.getDetails();
-  }
-
-  private static String getTitle(ResponseEntity<ProblemJson> result) {
-    if (result != null && result.getBody() != null && result.getBody().getTitle() != null) {
-      return result.getBody().getTitle();
-    } else return AppError.UNKNOWN.getTitle();
-  }
-
-  public static String getExecutionTime() {
-    String startTime = MDC.get(START_TIME);
-    if (startTime != null) {
-      long endTime = System.currentTimeMillis();
-      long executionTime = endTime - Long.parseLong(startTime);
-      return String.valueOf(executionTime);
-    }
-    return "-";
-  }
-
-  private static Map<String, String> getParams(ProceedingJoinPoint joinPoint) {
-    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    Method method = signature.getMethod();
-    Map<String, String> params = new HashMap<>();
-    int i = 0;
-    for (var parameter : method.getParameters()) {
-      var paramName = parameter.getName();
-      var arg = joinPoint.getArgs()[i++];
-      arg = jaxToString(arg);
-      params.put(paramName, deNull(arg));
-    }
-    return params;
   }
 
   @Pointcut("@within(org.springframework.web.bind.annotation.RestController)")
@@ -123,7 +91,7 @@ public class LoggingAspect {
     log.info("-> Starting {} version {} - environment {}", name, version, environment);
   }
 
-  @Around(value = "restController() || endpointClass()")
+  @Around(value = "restController()")
   public Object logApiInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
     MDC.put(METHOD, joinPoint.getSignature().getName());
     MDC.put(START_TIME, String.valueOf(System.currentTimeMillis()));
@@ -135,11 +103,11 @@ public class LoggingAspect {
     Map<String, String> params = getParams(joinPoint);
     MDC.put(ARGS, params.toString());
 
-    log.debug("Invoking API operation {} - args: {}", joinPoint.getSignature().getName(), params);
+    log.debug("Invoking API operation");
 
     Object result = joinPoint.proceed();
 
-    MDC.put(STATUS, "OK");
+    MDC.put(STATUS, STATUS_OK);
     MDC.put(CODE, String.valueOf(httpResponse.getStatus()));
     MDC.put(RESPONSE_TIME, getExecutionTime());
     log.info(
@@ -153,9 +121,17 @@ public class LoggingAspect {
     return result;
   }
 
+  @Before(value = "endpointClass()")
+  public void logSoapEndpointInvocation(JoinPoint joinPoint) {
+    Map<String, String> params = getParams(joinPoint);
+    MDC.put(ARGS, params.toString());
+
+    log.debug("Invoking SOAP operation");
+  }
+
   @AfterReturning(value = "execution(* *..exception.ErrorHandler.*(..))", returning = "result")
   public void trowingApiInvocation(JoinPoint joinPoint, ResponseEntity<ProblemJson> result) {
-    MDC.put(STATUS, "KO");
+    MDC.put(STATUS, STATUS_KO);
     MDC.put(CODE, String.valueOf(result.getStatusCode().value()));
     MDC.put(RESPONSE_TIME, getExecutionTime());
     MDC.put(FAULT_CODE, getTitle(result));
@@ -182,5 +158,43 @@ public class LoggingAspect {
       }
     }
     return arg;
+  }
+
+  private static String getDetail(ResponseEntity<ProblemJson> result) {
+    return Optional.ofNullable(result)
+        .map(ResponseEntity::getBody)
+        .map(ProblemJson::getDetail)
+        .orElseGet(AppError.UNKNOWN::getDetails);
+  }
+
+  private static String getTitle(ResponseEntity<ProblemJson> result) {
+    return Optional.ofNullable(result)
+        .map(ResponseEntity::getBody)
+        .map(ProblemJson::getTitle)
+        .orElseGet(AppError.UNKNOWN::getTitle);
+  }
+
+  public static String getExecutionTime() {
+    String startTime = MDC.get(START_TIME);
+    if (startTime != null) {
+      long endTime = System.currentTimeMillis();
+      long executionTime = endTime - Long.parseLong(startTime);
+      return String.valueOf(executionTime);
+    }
+    return "-";
+  }
+
+  private static Map<String, String> getParams(JoinPoint joinPoint) {
+    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    Method method = signature.getMethod();
+    Map<String, String> params = new HashMap<>();
+    int i = 0;
+    for (var parameter : method.getParameters()) {
+      var paramName = parameter.getName();
+      var arg = joinPoint.getArgs()[i++];
+      arg = jaxToString(arg);
+      params.put(paramName, deNull(arg));
+    }
+    return params;
   }
 }
