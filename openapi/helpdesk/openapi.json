@@ -4,11 +4,24 @@
     "title" : "PagoPA API Payments",
     "description" : "Payments",
     "termsOfService" : "https://www.pagopa.gov.it/",
-    "version" : "0.13.6-1-PAGOPA-3737"
+    "version" : "0.13.8"
   },
   "servers" : [ {
-    "url" : "http://localhost",
-    "description" : "Generated server url"
+    "url" : "http://localhost:8080"
+  }, {
+    "url" : "{host}{basePath}{version}",
+    "variables" : {
+      "host" : {
+        "default" : "https://api.platform.pagopa.it",
+        "enum" : [ "https://api.dev.platform.pagopa.it", "https://api.uat.platform.pagopa.it", "https://api.platform.pagopa.it" ]
+      },
+      "basePath" : {
+        "default" : "/gpd-payments-helpdesk"
+      },
+      "version" : {
+        "default" : "/v1"
+      }
+    }
   } ],
   "tags" : [ {
     "name" : "Dead Letter",
@@ -251,12 +264,6 @@
         "description" : "The API key to access this function app.",
         "name" : "Ocp-Apim-Subscription-Key",
         "in" : "header"
-      },
-      "Authorization" : {
-        "type" : "http",
-        "description" : "JWT token get after Azure Login",
-        "scheme" : "bearer",
-        "bearerFormat" : "JWT"
       }
     }
   }
