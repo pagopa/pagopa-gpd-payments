@@ -1,23 +1,24 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
+import static it.gov.pagopa.payments.config.LoggingAspect.STATUS_KO;
+import static it.gov.pagopa.payments.config.LoggingAspect.STATUS_OK;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_DEMAND_PAYMENT_NOTICE;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_GET_PAYMENT;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_GET_PAYMENT_V2;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT_V2;
+import static it.gov.pagopa.payments.utils.SoapActions.PA_VERIFY_PAYMENT_NOTICE;
+
+import it.gov.pagopa.payments.config.LoggingAspect;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
+import it.gov.pagopa.payments.model.PaaErrorEnum;
 import it.gov.pagopa.payments.model.partner.CtFaultBean;
 import it.gov.pagopa.payments.model.partner.CtResponse;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
-import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
-import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
-import it.gov.pagopa.payments.model.partner.PaGetPaymentV2Response;
-import it.gov.pagopa.payments.model.partner.PaSendRTRes;
-import it.gov.pagopa.payments.model.partner.PaSendRTV2Response;
-import it.gov.pagopa.payments.model.partner.PaVerifyPaymentNoticeRes;
 import it.gov.pagopa.payments.model.partner.StOutcome;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.ws.transport.http.MessageDispatcherServlet;
-import org.w3c.dom.Document;
-
+import java.io.IOException;
+import java.io.Serial;
+import java.util.UUID;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,176 +31,199 @@ import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPBody;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
-import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.ws.transport.TransportConstants;
+import org.springframework.ws.transport.http.MessageDispatcherServlet;
+import org.w3c.dom.Document;
 
 @Component
 @Slf4j
 public class SoapMessageDispatcher extends MessageDispatcherServlet {
 
-    private static final long serialVersionUID = 2735436671084580797L;
+  @Serial private static final long serialVersionUID = 2735436671084580797L;
 
-    @Autowired
-    private ObjectFactory factory;
+  private static final String SOAP_PREFIX = "soapenv";
 
-    private static final String SOAP_PREFIX = "soapenv";
+  private final transient ObjectFactory factory;
+  private final String intermediario;
 
-    @Value("${pt.id_intermediario}")
-    private String intermediario;
+  public SoapMessageDispatcher(
+      ObjectFactory factory, @Value("${pt.id_intermediario}") String intermediario) {
+    this.factory = factory;
+    this.intermediario = intermediario;
+  }
 
-    @Override
-    protected void doService(
-            HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+  /** Holds the fault details extracted from a {@link PartnerValidationException}. */
+  private record FaultInfo(PaaErrorEnum errorEnum) {}
 
-        String faultCode = null;
-        String faultString = null;
-        String description = null;
-        PaVerifyPaymentNoticeRes paVerifyPaymentNoticeRes = null;
-        JAXBElement<PaVerifyPaymentNoticeRes> paVerifyPaymentNoticeResJaxbElement = null;
-        PaGetPaymentRes paGetPaymentRes = null;
-        JAXBElement<PaGetPaymentRes> paGetPaymentResJaxbElement = null;
-        PaSendRTRes paSendRTRes = null;
-        JAXBElement<PaSendRTRes> paSendRTResJaxbElement = null;
-        PaDemandPaymentNoticeResponse paDemandPaymentNoticeResponse = null;
-        JAXBElement<PaDemandPaymentNoticeResponse> paDemandPaymentNoticeResponseJaxbElement = null;
-        PaGetPaymentV2Response paGetPaymentV2Response = null;
-        JAXBElement<PaGetPaymentV2Response> paGetPaymentV2ResponseJaxbElement = null;
-        PaSendRTV2Response paSendRTV2Response = null;
-        JAXBElement<PaSendRTV2Response> paSendRTV2ResponseJaxbElement = null;
-        CtResponse ctResponse = null;
+  @Override
+  protected void doService(HttpServletRequest request, HttpServletResponse response) {
+    String soapAction = getSOAPActionFromHeaders(request);
+    initRequestLogging(soapAction);
 
-        String soapAction =
-                httpServletRequest.getHeader("SOAPAction") != null
-                        ? httpServletRequest.getHeader("SOAPAction").replace("\"", "")
-                        : null;
+    FaultInfo fault = null;
+    try {
+      fault = dispatch(request, response);
+      if (fault != null && soapAction != null) {
+        writeFaultResponse(response, soapAction, fault);
+      }
+    } finally {
+      finalizeResponseLogging(response, fault);
+    }
+  }
 
-        try {
-            callService(httpServletRequest, httpServletResponse);
-        }
-        catch (PartnerValidationException e) {
+  /**
+   * Delegates to the standard Spring-WS dispatch and translates a validation failure into a {@link
+   * FaultInfo}. Returns {@code null} when the request is processed without a business fault.
+   */
+  private FaultInfo dispatch(HttpServletRequest request, HttpServletResponse response) {
+    try {
+      callService(request, response);
+      return null;
+    } catch (PartnerValidationException e) {
+      log.error("Processing resulted in exception: {}", e.getMessage());
+      response.setStatus(HttpServletResponse.SC_OK);
+      return new FaultInfo(e.getError());
+    } catch (Exception e) {
+      log.error("Processing resulted in generic exception", e);
+      response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+      return null;
+    }
+  }
 
-            log.error("Processing resulted in exception: " + e.getMessage());
-            faultCode = e.getError().getFaultCode();
-            faultString = e.getError().getFaultString();
-            description = e.getError().getDescription();
-            httpServletResponse.setStatus(200);
+  /**
+   * Seam that delegates to the standard Spring-WS dispatch. Extracted to allow the request
+   * processing to be stubbed in unit tests.
+   */
+  protected void callService(HttpServletRequest request, HttpServletResponse response)
+      throws Exception {
+    super.doService(request, response);
+  }
 
-        } catch (Exception e) {
+  /** Builds the fault SOAP envelope for the given action and writes it to the response. */
+  private void writeFaultResponse(
+      HttpServletResponse response, String soapAction, FaultInfo fault) {
+    try {
+      JAXBElement<? extends CtResponse> faultElement =
+          buildFaultElement(soapAction, toFaultBean(fault));
+      writeSoapMessage(response, marshalToDocument(faultElement));
+    } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
+      log.error("Processing resulted in generic exception", e);
+      response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    }
+  }
 
-            log.error("Processing resulted in generic exception: " + e.getMessage());
-            httpServletResponse.setStatus(500);
-        }
+  private CtFaultBean toFaultBean(FaultInfo fault) {
+    CtFaultBean faultBean = factory.createCtFaultBean();
+    faultBean.setDescription(fault.errorEnum.getDescription());
+    faultBean.setFaultCode(fault.errorEnum.getFaultCode());
+    faultBean.setFaultString(fault.errorEnum.getFaultString());
+    faultBean.setId(intermediario);
+    return faultBean;
+  }
 
-        if (faultCode != null && soapAction != null) {
+  /** Selects the response type matching the SOAP action and wraps it as a JAXB root element. */
+  private JAXBElement<? extends CtResponse> buildFaultElement(
+      String soapAction, CtFaultBean faultBean) throws SOAPException {
+    return switch (soapAction) {
+      case PA_VERIFY_PAYMENT_NOTICE ->
+          factory.createPaVerifyPaymentNoticeRes(
+              withFault(factory.createPaVerifyPaymentNoticeRes(), faultBean));
+      case PA_GET_PAYMENT ->
+          factory.createPaGetPaymentRes(withFault(factory.createPaGetPaymentRes(), faultBean));
+      case PA_GET_PAYMENT_V2 ->
+          factory.createPaGetPaymentV2Response(
+              withFault(factory.createPaGetPaymentV2Response(), faultBean));
+      case PA_DEMAND_PAYMENT_NOTICE ->
+          factory.createPaDemandPaymentNoticeResponse(
+              withFault(factory.createPaDemandPaymentNoticeResponse(), faultBean));
+      case PA_SEND_RT ->
+          factory.createPaSendRTRes(withFault(factory.createPaSendRTRes(), faultBean));
+      case PA_SEND_RT_V2 ->
+          factory.createPaSendRTV2Response(
+              withFault(factory.createPaSendRTV2Response(), faultBean));
+      default ->
+          throw new SOAPException("Unsupported SOAP action for fault response: " + soapAction);
+    };
+  }
 
-            CtFaultBean faultBean = factory.createCtFaultBean();
-            faultBean.setDescription(description);
-            faultBean.setFaultCode(faultCode);
-            faultBean.setFaultString(faultString);
-            faultBean.setId(intermediario);
+  private <T extends CtResponse> T withFault(T response, CtFaultBean faultBean) {
+    response.setOutcome(StOutcome.KO);
+    response.setFault(faultBean);
+    return response;
+  }
 
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            dbf.setNamespaceAware(true);
+  private Document marshalToDocument(JAXBElement<?> element)
+      throws ParserConfigurationException, JAXBException {
+    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    dbf.setNamespaceAware(true);
+    Document doc = dbf.newDocumentBuilder().newDocument();
+    JAXBContext.newInstance(ObjectFactory.class).createMarshaller().marshal(element, doc);
+    return doc;
+  }
 
-            try {
-                Document doc = dbf.newDocumentBuilder().newDocument();
+  private void writeSoapMessage(HttpServletResponse response, Document doc)
+      throws SOAPException, IOException {
+    SOAPMessage soapMessage = MessageFactory.newInstance().createMessage();
 
-                switch (soapAction) {
-                    case "paVerifyPaymentNotice":
-                        paVerifyPaymentNoticeRes = factory.createPaVerifyPaymentNoticeRes();
-                        paVerifyPaymentNoticeRes.setOutcome(StOutcome.KO);
-                        paVerifyPaymentNoticeRes.setFault(faultBean);
-                        paVerifyPaymentNoticeResJaxbElement =
-                                factory.createPaVerifyPaymentNoticeRes(paVerifyPaymentNoticeRes);
-                        JAXBContext.newInstance(PaVerifyPaymentNoticeRes.class)
-                                .createMarshaller()
-                                .marshal(paVerifyPaymentNoticeResJaxbElement, doc);
-                        break;
-                    case "paGetPayment":
-                        paGetPaymentRes = factory.createPaGetPaymentRes();
-                        paGetPaymentRes.setOutcome(StOutcome.KO);
-                        paGetPaymentRes.setFault(faultBean);
-                        paGetPaymentResJaxbElement = factory.createPaGetPaymentRes(paGetPaymentRes);
-                        JAXBContext.newInstance(PaGetPaymentRes.class)
-                                .createMarshaller()
-                                .marshal(paGetPaymentResJaxbElement, doc);
-                        break;
-                    case "paSendRT":
-                        paSendRTRes = factory.createPaSendRTRes();
-                        paSendRTRes.setOutcome(StOutcome.KO);
-                        paSendRTRes.setFault(faultBean);
-                        paSendRTResJaxbElement = factory.createPaSendRTRes(paSendRTRes);
-                        JAXBContext.newInstance(PaSendRTRes.class)
-                                .createMarshaller()
-                                .marshal(paSendRTResJaxbElement, doc);
-                        break;
-                    case "paDemandPaymentNotice":
-                        paDemandPaymentNoticeResponse = factory.createPaDemandPaymentNoticeResponse();
-                        paDemandPaymentNoticeResponse.setOutcome(StOutcome.KO);
-                        paDemandPaymentNoticeResponse.setFault(faultBean);
-                        paDemandPaymentNoticeResponseJaxbElement =
-                                factory.createPaDemandPaymentNoticeResponse(paDemandPaymentNoticeResponse);
-                        JAXBContext.newInstance(PaDemandPaymentNoticeResponse.class)
-                                .createMarshaller()
-                                .marshal(paDemandPaymentNoticeResponseJaxbElement, doc);
-                        break;
-                    case "paGetPaymentV2":
-                        paGetPaymentV2Response = factory.createPaGetPaymentV2Response();
-                        paGetPaymentV2Response.setOutcome(StOutcome.KO);
-                        paGetPaymentV2Response.setFault(faultBean);
-                        paGetPaymentV2ResponseJaxbElement =
-                                factory.createPaGetPaymentV2Response(paGetPaymentV2Response);
-                        JAXBContext.newInstance(PaGetPaymentV2Response.class)
-                                .createMarshaller()
-                                .marshal(paGetPaymentV2ResponseJaxbElement, doc);
-                        break;
-                    case "paSendRTV2":
-                        paSendRTV2Response = factory.createPaSendRTV2Response();
-                        paSendRTV2Response.setOutcome(StOutcome.KO);
-                        paSendRTV2Response.setFault(faultBean);
-                        paSendRTV2ResponseJaxbElement =
-                                factory.createPaSendRTV2Response(paSendRTV2Response);
-                        JAXBContext.newInstance(PaSendRTV2Response.class)
-                                .createMarshaller()
-                                .marshal(paSendRTV2ResponseJaxbElement, doc);
-                        break;
-                    default:
-                        ctResponse = factory.createPaSendRTRes();
-                        ctResponse.setOutcome(StOutcome.KO);
-                        ctResponse.setFault(faultBean);
-                        paSendRTResJaxbElement = factory.createPaSendRTRes(paSendRTRes);
-                        JAXBContext.newInstance(PaSendRTRes.class)
-                                .createMarshaller()
-                                .marshal(paSendRTResJaxbElement, doc);
-                        break;
-                }
+    soapMessage.getSOAPPart().getEnvelope().removeNamespaceDeclaration("SOAP-ENV");
+    soapMessage.getSOAPPart().getEnvelope().setPrefix(SOAP_PREFIX);
+    soapMessage.getSOAPHeader().setPrefix(SOAP_PREFIX);
+    soapMessage.getSOAPBody().setPrefix(SOAP_PREFIX);
 
-                SOAPMessage soapMessage = MessageFactory.newInstance().createMessage();
+    SOAPBody soapBody = soapMessage.getSOAPBody();
+    soapBody.addDocument(doc);
+    soapMessage.saveChanges();
 
-                soapMessage.getSOAPPart().getEnvelope().removeNamespaceDeclaration("SOAP-ENV");
-                soapMessage.getSOAPPart().getEnvelope().setPrefix(SOAP_PREFIX);
-                soapMessage.getSOAPHeader().setPrefix(SOAP_PREFIX);
-                soapMessage.getSOAPBody().setPrefix(SOAP_PREFIX);
+    response.setContentType("text/xml");
+    ServletOutputStream outputStream = response.getOutputStream();
+    soapMessage.writeTo(outputStream);
+    outputStream.flush();
+  }
 
-                SOAPBody soapBody = soapMessage.getSOAPBody();
-                soapBody.addDocument(doc);
-                soapMessage.saveChanges();
+  /** Populates the request-side MDC so that every request is logged consistently. */
+  private void initRequestLogging(String soapAction) {
+    MDC.put(LoggingAspect.METHOD, soapAction);
+    MDC.put(LoggingAspect.START_TIME, String.valueOf(System.currentTimeMillis()));
+    MDC.put(LoggingAspect.OPERATION_ID, UUID.randomUUID().toString());
+    if (MDC.get(LoggingAspect.REQUEST_ID) == null) {
+      MDC.put(LoggingAspect.REQUEST_ID, UUID.randomUUID().toString());
+    }
+  }
 
-                ServletOutputStream outputStream = httpServletResponse.getOutputStream();
-                httpServletResponse.setContentType("text/xml");
-                soapMessage.writeTo(outputStream);
-                outputStream.flush();
+  /**
+   * Populates the response-side MDC (status, http code, timing, fault) once the HTTP status is
+   * finalized, logs the outcome and clears the MDC.
+   */
+  private void finalizeResponseLogging(HttpServletResponse response, FaultInfo fault) {
+    int httpCode = response.getStatus();
+    boolean isKo = fault != null || httpCode >= 400;
 
-            } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
-
-                log.error("Processing resulted in generic exception: " + e.getMessage());
-                httpServletResponse.setStatus(500);
-            }
-        }
+    MDC.put(LoggingAspect.STATUS, isKo ? STATUS_KO : STATUS_OK);
+    MDC.put(LoggingAspect.CODE, String.valueOf(httpCode));
+    MDC.put(LoggingAspect.RESPONSE_TIME, LoggingAspect.getExecutionTime());
+    if (fault != null) {
+      MDC.put(LoggingAspect.FAULT_CODE, fault.errorEnum.getFaultCode());
+      MDC.put(
+          LoggingAspect.FAULT_DETAIL,
+          fault.errorEnum().getDescription() != null
+              ? fault.errorEnum().getDescription()
+              : fault.errorEnum().getFaultString());
     }
 
-    protected void callService(
-            HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
-            throws Exception {
-        super.doService(httpServletRequest, httpServletResponse);
+    if (isKo) {
+      log.info("Failed SOAP operation");
+    } else {
+      log.info("Successful SOAP operation");
     }
+    MDC.clear();
+  }
+
+  private String getSOAPActionFromHeaders(HttpServletRequest request) {
+    String soapAction = request.getHeader(TransportConstants.HEADER_SOAP_ACTION);
+    return soapAction != null ? soapAction.replace("\"", "") : null;
+  }
 }

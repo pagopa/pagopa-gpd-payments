@@ -17,8 +17,8 @@ public class SoapFaultDefinitionExceptionResolver implements EndpointExceptionRe
 
     log.error("an Error occurred: {}", ex.getMessage(), ex);
 
-    if (ex instanceof PartnerValidationException) {
-      throw (PartnerValidationException) ex;
+    if (ex instanceof PartnerValidationException partnerValidationException) {
+      throw partnerValidationException;
     }
     return false;
   }

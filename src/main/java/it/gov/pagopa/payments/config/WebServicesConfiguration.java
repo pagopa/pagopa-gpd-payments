@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.config;
 import it.gov.pagopa.payments.endpoints.validation.SoapMessageDispatcher;
 import it.gov.pagopa.payments.endpoints.validation.SoapValidatingInterceptor;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
+import it.gov.pagopa.payments.utils.SoapActions;
 import java.util.List;
 import java.util.Properties;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -34,9 +35,12 @@ public class WebServicesConfiguration extends WsConfigurerAdapter {
   public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema nodeSchema) {
 
     Properties soapActions = new Properties();
-    soapActions.put("paVerifyPaymentNotice", "paVerifyPaymentNotice");
-    soapActions.put("paGetPayment", "paGetPayment");
-    soapActions.put("paSendRT", "paSendRT");
+    soapActions.put(SoapActions.PA_VERIFY_PAYMENT_NOTICE, SoapActions.PA_VERIFY_PAYMENT_NOTICE);
+    soapActions.put(SoapActions.PA_DEMAND_PAYMENT_NOTICE, SoapActions.PA_DEMAND_PAYMENT_NOTICE);
+    soapActions.put(SoapActions.PA_GET_PAYMENT, SoapActions.PA_GET_PAYMENT);
+    soapActions.put(SoapActions.PA_GET_PAYMENT_V2, SoapActions.PA_GET_PAYMENT_V2);
+    soapActions.put(SoapActions.PA_SEND_RT, SoapActions.PA_SEND_RT);
+    soapActions.put(SoapActions.PA_SEND_RT_V2, SoapActions.PA_SEND_RT_V2);
 
     DefaultWsdl11Definition wsdl11Definition = new DefaultWsdl11Definition();
     wsdl11Definition.setPortTypeName("PartnerPort");
