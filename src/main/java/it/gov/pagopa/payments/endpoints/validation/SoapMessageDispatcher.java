@@ -84,11 +84,20 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
       callService(request, response);
       return null;
     } catch (PartnerValidationException e) {
-      log.error("Processing resulted in exception: {}", e.getMessage());
+      SoapValidatingInterceptor.clearResponseMetadata();
+      if (e.getError() == PaaErrorEnum.PAA_SYSTEM_ERROR
+          && MDC.get(SoapFaultDefinitionExceptionResolver.TECHNICAL_ERROR_LOGGED) == null) {
+        MDC.put(LoggingAspect.FAULT_CODE, e.getError().getFaultCode());
+        MDC.put(LoggingAspect.ERROR_CODE, e.getError().getFaultCode());
+        log.error("SOAP processing failed", e);
+      }
       response.setStatus(HttpServletResponse.SC_OK);
       return new FaultInfo(e.getError());
     } catch (Exception e) {
-      log.error("Processing resulted in generic exception", e);
+      SoapValidatingInterceptor.clearResponseMetadata();
+      if (MDC.get(SoapFaultDefinitionExceptionResolver.TECHNICAL_ERROR_LOGGED) == null) {
+        log.error("SOAP processing failed", e);
+      }
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
       return null;
     }
@@ -111,7 +120,10 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
           buildFaultElement(soapAction, toFaultBean(fault));
       writeSoapMessage(response, marshalToDocument(faultElement));
     } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
-      log.error("Processing resulted in generic exception", e);
+      SoapValidatingInterceptor.clearResponseMetadata();
+      MDC.put(LoggingAspect.FAULT_CODE, fault.errorEnum.getFaultCode());
+      MDC.put(LoggingAspect.ERROR_CODE, fault.errorEnum.getFaultCode());
+      log.error("Writing SOAP fault response failed", e);
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
     }
   }
@@ -182,10 +194,14 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
     ServletOutputStream outputStream = response.getOutputStream();
     soapMessage.writeTo(outputStream);
     outputStream.flush();
+    SoapValidatingInterceptor.recordResponseOutcome(soapBody);
   }
 
   /** Populates the request-side MDC so that every request is logged consistently. */
   private void initRequestLogging(String soapAction) {
+    SoapValidatingInterceptor.clearResponseMetadata();
+    MDC.remove(LoggingAspect.ARGS);
+    MDC.remove(SoapFaultDefinitionExceptionResolver.TECHNICAL_ERROR_LOGGED);
     MDC.put(LoggingAspect.METHOD, soapAction);
     MDC.put(LoggingAspect.START_TIME, String.valueOf(System.currentTimeMillis()));
     MDC.put(LoggingAspect.OPERATION_ID, UUID.randomUUID().toString());
@@ -200,19 +216,23 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
    */
   private void finalizeResponseLogging(HttpServletResponse response, FaultInfo fault) {
     int httpCode = response.getStatus();
-    boolean isKo = fault != null || httpCode >= 400;
+    String outcome = MDC.get(LoggingAspect.SOAP_OUTCOME);
+    boolean isKo = fault != null || httpCode >= 400 || STATUS_KO.equals(outcome);
 
     MDC.put(LoggingAspect.STATUS, isKo ? STATUS_KO : STATUS_OK);
     MDC.put(LoggingAspect.CODE, String.valueOf(httpCode));
     MDC.put(LoggingAspect.RESPONSE_TIME, LoggingAspect.getExecutionTime());
-    if (fault != null) {
+    if (fault != null && MDC.get(LoggingAspect.FAULT_CODE) == null) {
       MDC.put(LoggingAspect.FAULT_CODE, fault.errorEnum.getFaultCode());
-      MDC.put(
-          LoggingAspect.FAULT_DETAIL,
-          fault.errorEnum().getDescription() != null
-              ? fault.errorEnum().getDescription()
-              : fault.errorEnum().getFaultString());
+      MDC.put(LoggingAspect.ERROR_CODE, fault.errorEnum.getFaultCode());
     }
+    if (fault == null
+        && PaaErrorEnum.PAA_SYSTEM_ERROR.getFaultCode().equals(MDC.get(LoggingAspect.FAULT_CODE))
+        && MDC.get(SoapFaultDefinitionExceptionResolver.TECHNICAL_ERROR_LOGGED) == null) {
+      // A returned system fault has no local throwable, but must still be observable as an error.
+      log.error("SOAP response reports a system failure");
+    }
+    MDC.remove(SoapFaultDefinitionExceptionResolver.TECHNICAL_ERROR_LOGGED);
 
     if (isKo) {
       log.info("Failed SOAP operation");
