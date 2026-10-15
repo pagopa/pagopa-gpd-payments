@@ -150,7 +150,7 @@ public class PartnerService {
       throw e;
     } catch (Exception e) {
       log.error(
-          "[paVerifyPaymentNotice] GPD Generic Error [noticeNumber={}]",
+          "[paVerifyPaymentNotice] Payment option retrieval or validation failed [noticeNumber={}]",
           request.getQrCode().getNoticeNumber(),
           e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
@@ -769,7 +769,7 @@ public class PartnerService {
 
     } catch (Exception e) {
       log.error(
-              "[manageGetPaymentRequest] GPD Generic Error [noticeNumber={}]",
+              "[manageGetPaymentRequest] Payment option retrieval or validation failed [noticeNumber={}]",
               qrCode.getNoticeNumber(),
               e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
@@ -947,7 +947,7 @@ public class PartnerService {
       // no retry because the long-term retry is enabled only when there is a gpd-core error
       // response or a storage communication failure
       log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Generic Error [noticeNumber={}]",
+          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Receipt processing failed [noticeNumber={}]",
           noticeNumber,
           e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
@@ -1008,8 +1008,7 @@ public class PartnerService {
         if (!(ex instanceof PartnerValidationException validationException)
             || validationException.getError() == PaaErrorEnum.PAA_SYSTEM_ERROR) {
           log.error(
-              "[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}] during receipt status"
-                  + " save",
+              "[getReceiptPaymentOption] Receipt reconciliation failed [noticeNumber={}]",
               noticeNumber,
               ex);
         }
