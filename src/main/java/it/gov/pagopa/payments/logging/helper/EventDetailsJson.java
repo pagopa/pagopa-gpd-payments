@@ -1,17 +1,18 @@
-package it.gov.pagopa.payments.logging;
+package it.gov.pagopa.payments.logging.helper;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import it.gov.pagopa.payments.logging.EventDetails;
 
 /**
  * Explicit allowlist serializer for event details. Jackson nodes preserve numeric types
  * without reflectively exposing fields added to domain objects.
  */
-final class EventDetailsJson {
+public final class EventDetailsJson {
   private EventDetailsJson() {}
 
   /** Returns the JSON string used by MDC, or null to omit absent/empty details entirely. */
-  static String serialize(EventDetails details) {
+  public static String serialize(EventDetails details) {
     ObjectNode json = JsonNodeFactory.instance.objectNode();
     if (details instanceof EventDetails.Eligibility value) {
       put(json, "reason", value.reason().name());

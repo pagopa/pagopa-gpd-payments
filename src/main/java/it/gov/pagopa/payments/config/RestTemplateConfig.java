@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.config;
 
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.xml.MarshallingHttpMessageConverter;
@@ -13,6 +14,13 @@ public class RestTemplateConfig {
   public RestTemplate restTemplate() {
     RestTemplate restTemplate = new RestTemplate();
     restTemplate.getMessageConverters().add(0, jaxbMarshallingHttpMessageConverter());
+    restTemplate.getInterceptors().add((request, body, execution) -> {
+      String requestId = MDC.get("requestId");
+      if (requestId != null && !requestId.isEmpty()) {
+        request.getHeaders().set("X-Request-Id", requestId);
+      }
+      return execution.execute(request, body);
+    });
     return restTemplate;
   }
 

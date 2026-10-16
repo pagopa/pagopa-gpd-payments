@@ -16,7 +16,7 @@ record SafeDiagnostic(String type, String message, String stackTrace) {
   /** Application frames take precedence over library frames, even below a library-only head. */
   private static final String APPLICATION_PREFIX = "it.gov.pagopa.payments.";
   /** Output budgets, not traversal limits: the actual primary root must remain discoverable. */
-  private static final int MAX_FRAMES = 5;
+  private static final int MAX_FRAMES = 3;
   private static final int MAX_EXCEPTIONS = 3;
 
   /**
@@ -88,7 +88,7 @@ record SafeDiagnostic(String type, String message, String stackTrace) {
     return new SafeDiagnostic(type, message, stack.toString());
   }
 
-  /** Keeps up to five application frames in source order, or original frames if none apply. */
+  /** Keeps up to three application frames in source order, or original frames if none apply. */
   private static void appendFrames(StringBuilder stack, StackTraceElement[] frames) {
     boolean applicationOnly = false;
     for (StackTraceElement frame : frames) {

@@ -1,7 +1,5 @@
 package it.gov.pagopa.payments.controller.receipt.impl;
 
-import static it.gov.pagopa.payments.utils.CommonUtil.sanitizeInput;
-
 import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.PaymentsResult;
@@ -9,7 +7,6 @@ import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.service.PaymentsService;
 import java.util.ArrayList;
 import java.util.Arrays;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,33 +14,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 
 @Controller
-@Slf4j
 @Validated
 public class PaymentsController implements IPaymentsController {
-
-  private static final String LOG_BASE_HEADER_INFO =
-      "[RequestMethod: %s] - [ClassMethod: %s] - [MethodParamsToLog: %s]";
 
   @Autowired private PaymentsService paymentsService;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(
       String organizationFiscalCode, String iuv, String segregationCodes) {
-    String sanitizedOrganizationFiscalCode = sanitizeInput(organizationFiscalCode);
-    String sanitizedIuv = sanitizeInput(iuv);
-    String sanitizedSegregationCodes = sanitizeInput(segregationCodes);
-    log.debug(
-        String.format(
-            LOG_BASE_HEADER_INFO,
-            "GET",
-            "getReceiptByIUV",
-            "organizationFiscalCode="
-                + sanitizedOrganizationFiscalCode
-                + "; iuv= "
-                + sanitizedIuv
-                + "; validSegregationCodes= "
-                + sanitizedSegregationCodes));
-
     ArrayList<String> segCodesList =
         segregationCodes != null
             ? new ArrayList<>(Arrays.asList(segregationCodes.split(",")))
@@ -64,27 +42,6 @@ public class PaymentsController implements IPaymentsController {
       String to,
       String segregationCodes,
       String debtorOrIuv) {
-
-    String sanitizedSegregationCodes = sanitizeInput(segregationCodes);
-    log.debug(
-    	    String.format(
-    	        LOG_BASE_HEADER_INFO,
-    	        "GET",
-    	        "getOrganizationReceipts",
-    	        "organizationFiscalCode="
-    	            + sanitizeInput(organizationFiscalCode)
-    	            + "; debtor="
-    	            + sanitizeInput(debtor)
-    	            + "; service="
-    	            + sanitizeInput(service)
-    	            + "; from="
-    	            + sanitizeInput(from)
-    	            + "; to="
-    	            + sanitizeInput(to)
-    	            + "; validSegregationCodes="
-    	            + sanitizedSegregationCodes
-    	            + "; debtorOrIuv="
-    	            + sanitizeInput(debtorOrIuv)));
 
     ArrayList<String> segCodesList =
         segregationCodes != null

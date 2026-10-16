@@ -1,13 +1,17 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.config.LoggingAspect;
+import it.gov.pagopa.payments.logging.EventDetails;
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.LogEvent;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import javax.xml.soap.SOAPException;
@@ -27,7 +31,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
 
   private static final String SOAP_PREFIX = "soapenv";
   private static final String EXCLUDED_PRIMITIVES = "paDemandPaymentNoticeResponse";
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private final LogEventWriter logEvents = new LogEventWriter(log);
   private static final Pattern XSD_ERROR_KEY =
       Pattern.compile("^((?:cvc|s4s|src|cos|sch-props|schema_reference|wf)-[A-Za-z0-9_.-]+):");
   private final List<String> amountNodeElements =
@@ -38,23 +42,16 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       MessageContext messageContext, SAXParseException[] errors) {
 
     if (errors.length > 0) {
-      var details = OBJECT_MAPPER.createObjectNode();
-      var validationErrors = details.putArray("xsd_errors");
+      var validationErrors = new ArrayList<EventDetails.ValidationError>();
       for (var error : errors) {
         var matcher =
             XSD_ERROR_KEY.matcher(error.getMessage() == null ? "" : error.getMessage());
-        validationErrors
-            .addObject()
-            .put("line", error.getLineNumber())
-            .put("column", error.getColumnNumber())
-            .put("key", matcher.find() ? matcher.group(1) : "invalid-xml");
+        validationErrors.add(new EventDetails.ValidationError(
+            error.getLineNumber(), error.getColumnNumber(),
+            matcher.find() ? matcher.group(1) : "invalid-xml"));
       }
-      try {
-        MDC.put("ctx_details", details.toString());
-        log.warn("SOAP request XSD validation failed");
-      } finally {
-        MDC.remove("ctx_details");
-      }
+      logEvents.logEvent(LogEvent.SOAP_REQUEST_VALIDATION_FAILED,
+          new EventDetails.Validation(validationErrors));
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }
     return true;
@@ -160,7 +157,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       soapMessage.saveChanges();
     } catch (SOAPException e) {
 
-      log.error("Processing SOAP envelope failed", e);
+      FailureDiagnostics.absorbedFailure(logEvents, e);
     }
   }
 

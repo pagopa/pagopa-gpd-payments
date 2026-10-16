@@ -12,13 +12,12 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class DeadLetterServiceImpl implements DeadLetterService {
+
 
     private final BlobStorageClient blobStorageClient;
     private final ObjectMapper objectMapper;
@@ -30,13 +29,6 @@ public class DeadLetterServiceImpl implements DeadLetterService {
             String filePath = buildFilePath(message);
 
             blobStorageClient.saveStringJsonToBlobStorage(json, filePath);
-
-            log.info(
-                    "Message persisted in dead-letter storage [messageId={},dequeueCount={},reason={}]",
-                    message.getMessageId(),
-                    message.getDequeueCount(),
-                    message.getReason());
-
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(
                     "Unable to serialize dead-letter message " + message.getMessageId(),

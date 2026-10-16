@@ -28,7 +28,7 @@ public record ContextSnapshot(
   public Runnable wrap(Runnable task) {
     Objects.requireNonNull(task, "task");
     return () -> {
-      try (OperationScope ignored = OperationScope.resume(this)) {
+      try (OperationLogScope ignored = OperationLogScope.resume(this)) {
         task.run();
       }
     };
@@ -38,15 +38,15 @@ public record ContextSnapshot(
   public <T> Callable<T> wrap(Callable<T> task) {
     Objects.requireNonNull(task, "task");
     return () -> {
-      try (OperationScope ignored = OperationScope.resume(this)) {
+      try (OperationLogScope ignored = OperationLogScope.resume(this)) {
         return task.call();
       }
     };
   }
 
   /** Starts a distinct execution/attempt, retaining correlation/payment but replacing operationId. */
-  public OperationScope openOperation(String method) {
-    return OperationScope.start(this, method);
+  public OperationLogScope openOperation(String method) {
+    return OperationLogScope.start(this, method);
   }
 
   Map<String, String> fields() {

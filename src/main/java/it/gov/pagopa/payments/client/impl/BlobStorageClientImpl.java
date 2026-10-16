@@ -8,6 +8,8 @@ import com.azure.storage.blob.models.BlobStorageException;
 import it.gov.pagopa.payments.client.BlobStorageClient;
 import it.gov.pagopa.payments.exception.DeadLetterAccessException;
 import it.gov.pagopa.payments.exception.DeadLetterNotFoundException;
+import it.gov.pagopa.payments.logging.EventDetails;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -31,16 +33,22 @@ public class BlobStorageClientImpl implements BlobStorageClient {
 	public void saveStringJsonToBlobStorage(String json, String fileName) {
 		byte[] content = json.getBytes(StandardCharsets.UTF_8);
 
+		long startedNanos = System.nanoTime();
 		try (InputStream inputStream = new ByteArrayInputStream(content)) {
 			BlobClient blobClient = blobContainerClient.getBlobClient(fileName + FILE_EXTENSION);
 			blobClient.upload(inputStream, content.length, true);
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to persist dead-letter message", e);
+		} catch (RuntimeException failure) {
+			FailureDiagnostics.dependencyFailure(EventDetails.Dependency.AZURE_BLOB_STORAGE,
+					EventDetails.DependencyOperation.PERSIST_DEAD_LETTER, startedNanos, failure);
+			throw failure;
 		}
 	}
 
 	@Override
 	public List<String> listJsonBlobs(int maxMessages) {
+	    long startedNanos = System.nanoTime();
 	    try {
 	        return blobContainerClient.listBlobs().stream()
 	                .filter(blob -> blob.getName().endsWith(FILE_EXTENSION))
@@ -54,25 +62,41 @@ public class BlobStorageClientImpl implements BlobStorageClient {
 	                .toList();
 
 	    } catch (BlobStorageException e) {
+	        FailureDiagnostics.dependencyFailure(EventDetails.Dependency.AZURE_BLOB_STORAGE,
+	                EventDetails.DependencyOperation.LIST_DEAD_LETTERS, startedNanos, e);
 	        throw new DeadLetterAccessException(
 	                "Unable to list dead-letter messages",
 	                e);
+	    } catch (RuntimeException failure) {
+	        FailureDiagnostics.dependencyFailure(EventDetails.Dependency.AZURE_BLOB_STORAGE,
+	                EventDetails.DependencyOperation.LIST_DEAD_LETTERS, startedNanos, failure);
+	        throw failure;
 	    }
 	}
 
 	@Override
 	public String getStringJsonFromBlobStorage(String fileName) {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		BlobClient blobClient = blobContainerClient.getBlobClient(fileName);
-
+		long startedNanos = System.nanoTime();
 		try {
-			blobClient.downloadStream(outputStream);
-			return outputStream.toString(StandardCharsets.UTF_8);
-		} catch (BlobStorageException e) {
-			if (e.getStatusCode() == HTTP_NOT_FOUND) {
-				throw new DeadLetterNotFoundException(fileName, e);
+			BlobClient blobClient = blobContainerClient.getBlobClient(fileName);
+			try {
+				blobClient.downloadStream(outputStream);
+				return outputStream.toString(StandardCharsets.UTF_8);
+			} catch (BlobStorageException e) {
+				if (e.getStatusCode() == HTTP_NOT_FOUND) {
+					throw new DeadLetterNotFoundException(fileName, e);
+				}
+				throw new DeadLetterAccessException("Unable to read dead-letter message: " + fileName, e);
 			}
-			throw new DeadLetterAccessException("Unable to read dead-letter message: " + fileName, e);
+		} catch (DeadLetterNotFoundException absence) {
+			throw absence;
+		} catch (RuntimeException failure) {
+			Throwable original = failure instanceof DeadLetterAccessException && failure.getCause() != null
+					? failure.getCause() : failure;
+			FailureDiagnostics.dependencyFailure(EventDetails.Dependency.AZURE_BLOB_STORAGE,
+					EventDetails.DependencyOperation.GET_DEAD_LETTER, startedNanos, original);
+			throw failure;
 		}
 	}
 }

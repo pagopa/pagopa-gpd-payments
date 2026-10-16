@@ -12,6 +12,12 @@ import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
 import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
+import it.gov.pagopa.payments.logging.ContextSnapshot;
+import it.gov.pagopa.payments.logging.EventDetails;
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
+import it.gov.pagopa.payments.logging.LogEvent;
+import it.gov.pagopa.payments.logging.OperationLogScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,10 +43,44 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import org.slf4j.MDC;
+
+import static it.gov.pagopa.payments.logging.EventDetails.Dependency.AZURE_QUEUE_STORAGE;
+import static it.gov.pagopa.payments.logging.EventDetails.Dependency.GPD_CORE;
+import static it.gov.pagopa.payments.logging.EventDetails.DependencyOperation.*;
 
 @Service
 @Slf4j
 public class SchedulerService {
+
+    private static final LogEventWriter LOG_EVENTS = new LogEventWriter(log);
+
+    private enum Disposition { PROCESSED, RETRY_SCHEDULED, DISCARDED, DEAD_LETTERED, FAILED }
+
+    /** Per-invocation counters survive a batch abort without retaining state on the singleton. */
+    public static final class JobCounts {
+        private long processed;
+        private long retryScheduled;
+        private long discarded;
+        private long deadLettered;
+        private long failed;
+
+        private void record(Disposition disposition) {
+            switch (disposition) {
+                case PROCESSED -> processed++;
+                case RETRY_SCHEDULED -> retryScheduled++;
+                case DISCARDED -> discarded++;
+                case DEAD_LETTERED -> deadLettered++;
+                case FAILED -> failed++;
+            }
+        }
+
+        public EventDetails.JobSummary summary() {
+            return new EventDetails.JobSummary(
+                    processed, retryScheduled, discarded, deadLettered, failed);
+        }
+    }
 
 	private final Integer dequeueLimit;
 	private final Long queueReceiveInvisibilityTime;
@@ -73,28 +113,55 @@ public class SchedulerService {
 	}
 
     public void retryFailedPaSendRT() {
+        retryFailedPaSendRT(new JobCounts());
+    }
+
+    public void retryFailedPaSendRT(JobCounts counts) {
         XPathFactory xPathfactory = XPathFactory.newInstance();
         XPath xpath = xPathfactory.newXPath();
         // The message is dequeued and locked for a timeout equal to <queueReceiveInvisibilityTime> seconds
-        List<QueueMessageItem> queueList = queueClient.receiveMessages(
+        List<QueueMessageItem> queueList;
+        long started = System.nanoTime();
+        try {
+            queueList = queueClient.receiveMessages(
                 10,
                 Duration.ofSeconds(queueReceiveInvisibilityTime),
                 null,
                 Context.NONE)
                 .stream().toList();
+        } catch (RuntimeException e) {
+            FailureDiagnostics.dependencyFailure(
+                    AZURE_QUEUE_STORAGE, RECEIVE_RECEIPT_RETRIES, started, e);
+            FailureDiagnostics.technicalFailure(LOG_EVENTS, e);
+            throw e;
+        }
+        String jobRunId = MDC.get("jobRunId");
+        if (jobRunId == null) {
+            jobRunId = UUID.randomUUID().toString();
+        }
         for(QueueMessageItem message: queueList) {
-        	if (checkQueueCountValidity(message)) {
-        	    try {
-        	        handlingXml(getMessageContent(message), xpath, message);
-        	    } catch (XPathExpressionException e) {
-        	        log.error(
-        	                "[paSendRT] XML error during retry process [messageId={},popReceipt={}]",
-        	                message.getMessageId(),
-        	                message.getPopReceipt());
-        	    }
-        	} else {
-        	    moveToDeadLetter(message);
-        	}
+            try (OperationLogScope ignored = new ContextSnapshot(
+                    null, null, jobRunId, message.getMessageId(), null, null)
+                    .openOperation("retryReceipt")) {
+                try {
+                    Disposition disposition = checkQueueCountValidity(message)
+                            ? processXml(getMessageContent(message), xpath, message)
+                            : moveToDeadLetter(message);
+                    // Reconciliation can absorb a technical failure and still return a business fault.
+                    if ((disposition == Disposition.PROCESSED || disposition == Disposition.DISCARDED)
+                            && OperationLogScope.current().hasDiagnosis()) {
+                        disposition = Disposition.FAILED;
+                    }
+                    counts.record(disposition);
+                } catch (XPathExpressionException e) {
+                    counts.record(Disposition.FAILED);
+                    FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
+                } catch (RuntimeException e) {
+                    counts.record(Disposition.FAILED);
+                    FailureDiagnostics.technicalFailure(LOG_EVENTS, e);
+                    throw e;
+                }
+            }
         }
     }
 
@@ -103,6 +170,10 @@ public class SchedulerService {
     After this, the payment process is triggered with the newly created body.
      */
     public void handlingXml (String failureBody, XPath xpath, QueueMessageItem queueMessageItem) throws XPathExpressionException {
+        processXml(failureBody, xpath, queueMessageItem);
+    }
+
+    private Disposition processXml(String failureBody, XPath xpath, QueueMessageItem queueMessageItem) throws XPathExpressionException {
         Document xmlDoc = getXMLDocument(failureBody);
         XPathExpression xPathExpr = xpath.compile('/' + xmlDoc.getFirstChild().getNodeName());
         NodeList nodes = (NodeList) xPathExpr.evaluate(xmlDoc, XPathConstants.NODESET);
@@ -112,6 +183,9 @@ public class SchedulerService {
         String receiptFiscalCode = node.getElementsByTagName("fiscalCode").item(0).getTextContent();
         String creditorReferenceId = node.getElementsByTagName("creditorReferenceId").item(0).getTextContent();
         String noticeNumber = node.getElementsByTagName("noticeNumber").item(0).getTextContent();
+        if (OperationLogScope.currentOrNull() != null) {
+            OperationLogScope.current().setPaymentLogContext(noticeNumber, receiptFiscalCode);
+        }
         String paymentDateTime = node.getElementsByTagName("paymentDateTime").item(0).getTextContent();
         String receiptId = node.getElementsByTagName("receiptId").item(0).getTextContent();
         String PSPCompanyName = node.getElementsByTagName("PSPCompanyName").item(0).getTextContent();
@@ -142,6 +216,8 @@ public class SchedulerService {
                         .build();
 
         try {
+            // This retry coordinator handles Feign recovery; direct PartnerService scheduler calls
+            // outside the coordinator do not log an intended recovery.
             partnerService.getReceiptPaymentOptionScheduler(
                     noticeNumber,
                     receiptFiscalCode,
@@ -149,32 +225,59 @@ public class SchedulerService {
                     Boolean.parseBoolean(standInString),
                     body,
                     receiptEntity);
-            queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
+            deleteMessage(queueMessageItem, null);
+            LOG_EVENTS.logEvent(LogEvent.RECEIPT_PROCESSING_COMPLETED, disposition(queueMessageItem, null));
+            return Disposition.PROCESSED;
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
+            if (!(e instanceof FeignException)) {
+                FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
+            }
 
             long retryDelay =
                     calculateRetryVisibilityTimeout(
                             queueMessageItem.getDequeueCount());
 
-            log.debug(
-                    "[paSendRT] Retry failed. Next retry scheduled "
-                            + "[fiscalCode={},noticeNumber={},dequeueCount={},retryDelaySeconds={}]",
-                    receiptFiscalCode,
-                    noticeNumber,
-                    queueMessageItem.getDequeueCount(),
-                    retryDelay);
-
-            queueClient.updateMessageWithResponse(
+            long started = System.nanoTime();
+            try {
+                queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
                     queueMessageItem.getPopReceipt(),
                     receiptEntity.getDocument(),
                     Duration.ofSeconds(retryDelay),
                     null,
                     Context.NONE);
+            } catch (RuntimeException updateFailure) {
+                if (updateFailure != e) {
+                    updateFailure.addSuppressed(e);
+                }
+                FailureDiagnostics.dependencyFailure(AZURE_QUEUE_STORAGE,
+                        RESCHEDULE_RECEIPT_RETRY, started, updateFailure);
+                throw updateFailure;
+            }
+            LOG_EVENTS.logEvent(LogEvent.RECEIPT_RETRY_SCHEDULED, new EventDetails.Retry(
+                    e instanceof FeignException ? GPD_CORE : null, (int) queueMessageItem.getDequeueCount(),
+                    Duration.ofSeconds(retryDelay).toMillis(), EventDetails.Reason.RETRYABLE_FAILURE,
+                    queueMessageItem.getMessageId()));
+            if (e instanceof FeignException) {
+                FailureDiagnostics.recovered(e);
+            }
+            return Disposition.RETRY_SCHEDULED;
         } catch (PartnerValidationException e) {
             // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
-            log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), receiptFiscalCode, noticeNumber);
-            queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
+            deleteMessage(queueMessageItem, null);
+            String previousFaultCode = MDC.get("faultCode");
+            MDC.put("faultCode", e.getError().getFaultCode());
+            try {
+                LOG_EVENTS.logEvent(LogEvent.RECEIPT_PROCESSING_COMPLETED,
+                        disposition(queueMessageItem, EventDetails.Reason.BUSINESS_REJECTION));
+            } finally {
+                if (previousFaultCode == null) {
+                    MDC.remove("faultCode");
+                } else {
+                    MDC.put("faultCode", previousFaultCode);
+                }
+            }
+            return Disposition.DISCARDED;
         }
     }
     
@@ -225,11 +328,13 @@ public class SchedulerService {
             InputSource is = new InputSource(new StringReader(xmlString));
             return builder.parse(is);
         } catch (ParserConfigurationException | SAXException | IOException e) {
-            throw new AppException(AppError.UNKNOWN);
+            // UNKNOWN has a legacy null template: construction itself may fail independently.
+            FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
+            throw new AppException(AppError.UNKNOWN, e);
         }
     }
     
-    private void moveToDeadLetter(QueueMessageItem message) {
+    private Disposition moveToDeadLetter(QueueMessageItem message) {
 
         DeadLetterMessage deadLetterMessage =
                 DeadLetterMessage.builder()
@@ -248,28 +353,34 @@ public class SchedulerService {
              */
             deadLetterService.sendToDeadLetter(deadLetterMessage);
 
-            queueClient.deleteMessage(
-                    message.getMessageId(),
-                    message.getPopReceipt());
-
-            log.warn(
-                    "[paSendRT] Maximum retry attempts reached. Message moved to dead-letter storage "
-                            + "[messageId={},dequeueCount={}]",
-                    message.getMessageId(),
-                    message.getDequeueCount());
+            deleteMessage(message, EventDetails.Reason.DEAD_LETTER_PERSISTED_SOURCE_DELETE_FAILED);
+            LOG_EVENTS.logEvent(LogEvent.RECEIPT_DEAD_LETTERED,
+                    disposition(message, EventDetails.Reason.RETRY_LIMIT_EXCEEDED));
+            return Disposition.DEAD_LETTERED;
 
         } catch (RuntimeException e) {
             /*
              * Keep the message in the retry queue if dead-letter persistence fails.
              * It will become visible again after the queue visibility timeout.
              */
-            log.error(
-                    "[paSendRT] Unable to move message to dead-letter storage. "
-                            + "The message will remain in the retry queue "
-                            + "[messageId={},dequeueCount={}]",
-                    message.getMessageId(),
-                    message.getDequeueCount(),
-                    e);
+            FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
+            return Disposition.FAILED;
         }
+    }
+
+    private void deleteMessage(QueueMessageItem message, EventDetails.Reason reason) {
+        long started = System.nanoTime();
+        try {
+            queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
+        } catch (RuntimeException e) {
+            FailureDiagnostics.dependencyFailure(AZURE_QUEUE_STORAGE,
+                    DELETE_RECEIPT_RETRY, started, e, reason, message.getMessageId());
+            throw e;
+        }
+    }
+
+    private EventDetails.ReceiptDisposition disposition(QueueMessageItem message, EventDetails.Reason reason) {
+        return new EventDetails.ReceiptDisposition(
+                message.getMessageId(), (int) message.getDequeueCount(), reason);
     }
 }

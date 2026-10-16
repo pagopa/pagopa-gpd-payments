@@ -25,12 +25,12 @@ class ContextSnapshotTest {
 
   @AfterEach
   void tearDown() {
-    OperationScopeTest.restore(original);
+    OperationLogScopeTest.restore(original);
   }
 
   @Test
   void capturesOnlyReviewedImmutableIdentifiersWithoutMethodTimingOrOutcome() {
-    MDC.setContextMap(OperationScopeTest.staleContext());
+    MDC.setContextMap(OperationLogScopeTest.staleContext());
     ContextSnapshot captured = ContextSnapshot.capture();
     MDC.clear();
     captured.wrap((Runnable) () -> assertEquals(reviewedFields(), MDC.getCopyOfContextMap())).run();
@@ -45,11 +45,11 @@ class ContextSnapshotTest {
   void reusedWorkerRestoresItsExactContextAfterRunnableSuccessAndFailure() throws Exception {
     var executor = Executors.newSingleThreadExecutor();
     try {
-      Map<String, String> workerBefore = OperationScopeTest.staleContext();
+      Map<String, String> workerBefore = OperationLogScopeTest.staleContext();
       executor.submit(() -> MDC.setContextMap(workerBefore)).get();
       ContextSnapshot captured;
-      try (OperationScope operation = OperationScope.open("request", "method");
-          OperationScope payment = operation.payment("000123", "00123456789")) {
+      try (OperationLogScope operation = OperationLogScope.open("request", "method");
+          OperationLogScope payment = operation.payment("000123", "00123456789")) {
         captured = ContextSnapshot.capture();
       }
       Runnable verify = () -> {
@@ -67,7 +67,7 @@ class ContextSnapshotTest {
       assertEquals("worker failure", thrown.getCause().getMessage());
       assertEquals(workerBefore, executor.submit(MDC::getCopyOfContextMap).get());
       assertTrue(executor.submit(() -> {
-        assertThrows(IllegalStateException.class, OperationScope::current);
+        assertThrows(IllegalStateException.class, OperationLogScope::current);
         return true;
       }).get());
     } finally {
@@ -103,7 +103,7 @@ class ContextSnapshotTest {
   @Test
   void emptySnapshotDoesNotInheritWorkerIdsAndGeneratesIdsForEachExecution() {
     ContextSnapshot empty = ContextSnapshot.capture();
-    MDC.setContextMap(OperationScopeTest.staleContext());
+    MDC.setContextMap(OperationLogScopeTest.staleContext());
     String[] ids = new String[2];
     AtomicInteger calls = new AtomicInteger();
     Runnable wrapped = empty.wrap((Runnable) () -> {
@@ -115,7 +115,7 @@ class ContextSnapshotTest {
     wrapped.run();
     wrapped.run();
     assertNotEquals(ids[0], ids[1]);
-    assertEquals(OperationScopeTest.staleContext(), MDC.getCopyOfContextMap());
+    assertEquals(OperationLogScopeTest.staleContext(), MDC.getCopyOfContextMap());
   }
 
   @Test
@@ -123,7 +123,7 @@ class ContextSnapshotTest {
     ContextSnapshot snapshot = new ContextSnapshot(
         "request", "previous-operation", "job", "message", "000123", "00123456789");
     String first;
-    try (OperationScope ignored = snapshot.openOperation("processReceipt")) {
+    try (OperationLogScope ignored = snapshot.openOperation("processReceipt")) {
       first = MDC.get("operationId");
       UUID.fromString(first);
       assertNotEquals(snapshot.operationId(), first);
@@ -134,7 +134,7 @@ class ContextSnapshotTest {
       assertEquals("request", MDC.get("requestId"));
       assertEquals("processReceipt", MDC.get("method"));
     }
-    try (OperationScope ignored = snapshot.openOperation("processReceipt")) {
+    try (OperationLogScope ignored = snapshot.openOperation("processReceipt")) {
       assertNotEquals(first, MDC.get("operationId"));
     }
     assertNull(MDC.getCopyOfContextMap());
@@ -144,15 +144,19 @@ class ContextSnapshotTest {
   void synchronousWrapRestoresOuterScopeAndDoesNotShareItsDiagnosticOwnership() {
     Exception failure = new Exception("same instance");
     AtomicInteger emitted = new AtomicInteger();
-    try (OperationScope outer = OperationScope.open("request")) {
-      assertTrue(outer.diagnoseOnce(failure, emitted::incrementAndGet));
+    try (OperationLogScope outer = OperationLogScope.open("request")) {
+      outer.markHandled(failure);
+      emitted.incrementAndGet();
       ContextSnapshot snapshot = ContextSnapshot.capture();
-      Runnable task = snapshot.wrap((Runnable) () ->
-          assertTrue(OperationScope.current().diagnoseOnce(failure, emitted::incrementAndGet)));
+      Runnable task = snapshot.wrap((Runnable) () -> {
+        assertFalse(OperationLogScope.current().isHandled(failure));
+        OperationLogScope.current().markHandled(failure);
+        emitted.incrementAndGet();
+      });
       task.run();
       task.run();
-      assertSame(outer, OperationScope.current());
-      assertFalse(outer.diagnoseOnce(failure, emitted::incrementAndGet));
+      assertSame(outer, OperationLogScope.current());
+      assertTrue(outer.isHandled(failure));
     }
     assertEquals(3, emitted.get());
   }
@@ -162,16 +166,23 @@ class ContextSnapshotTest {
     var executor = Executors.newSingleThreadExecutor();
     AtomicInteger emitted = new AtomicInteger();
     Exception failure = new Exception("same instance");
-    try (OperationScope parent = OperationScope.open("request")) {
-      parent.diagnoseOnce(failure, emitted::incrementAndGet);
+    try (OperationLogScope parent = OperationLogScope.open("request")) {
+      FailureDiagnostics.dependencyFailure(EventDetails.Dependency.GPD_CORE,
+          EventDetails.DependencyOperation.GET_PAYMENT_OPTION, System.nanoTime(), failure);
+      parent.markHandled(failure);
+      emitted.incrementAndGet();
       Runnable task = ContextSnapshot.capture().wrap((Runnable) () -> {
-        OperationScope local = OperationScope.current();
-        assertTrue(local.diagnoseOnce(failure, emitted::incrementAndGet));
-        assertFalse(local.diagnoseOnce(failure, emitted::incrementAndGet));
+        OperationLogScope local = OperationLogScope.current();
+        assertNull(local.dependencyFailure(failure));
+        assertFalse(local.isHandled(failure));
+        local.markHandled(failure);
+        emitted.incrementAndGet();
+        assertTrue(local.isHandled(failure));
       });
       executor.submit(task).get();
       executor.submit(task).get();
-      assertFalse(parent.diagnoseOnce(failure, emitted::incrementAndGet));
+      assertTrue(parent.isHandled(failure));
+      assertNotNull(parent.dependencyFailure(failure));
       assertEquals(3, emitted.get());
     } finally {
       executor.shutdownNow();

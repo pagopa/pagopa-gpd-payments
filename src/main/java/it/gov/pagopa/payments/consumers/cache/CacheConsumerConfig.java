@@ -1,6 +1,9 @@
 package it.gov.pagopa.payments.consumers.cache;
 
 import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
+import it.gov.pagopa.payments.logging.OperationLogScope;
 import it.gov.pagopa.payments.service.ConfigCacheService;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +17,8 @@ import java.util.function.Consumer;
 @Configuration("CacheConsumerConfig")
 @Slf4j
 public class CacheConsumerConfig {
+
+    private static final LogEventWriter LOG_EVENTS = new LogEventWriter(log);
 
     public ConfigCacheService configCacheService;
 
@@ -29,12 +34,13 @@ public class CacheConsumerConfig {
     }
 
     public void handleCacheEvent(Message<CacheUpdateEvent> cacheEventMessage) {
-        try {
-            log.info("[ConfigCacheEventConsumer] Consume new cache event {}", cacheEventMessage);
-            configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload());
-        } catch (Exception e) {
-            log.error("[ConfigCacheEventConsumer] Exception while handleCacheEvent: ", e);
-            throw e;
+        try (OperationLogScope ignored = OperationLogScope.open(null, "handleCacheEvent")) {
+            try {
+                configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload());
+            } catch (Exception e) {
+                FailureDiagnostics.technicalFailure(LOG_EVENTS, e);
+                throw e;
+            }
         }
     }
 }

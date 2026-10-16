@@ -33,6 +33,7 @@ public sealed interface EventDetails {
 
   enum DependencyOperation {
     GET_PAYMENT_OPTION("getPaymentOption"),
+    SEND_PAYMENT_OPTION_RECEIPT("sendPaymentOptionReceipt"),
     DEMAND_PAYMENT_NOTICE("demandPaymentNotice"),
     CREATE_RECEIPT("createReceipt"),
     GET_RECEIPT("getReceipt"),

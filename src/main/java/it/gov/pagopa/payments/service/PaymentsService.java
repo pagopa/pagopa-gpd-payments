@@ -11,6 +11,11 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.logging.EventDetails;
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
+import it.gov.pagopa.payments.logging.ContextSnapshot;
+import it.gov.pagopa.payments.logging.OperationLogScope;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptModelResponse;
 import it.gov.pagopa.payments.model.*;
@@ -31,6 +36,8 @@ import java.util.*;
 @Service
 @Slf4j
 public class PaymentsService {
+
+    private static final LogEventWriter LOG_EVENTS = new LogEventWriter(log);
 
     public static final String STATUS_PROPERTY = "status";
 
@@ -60,6 +67,7 @@ public class PaymentsService {
             int pageSize,
             List<String> segCodes,
             String debtorOrIuv) {
+        enrichCreditor(organizationFiscalCode);
         try {
         	
         	String[] normalizedDateRange = normalizeDateRange(from, to);
@@ -75,14 +83,14 @@ public class PaymentsService {
             return this.setReceiptsOutput(checkedReceipts, filteredEntities.getTotalPages(), pageNum);
 
         } catch (TableServiceException e) {
-            log.error("Error in processing get organizations list", e);
-            throw new AppException(AppError.DB_ERROR, "ALL");
+            throw new AppException(AppError.DB_ERROR, e, "ALL");
         }
     }
 
     public ReceiptEntity getReceiptByOrganizationFCAndIUV(
             @NotBlank String organizationFiscalCode, @NotBlank String iuv, List<String> validSegregationCodes) {
 
+        enrichCreditor(organizationFiscalCode);
         try {
             if(validSegregationCodes != null && !validSegregationCodes.isEmpty() && iuv.length() > 1) {
                 String iuvSegregationCode = iuv.substring(0,2);
@@ -90,19 +98,34 @@ public class PaymentsService {
                     throw new AppException(AppError.FORBIDDEN_SEGREGATION_CODE, iuvSegregationCode, organizationFiscalCode, iuv);
             }
 
-            TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
+            TableEntity tableEntity = getReceiptEntity(organizationFiscalCode, iuv);
             this.checkGPDDebtPosStatus(tableEntity);
             return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
         } catch (TableServiceException e) {
             if(e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND){
-                throw new AppException(AppError.RECEIPT_NOT_FOUND, organizationFiscalCode, iuv);
+                throw new AppException(AppError.RECEIPT_NOT_FOUND, e, organizationFiscalCode, iuv);
             }
-            log.error("Error in organization table connection", e);
-            throw new AppException(AppError.DB_ERROR);
+            throw new AppException(AppError.DB_ERROR, e);
+        }
+    }
+
+    private TableEntity getReceiptEntity(String organizationFiscalCode, String iuv) {
+        long startedNanos = System.nanoTime();
+        try {
+            return tableClient.getEntity(organizationFiscalCode, iuv);
+        } catch (RuntimeException e) {
+            if (!(e instanceof TableServiceException tableFailure
+                    && tableFailure.getValue() != null
+                    && tableFailure.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND)) {
+                FailureDiagnostics.dependencyFailure(EventDetails.Dependency.AZURE_TABLE_STORAGE,
+                        EventDetails.DependencyOperation.GET_RECEIPT, startedNanos, e);
+            }
+            throw e;
         }
     }
 
     public void checkGPDDebtPosStatus(TableEntity tableEntity) {
+        enrichCreditor(tableEntity.getPartitionKey());
         try {
             Object statusProperty = tableEntity.getProperty(STATUS_PROPERTY);
             String status = statusProperty != null ? statusProperty.toString().trim() : null;
@@ -110,7 +133,7 @@ public class PaymentsService {
             // the check on GPD is necessary if the status of the receipt is different from PAID
             if (!Status.PAID.name().equalsIgnoreCase(status)) {
                 PaymentsModelResponse paymentOption =
-                        gpdClient.getPaymentOption(tableEntity.getPartitionKey(), tableEntity.getRowKey());
+                        getPaymentOption(tableEntity.getPartitionKey(), tableEntity.getRowKey());
 
                 if (paymentOption != null && paymentOption.getStatus().equals(PaymentOptionStatus.PO_UNPAID)) {
                     throw new AppException(
@@ -122,10 +145,34 @@ public class PaymentsService {
 
                 // if no exception is raised the status on GPD is correctly in PAID -> for congruence update receipt status
                 tableEntity.addProperty(STATUS_PROPERTY, Status.PAID.name());
-                tableClient.updateEntity(tableEntity);
+                updateReceiptStatus(tableEntity);
             }
         } catch (TableServiceException e) {
-            throw new AppException(AppError.DB_ERROR, "Error when updating receipt status");
+            throw new AppException(AppError.DB_ERROR, e, "Error when updating receipt status");
+        }
+    }
+
+    private PaymentsModelResponse getPaymentOption(String organizationFiscalCode, String rowKey) {
+        long startedNanos = System.nanoTime();
+        try {
+            return gpdClient.getPaymentOption(organizationFiscalCode, rowKey);
+        } catch (FeignException.NotFound e) {
+            throw e;
+        } catch (RuntimeException e) {
+            FailureDiagnostics.dependencyFailure(EventDetails.Dependency.GPD_CORE,
+                    EventDetails.DependencyOperation.GET_PAYMENT_OPTION, startedNanos, e);
+            throw e;
+        }
+    }
+
+    private void updateReceiptStatus(TableEntity tableEntity) {
+        long startedNanos = System.nanoTime();
+        try {
+            tableClient.updateEntity(tableEntity);
+        } catch (RuntimeException e) {
+            FailureDiagnostics.dependencyFailure(EventDetails.Dependency.AZURE_TABLE_STORAGE,
+                    EventDetails.DependencyOperation.UPDATE_RECEIPT_STATUS, startedNanos, e);
+            throw e;
         }
     }
     
@@ -140,15 +187,11 @@ public class PaymentsService {
                 checkedReceipts.add(
                         ConvertTableEntityToReceiptModelResponse.mapTableEntityToReceiptModelResponse(tableEntity));
             } catch (FeignException.NotFound e) {
-                log.error(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: "
-                                + "get not found exception in the recovery of payment options",
-                        e);
+                // Unknown receipts remain omitted from the list.
             } catch (AppException e) {
-                log.error(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: Receipt is not in an eligible state on"
-                                + " GPD in order to be returned to the caller",
-                        e);
+                if (e.getHttpStatus().is5xxServerError()) {
+                    FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
+                }
             }
         }
 
@@ -166,6 +209,7 @@ public class PaymentsService {
     		List<String> segCodes,
     		String debtorOrIuv) {
 
+        enrichCreditor(organizationFiscalCode);
     	List<String> filters = new ArrayList<>();
 
     	filters.add(String.format("PartitionKey eq '%s'", organizationFiscalCode));
@@ -198,28 +242,34 @@ public class PaymentsService {
     		filter = String.join(" or ", segCodesFilters);
     	}
 
-    	Iterator<PagedResponse<TableEntity>> filteredReceiptIterator = tableClient
-    			.listEntities(
-    					new ListEntitiesOptions()
-    					.setFilter(filter)
-    					.setTop(pageSize),
-    					null,
-    					null)
-    			.iterableByPage()
-    			.iterator();
+        int totalPages = 0;
+        List<TableEntity> filteredReceipts = Collections.emptyList();
+        long startedNanos = System.nanoTime();
+        try {
+            Iterator<PagedResponse<TableEntity>> filteredReceiptIterator = tableClient
+                    .listEntities(
+                            new ListEntitiesOptions()
+                                    .setFilter(filter)
+                                    .setTop(pageSize),
+                            null,
+                            null)
+                    .iterableByPage()
+                    .iterator();
 
-    	int totalPages = 0;
-    	List<TableEntity> filteredReceipts = Collections.emptyList();
+            while (filteredReceiptIterator.hasNext()) {
+                PagedResponse<TableEntity> page = filteredReceiptIterator.next();
 
-    	while (filteredReceiptIterator.hasNext()) {
-    		PagedResponse<TableEntity> page = filteredReceiptIterator.next();
+                if (totalPages == pageNum) {
+                    filteredReceipts = page.getValue();
+                }
 
-    		if (totalPages == pageNum) {
-    			filteredReceipts = page.getValue();
-    		}
-
-    		totalPages++;
-    	}
+                totalPages++;
+            }
+        } catch (RuntimeException e) {
+            FailureDiagnostics.dependencyFailure(EventDetails.Dependency.AZURE_TABLE_STORAGE,
+                    EventDetails.DependencyOperation.LIST_RECEIPTS, startedNanos, e);
+            throw e;
+        }
 
     	if (totalPages <= pageNum) {
     		throw new AppException(AppError.PAGE_NUMBER_GREATER_THAN_TOTAL_PAGES);
@@ -239,6 +289,13 @@ public class PaymentsService {
         }
 
         return false;
+    }
+
+    private static void enrichCreditor(String organizationFiscalCode) {
+        OperationLogScope scope = OperationLogScope.currentOrNull();
+        if (scope != null) {
+            scope.setPaymentLogContext(ContextSnapshot.capture().noticeNumber(), organizationFiscalCode);
+        }
     }
 
     private static String getStartsWithFilter(String field, String startsWith) {

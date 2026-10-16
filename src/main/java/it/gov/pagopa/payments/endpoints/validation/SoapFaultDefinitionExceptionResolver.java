@@ -1,28 +1,30 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
+import it.gov.pagopa.payments.logging.OperationLogScope;
 import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.server.EndpointExceptionResolver;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
-@Slf4j
-public class SoapFaultDefinitionExceptionResolver implements EndpointExceptionResolver {
+public class SoapFaultDefinitionExceptionResolver implements EndpointExceptionResolver, Ordered {
 
-  static final String TECHNICAL_ERROR_LOGGED = "soapTechnicalErrorLogged";
+  @Override
+  public int getOrder() {
+    return Ordered.HIGHEST_PRECEDENCE;
+  }
 
+  @Override
   public boolean resolveException(MessageContext messageContext, Object endpoint, Exception ex) {
 
     if (ex instanceof PartnerValidationException partnerValidationException) {
       throw partnerValidationException;
     }
-    log.error("SOAP processing failed", ex);
-    MDC.put(TECHNICAL_ERROR_LOGGED, "true");
+    OperationLogScope scope = OperationLogScope.currentOrNull();
+    if (scope != null) {
+      scope.rememberBoundaryFailure(ex);
+    }
     return false;
   }
 }

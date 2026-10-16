@@ -114,7 +114,7 @@ class SafeDiagnosticTest {
   }
 
   @Test
-  void prioritizesFirstFiveApplicationFramesInOriginalOrderAndReportsAllOmissions() {
+  void prioritizesFirstThreeApplicationFramesInOriginalOrderAndReportsAllOmissions() {
     Throwable failure = new ToStringForbiddenException();
     StackTraceElement[] original = new StackTraceElement[9];
     original[0] = frames("libraryHead")[0];
@@ -125,17 +125,19 @@ class SafeDiagnosticTest {
     failure.setStackTrace(original);
 
     String trace = SafeDiagnostic.from(failure).stackTrace();
-    assertEquals(5, frameCount(trace));
+    assertEquals(3, frameCount(trace));
     int previous = -1;
-    for (int i = 1; i <= 5; i++) {
+    for (int i = 1; i <= 3; i++) {
       int position = trace.indexOf("it.gov.pagopa.payments.Service" + i + ".call");
       assertTrue(position > previous);
       previous = position;
     }
     assertFalse(trace.contains("library"));
+    assertFalse(trace.contains("Service4"));
+    assertFalse(trace.contains("Service5"));
     assertFalse(trace.contains("Service6"));
     assertFalse(trace.contains("Service7"));
-    assertTrue(trace.contains("4 frames omitted"));
+    assertTrue(trace.contains("6 frames omitted"));
     assertArrayEquals(original, failure.getStackTrace());
   }
 
@@ -157,7 +159,7 @@ class SafeDiagnosticTest {
   }
 
   @Test
-  void fallsBackToFirstFiveOriginalFramesWithoutMatchingNeighborPackages() {
+  void fallsBackToFirstThreeOriginalFramesWithoutMatchingNeighborPackages() {
     Throwable failure = new ToStringForbiddenException();
     StackTraceElement[] original = new StackTraceElement[7];
     for (int i = 0; i < original.length; i++) {
@@ -166,13 +168,14 @@ class SafeDiagnosticTest {
     failure.setStackTrace(original);
 
     String trace = SafeDiagnostic.from(failure).stackTrace();
-    assertEquals(5, frameCount(trace));
-    for (int i = 0; i < 5; i++) {
+    assertEquals(3, frameCount(trace));
+    for (int i = 0; i < 3; i++) {
       assertTrue(trace.contains(original[i].toString()));
     }
-    assertFalse(trace.contains("Library5"));
-    assertFalse(trace.contains("Library6"));
-    assertTrue(trace.contains("2 frames omitted"));
+    for (int i = 3; i < original.length; i++) {
+      assertFalse(trace.contains("Library" + i));
+    }
+    assertTrue(trace.contains("4 frames omitted"));
   }
 
   @Test
@@ -194,7 +197,7 @@ class SafeDiagnosticTest {
     assertTrue(trace.contains("example.deepest.call"));
     assertFalse(trace.contains("Suppressed: "));
     assertTrue(trace.contains("5 exceptions omitted"));
-    assertTrue(frameCount(trace) <= 15);
+    assertTrue(frameCount(trace) <= 9);
   }
 
   @Test
@@ -233,8 +236,8 @@ class SafeDiagnosticTest {
     assertTrue(trace.contains("1998 exceptions omitted"));
     assertTrue(trace.contains("[CIRCULAR/SHARED REFERENCE omitted]"));
     assertFalse(trace.contains("\t\t"));
-    assertTrue(frameCount(trace) <= 15);
-    assertTrue(trace.lines().count() <= 23);
+    assertTrue(frameCount(trace) <= 9);
+    assertTrue(trace.lines().count() <= 17);
   }
 
   @Test
@@ -258,18 +261,18 @@ class SafeDiagnosticTest {
   }
 
   @Test
-  void emptyAndExactlyFiveFramesDoNotClaimOmissions() {
+  void emptyAndExactlyThreeFramesDoNotClaimOmissions() {
     Throwable failure = new ToStringForbiddenException();
     failure.setStackTrace(new StackTraceElement[0]);
     assertEquals(failure.getClass().getName() + "\n",
         SafeDiagnostic.from(failure).stackTrace());
-    StackTraceElement[] five = new StackTraceElement[5];
-    for (int i = 0; i < five.length; i++) {
-      five[i] = frames("it.gov.pagopa.payments.Service", i)[0];
+    StackTraceElement[] three = new StackTraceElement[3];
+    for (int i = 0; i < three.length; i++) {
+      three[i] = frames("it.gov.pagopa.payments.Service", i)[0];
     }
-    failure.setStackTrace(five);
+    failure.setStackTrace(three);
     String trace = SafeDiagnostic.from(failure).stackTrace();
-    assertEquals(5, frameCount(trace));
+    assertEquals(3, frameCount(trace));
     assertFalse(trace.contains("omitted"));
   }
 

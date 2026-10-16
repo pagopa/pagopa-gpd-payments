@@ -1,9 +1,10 @@
-package it.gov.pagopa.payments.logging;
+package it.gov.pagopa.payments.logging.helper;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.gov.pagopa.payments.logging.EventDetails;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;

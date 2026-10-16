@@ -23,7 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
-class EventWriterTest {
+class LogEventWriterTest {
   private final LoggerContext context = new LoggerContext();
   private final ListAppender<ILoggingEvent> appender = new ListAppender<>() {
     @Override
@@ -34,7 +34,7 @@ class EventWriterTest {
   };
   private Map<String, String> originalContext;
   private Logger logger;
-  private EventWriter writer;
+  private LogEventWriter writer;
 
   @BeforeEach
   void setUp() {
@@ -46,7 +46,7 @@ class EventWriterTest {
     appender.setContext(context);
     appender.start();
     logger.addAppender(appender);
-    writer = new EventWriter(logger);
+    writer = new LogEventWriter(logger);
   }
 
   @AfterEach
@@ -56,6 +56,44 @@ class EventWriterTest {
       MDC.clear();
     } else {
       MDC.setContextMap(originalContext);
+    }
+  }
+
+  @Test
+  void bothHttpSummariesAttachArgsOnlyDuringEmissionAndRestorePriorMdc() {
+    for (LogEvent summary : List.of(
+        LogEvent.SOAP_OPERATION_COMPLETED, LogEvent.REST_OPERATION_COMPLETED)) {
+      try (OperationLogScope scope = ContextSnapshot.capture().openOperation("operation")) {
+        scope.summaryArgs("{\"approved\":\"0001\"}");
+        MDC.put("args", "previous");
+        Map<String, String> previous = MDC.getCopyOfContextMap();
+        writer.technicalFailure();
+        assertNull(last().getMDCPropertyMap().get("args"));
+        assertEquals(previous, MDC.getCopyOfContextMap());
+        writer.logEvent(summary);
+        assertEquals("{\"approved\":\"0001\"}", last().getMDCPropertyMap().get("args"));
+        assertEquals(previous, MDC.getCopyOfContextMap());
+        scope.summaryArgs(null);
+        writer.logEvent(summary);
+        assertNull(last().getMDCPropertyMap().get("args"));
+        assertEquals(previous, MDC.getCopyOfContextMap());
+      }
+    }
+  }
+
+  @Test
+  void summaryArgsRestoreMdcWhenTheLoggerThrows() {
+    org.slf4j.Logger failingLogger = mock(org.slf4j.Logger.class);
+    when(failingLogger.isInfoEnabled()).thenReturn(true);
+    RuntimeException failure = new IllegalStateException("logging failed");
+    doThrow(failure).when(failingLogger).info("REST operation completed");
+    try (OperationLogScope scope = OperationLogScope.open("request", "operation")) {
+      scope.summaryArgs("{\"iuv\":\"0001\"}");
+      MDC.put("args", "previous");
+      Map<String, String> previous = MDC.getCopyOfContextMap();
+      assertSame(failure, assertThrows(RuntimeException.class,
+          () -> new LogEventWriter(failingLogger).logEvent(LogEvent.REST_OPERATION_COMPLETED)));
+      assertEquals(previous, MDC.getCopyOfContextMap());
     }
   }
 
@@ -90,9 +128,9 @@ class EventWriterTest {
         writer.technicalFailure(new IOException("secret"));
       } else if (event == LogEvent.DEPENDENCY_CALL_FAILED) {
         writer.dependencyFailed(dependency(EventDetails.Outcome.KO),
-            EventWriter.FailureDisposition.TERMINAL, new IOException("secret"));
+            LogEventWriter.FailureDisposition.TERMINAL, new IOException("secret"));
       } else {
-        writer.emit(event);
+        writer.logEvent(event);
       }
       ILoggingEvent logged = last();
       assertEquals(event.defaultLevel().name(), logged.getLevel().toString());
@@ -107,10 +145,10 @@ class EventWriterTest {
   @Test
   void dependencyFailuresHaveOnlyControlledRecoverableAndTerminalSeverities() {
     writer.dependencyFailed(dependency(EventDetails.Outcome.KO),
-        EventWriter.FailureDisposition.RECOVERABLE, new IOException("secret"));
+        LogEventWriter.FailureDisposition.RECOVERABLE, new IOException("secret"));
     assertEquals(Level.WARN, last().getLevel());
     writer.dependencyFailed(dependency(EventDetails.Outcome.KO),
-        EventWriter.FailureDisposition.TERMINAL, new IOException("secret"));
+        LogEventWriter.FailureDisposition.TERMINAL, new IOException("secret"));
     assertEquals(Level.ERROR, last().getLevel());
     assertEquals("secret", last().getMDCPropertyMap().get("error.message"));
   }
@@ -137,9 +175,9 @@ class EventWriterTest {
     Map<String, String> before = previousContext();
     MDC.setContextMap(before);
     writer.dependencyFailed(dependency(EventDetails.Outcome.KO),
-        EventWriter.FailureDisposition.RECOVERABLE, new IOException("secret"));
+        LogEventWriter.FailureDisposition.RECOVERABLE, new IOException("secret"));
     assertTrue(last().getMDCPropertyMap().containsKey("ctx_details"));
-    writer.emit(LogEvent.SOAP_OPERATION_COMPLETED);
+    writer.logEvent(LogEvent.SOAP_OPERATION_COMPLETED);
     Map<String, String> summary = last().getMDCPropertyMap();
     for (String key : new String[] {
         "ctx_details", "error.type", "error.message", "error.stack_trace", "soapTechnicalErrorLogged"}) {
@@ -158,7 +196,7 @@ class EventWriterTest {
     MDC.setContextMap(before);
 
     assertSame(failure, assertThrows(RuntimeException.class,
-        () -> new EventWriter(failingLogger).technicalFailure(new IOException("secret"))));
+        () -> new LogEventWriter(failingLogger).technicalFailure(new IOException("secret"))));
     assertEquals(before, MDC.getCopyOfContextMap());
   }
 
@@ -218,18 +256,18 @@ class EventWriterTest {
     MDC.setContextMap(before);
     var retry = new EventDetails.Retry(null, 2, null, null, null);
     assertThrows(IllegalArgumentException.class,
-        () -> writer.emit(LogEvent.SOAP_OPERATION_COMPLETED, retry));
+        () -> writer.logEvent(LogEvent.SOAP_OPERATION_COMPLETED, retry));
     assertThrows(IllegalArgumentException.class,
-        () -> writer.emit(LogEvent.SCHEDULED_JOB_COMPLETED, retry));
+        () -> writer.logEvent(LogEvent.SCHEDULED_JOB_COMPLETED, retry));
     assertThrows(IllegalArgumentException.class,
-        () -> writer.emit(LogEvent.DEPENDENCY_CALL_FAILED));
+        () -> writer.logEvent(LogEvent.DEPENDENCY_CALL_FAILED));
     assertThrows(IllegalArgumentException.class,
-        () -> writer.emit(LogEvent.OPERATION_TECHNICAL_FAILED));
+        () -> writer.logEvent(LogEvent.OPERATION_TECHNICAL_FAILED));
     assertThrows(IllegalArgumentException.class,
-        () -> writer.emit(LogEvent.DEPENDENCY_CALL_COMPLETED, dependency(EventDetails.Outcome.KO)));
+        () -> writer.logEvent(LogEvent.DEPENDENCY_CALL_COMPLETED, dependency(EventDetails.Outcome.KO)));
     assertThrows(IllegalArgumentException.class,
         () -> writer.dependencyFailed(dependency(EventDetails.Outcome.OK),
-            EventWriter.FailureDisposition.TERMINAL, new IOException("secret")));
+            LogEventWriter.FailureDisposition.TERMINAL, new IOException("secret")));
     assertEquals(before, MDC.getCopyOfContextMap());
     assertTrue(appender.list.isEmpty());
   }
@@ -245,7 +283,7 @@ class EventWriterTest {
     Throwable root = new IllegalStateException(rootMessage, new IOException(causeMessage));
     root.addSuppressed(new IllegalArgumentException(suppressedMessage));
     writer.dependencyFailed(dependency(EventDetails.Outcome.KO),
-        EventWriter.FailureDisposition.TERMINAL, root);
+        LogEventWriter.FailureDisposition.TERMINAL, root);
 
     String encoded = encode(last());
     ObjectMapper mapper = new ObjectMapper()
@@ -261,7 +299,7 @@ class EventWriterTest {
     assertTrue(trace.contains(
         "Suppressed: java.lang.IllegalArgumentException: " + suppressedMessage + "\n"));
     assertEquals(last().getMDCPropertyMap().get("error.stack_trace"), trace);
-    assertTrue(trace.contains("EventWriterTest.java:"));
+    assertTrue(trace.contains("LogEventWriterTest.java:"));
     assertTrue(json.get("ctx_details").isTextual());
     JsonNode details = mapper.readTree(json.get("ctx_details").textValue());
     assertEquals("KO", details.get("dependencyOutcome").textValue());
@@ -315,14 +353,14 @@ class EventWriterTest {
     assertFalse(trace.contains("omitted cause message"));
     assertFalse(trace.contains("omitted suppressed message"));
     assertEquals(3, trace.lines().filter(line -> !line.startsWith("\t")).count());
-    assertEquals(11, trace.lines().filter(line -> line.startsWith("\tat ")).count());
-    assertEquals(2, trace.lines().filter(line -> line.contains("3 frames omitted")).count());
+    assertEquals(7, trace.lines().filter(line -> line.startsWith("\tat ")).count());
+    assertEquals(2, trace.lines().filter(line -> line.contains("5 frames omitted")).count());
     assertTrue(trace.contains("2 exceptions omitted"));
     assertTrue(trace.contains("it.gov.pagopa.payments.Root.call(Root.java:42)"));
     assertFalse(trace.contains("library.Client"));
     assertFalse(trace.contains("Service7"));
     assertFalse(trace.contains("SafeDiagnostic"));
-    assertFalse(trace.contains("EventWriter.java"));
+    assertFalse(trace.contains("LogEventWriter.java"));
     assertSame(first, failure.getCause());
     assertArrayEquals(original, failure.getStackTrace());
     assertNull(last().getThrowableProxy());
@@ -378,7 +416,7 @@ class EventWriterTest {
     failure.setStackTrace(new StackTraceElement[0]);
 
     writer.dependencyFailed(dependency(EventDetails.Outcome.KO),
-        EventWriter.FailureDisposition.RECOVERABLE, failure);
+        LogEventWriter.FailureDisposition.RECOVERABLE, failure);
     String encoded = encode(last());
     JsonNode json = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
         .readTree(encoded);
@@ -403,7 +441,7 @@ class EventWriterTest {
   @Test
   void realEcsEncoderOmitsEmptyDetailsAndDiagnosticFieldsOnSummary() throws Exception {
     MDC.setContextMap(previousContext());
-    writer.emit(LogEvent.RECEIPT_PROCESSING_COMPLETED,
+    writer.logEvent(LogEvent.RECEIPT_PROCESSING_COMPLETED,
         new EventDetails.ReceiptDisposition(null, null, null));
     JsonNode json = new ObjectMapper().readTree(encode(last()));
     assertFalse(json.has("ctx_details"));
@@ -426,7 +464,7 @@ class EventWriterTest {
     }).when(nestedLogger).info("REST operation completed");
     Map<String, String> before = previousContext();
     MDC.setContextMap(before);
-    new EventWriter(nestedLogger).emit(LogEvent.REST_OPERATION_COMPLETED);
+    new LogEventWriter(nestedLogger).logEvent(LogEvent.REST_OPERATION_COMPLETED);
     assertEquals(before, MDC.getCopyOfContextMap());
   }
 

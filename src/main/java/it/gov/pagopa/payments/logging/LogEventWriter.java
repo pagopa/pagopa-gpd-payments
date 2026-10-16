@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.logging;
 
+import it.gov.pagopa.payments.logging.helper.EventDetailsJson;
 import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -7,26 +8,26 @@ import org.slf4j.MDC;
 import org.slf4j.event.Level;
 
 /**
- * Event-local writer; not a Spring bean and not installed on any production path.
+ * Event-local writer, independent of Spring.
  * The supplied logger retains the emitting class's identity and level configuration.
  */
-public final class EventWriter {
+public final class LogEventWriter {
   public enum FailureDisposition {
     RECOVERABLE, TERMINAL
   }
 
   private final Logger logger;
 
-  public EventWriter(Logger logger) {
+  public LogEventWriter(Logger logger) {
     this.logger = Objects.requireNonNull(logger, "logger");
   }
 
-  public void emit(LogEvent event) {
-    emit(event, null);
+  public void logEvent(LogEvent event) {
+    logEvent(event, null);
   }
 
   /** Emits a catalog event without a throwable, rejecting unapproved detail types. */
-  public void emit(LogEvent event, EventDetails details) {
+  public void logEvent(LogEvent event, EventDetails details) {
     Objects.requireNonNull(event, "event");
     if (event == LogEvent.DEPENDENCY_CALL_FAILED || event == LogEvent.OPERATION_TECHNICAL_FAILED) {
       throw new IllegalArgumentException("Use the dedicated technical failure methods");
@@ -64,6 +65,21 @@ public final class EventWriter {
         Objects.requireNonNull(failure, "failure"));
   }
 
+  /** A returned system fault is technical even when there is no local exception to render. */
+  public void technicalFailure() {
+    write(LogEvent.OPERATION_TECHNICAL_FAILED, null,
+        LogEvent.OPERATION_TECHNICAL_FAILED.defaultLevel(), null);
+  }
+
+  /** Successful empty polling is intentionally quieter than a nonempty or failed run. */
+  public void jobCompleted(EventDetails.JobSummary summary, boolean failed) {
+    boolean empty = summary.processedCount() == 0 && summary.retryScheduledCount() == 0
+        && summary.discardedCount() == 0 && summary.deadLetteredCount() == 0
+        && summary.failedCount() == 0;
+    write(LogEvent.SCHEDULED_JOB_COMPLETED, summary,
+        empty && !failed ? Level.DEBUG : Level.INFO, null);
+  }
+
   private void write(LogEvent event, EventDetails details, Level level, Throwable failure) {
     if (!event.accepts(details)) {
       throw new IllegalArgumentException("Detail type is not approved for " + event.code());
@@ -75,6 +91,14 @@ public final class EventWriter {
     Map<String, String> previous = MDC.getCopyOfContextMap();
     try {
       MDC.put("event.code", event.code());
+      MDC.remove("args");
+      if ((event == LogEvent.SOAP_OPERATION_COMPLETED || event == LogEvent.REST_OPERATION_COMPLETED)
+          && OperationLogScope.currentOrNull() != null) {
+        String args = OperationLogScope.current().summaryArgs();
+        if (args != null) {
+          MDC.put("args", args);
+        }
+      }
       MDC.remove("ctx_details");
       MDC.remove("error.type");
       MDC.remove("error.message");

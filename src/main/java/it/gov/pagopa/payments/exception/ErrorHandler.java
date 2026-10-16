@@ -1,10 +1,14 @@
 package it.gov.pagopa.payments.exception;
 
 import it.gov.pagopa.payments.model.ProblemJson;
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
+import it.gov.pagopa.payments.logging.OperationLogScope;
 import java.util.ArrayList;
 import java.util.List;
 import javax.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
@@ -24,6 +28,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @ControllerAdvice
 @Slf4j
 public class ErrorHandler extends ResponseEntityExceptionHandler {
+  private static final LogEventWriter LOG_EVENTS = new LogEventWriter(log);
 
   public static final String INTERNAL_SERVER_ERROR = "INTERNAL SERVER ERROR";
   public static final String BAD_REQUEST = "BAD REQUEST";
@@ -44,7 +49,6 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatus status,
       WebRequest request) {
-    log.warn("Input not readable: ", ex);
     return generateErrorResponse(ex.getMessage());
   }
 
@@ -63,7 +67,6 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatus status,
       WebRequest request) {
-    log.warn("Missing request parameter: ", ex);
     return generateErrorResponse(ex.getMessage());
   }
 
@@ -79,7 +82,6 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   @Override
   protected ResponseEntity<Object> handleTypeMismatch(
       TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-    log.warn("Type mismatch: ", ex);
     return generateErrorResponse(
         String.format(
             "Invalid value %s for property %s",
@@ -106,7 +108,6 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
       details.add(error.getField() + ": " + error.getDefaultMessage());
     }
     var detailsMessage = String.join(", ", details);
-    log.warn("Input not valid: " + detailsMessage);
     return generateErrorResponse(detailsMessage);
   }
 
@@ -122,7 +123,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
     ProblemJson errorResponse = null;
 
     if (ex.getCause() instanceof ConstraintViolationException) {
-      log.warn("Constraint violation from Database", ex);
+      fault("Conflict with the current state of the resource");
       errorResponse =
           ProblemJson.builder()
               .status(HttpStatus.CONFLICT.value())
@@ -133,7 +134,8 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
 
     // default response
     if (errorResponse == null) {
-      log.warn("Data Integrity Violation", ex);
+      technicalFailure(ex);
+      fault(INTERNAL_SERVER_ERROR);
       errorResponse =
           ProblemJson.builder()
               .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -156,14 +158,10 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<ProblemJson> handleAppException(
       final AppException ex, final WebRequest request) {
 
-    if (ex.getCause() != null) {
-      log.warn(
-            "App Exception raised: " + ex.getMessage() + "\nCause of the App Exception: ",
-            ex.getCause());
-    } else {
-      if (ex.getHttpStatus() != HttpStatus.NOT_FOUND)
-        log.warn("App Exception raised: " + ex.getMessage());
+    if (ex.getHttpStatus().is5xxServerError()) {
+      technicalFailure(ex);
     }
+    fault(ex.getTitle());
 
     var errorResponse =
         ProblemJson.builder()
@@ -184,7 +182,8 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler({Exception.class})
   public ResponseEntity<ProblemJson> handleGenericException(
       final Exception ex, final WebRequest request) {
-    log.error("Generic Exception raised:", ex);
+    technicalFailure(ex);
+    fault(INTERNAL_SERVER_ERROR);
     var errorResponse =
         ProblemJson.builder()
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -196,10 +195,25 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(ConstraintViolationException.class)
   protected ResponseEntity<String> handleConstraintViolationError(final ConstraintViolationException exception) {
+    fault(BAD_REQUEST);
     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
   }
 
+  private static void technicalFailure(Throwable failure) {
+    FailureDiagnostics.technicalFailure(LOG_EVENTS, failure);
+  }
+
+  private static void fault(String title) {
+    if (OperationLogScope.currentOrNull() == null) {
+      return;
+    }
+    if (title != null) {
+      MDC.put("faultCode", title);
+    }
+  }
+
   private ResponseEntity<Object> generateErrorResponse(String errorMsg) {
+    fault(BAD_REQUEST);
     var errorResponse =
         ProblemJson.builder()
             .status(HttpStatus.BAD_REQUEST.value())

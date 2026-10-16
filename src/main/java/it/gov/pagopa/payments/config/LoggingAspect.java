@@ -1,23 +1,17 @@
 package it.gov.pagopa.payments.config;
 
-import it.gov.pagopa.payments.exception.AppError;
-import it.gov.pagopa.payments.model.ProblemJson;
-import java.util.Optional;
-import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 @Aspect
@@ -58,11 +52,6 @@ public class LoggingAspect {
     this.httpResponse = httpResponse;
   }
 
-  @Pointcut("@within(org.springframework.web.bind.annotation.RestController)")
-  public void restController() {
-    // all rest controllers
-  }
-
   @Pointcut("@within(org.springframework.ws.server.endpoint.annotation.Endpoint)")
   public void endpointClass() {
     // all rest controllers
@@ -84,48 +73,10 @@ public class LoggingAspect {
     log.info("-> Starting {} version {} - environment {}", name, version, environment);
   }
 
-  @Around(value = "restController()")
-  public Object logApiInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
-    MDC.put(METHOD, joinPoint.getSignature().getName());
-    MDC.put(START_TIME, String.valueOf(System.currentTimeMillis()));
-    MDC.put(OPERATION_ID, UUID.randomUUID().toString());
-    if (MDC.get(REQUEST_ID) == null) {
-      var requestId = UUID.randomUUID().toString();
-      MDC.put(REQUEST_ID, requestId);
-    }
-    MDC.remove(ARGS);
-    MDC.remove(FAULT_DETAIL);
-
-    log.debug("Invoking API operation");
-
-    Object result = joinPoint.proceed();
-
-    MDC.put(STATUS, STATUS_OK);
-    MDC.put(CODE, String.valueOf(httpResponse.getStatus()));
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    log.info("Successful API operation");
-    MDC.remove(STATUS);
-    MDC.remove(CODE);
-    MDC.remove(RESPONSE_TIME);
-    MDC.remove(START_TIME);
-    return result;
-  }
-
   @Before(value = "endpointClass()")
   public void logSoapEndpointInvocation(JoinPoint joinPoint) {
     MDC.remove(ARGS);
     log.debug("Invoking SOAP operation");
-  }
-
-  @AfterReturning(value = "execution(* *..exception.ErrorHandler.*(..))", returning = "result")
-  public void trowingApiInvocation(JoinPoint joinPoint, ResponseEntity<ProblemJson> result) {
-    MDC.put(STATUS, STATUS_KO);
-    MDC.put(CODE, String.valueOf(result.getStatusCode().value()));
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    MDC.put(FAULT_CODE, getTitle(result));
-    MDC.remove(FAULT_DETAIL);
-    log.info("Failed API operation");
-    MDC.clear();
   }
 
   @Around(value = "repository() || service()")
@@ -134,13 +85,6 @@ public class LoggingAspect {
     Object result = joinPoint.proceed();
     log.debug("Return method {}", joinPoint.getSignature().toShortString());
     return result;
-  }
-
-  private static String getTitle(ResponseEntity<ProblemJson> result) {
-    return Optional.ofNullable(result)
-        .map(ResponseEntity::getBody)
-        .map(ProblemJson::getTitle)
-        .orElseGet(AppError.UNKNOWN::getTitle);
   }
 
   public static String getExecutionTime() {
