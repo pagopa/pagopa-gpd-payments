@@ -36,6 +36,12 @@ public class AppException extends RuntimeException {
     this.title = appError.title;
   }
 
+  public AppException(@NotNull AppError appError, Throwable cause, Object... args) {
+    super(formatDetails(appError, args), cause);
+    this.httpStatus = appError.httpStatus;
+    this.title = appError.title;
+  }
+
   private static String formatDetails(AppError appError, Object[] args) {
     return String.format(appError.details, args);
   }

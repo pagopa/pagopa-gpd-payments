@@ -8,6 +8,8 @@ import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT_V2;
 import static it.gov.pagopa.payments.utils.SoapActions.PA_VERIFY_PAYMENT_NOTICE;
 
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
+import it.gov.pagopa.payments.logging.OperationLogScope;
+import it.gov.pagopa.payments.logging.RequestArgs;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
 import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeRequest;
 import it.gov.pagopa.payments.model.partner.PaDemandPaymentNoticeResponse;
@@ -50,6 +52,10 @@ public class PartnerEndpoint {
   public JAXBElement<PaVerifyPaymentNoticeRes> paVerifyPaymentNotice(
       @RequestPayload JAXBElement<PaVerifyPaymentNoticeReq> request)
       throws DatatypeConfigurationException, PartnerValidationException {
+    var value = request.getValue();
+    summaryArgs(RequestArgs.paVerifyPaymentNotice(value));
+    payment(PA_VERIFY_PAYMENT_NOTICE,
+        value.getQrCode() == null ? null : value.getQrCode().getNoticeNumber(), value.getIdPA());
     return factory.createPaVerifyPaymentNoticeRes(
         partnerService.paVerifyPaymentNotice(request.getValue(), CommonUtil.getServiceType()));
   }
@@ -60,6 +66,10 @@ public class PartnerEndpoint {
   public JAXBElement<PaGetPaymentRes> paGetPayment(
       @RequestPayload JAXBElement<PaGetPaymentReq> request)
       throws PartnerValidationException, DatatypeConfigurationException {
+    var value = request.getValue();
+    summaryArgs(RequestArgs.paGetPayment(value));
+    payment(PA_GET_PAYMENT,
+        value.getQrCode() == null ? null : value.getQrCode().getNoticeNumber(), value.getIdPA());
     return factory.createPaGetPaymentRes(
         partnerService.paGetPayment(request.getValue(), CommonUtil.getServiceType()));
   }
@@ -70,6 +80,10 @@ public class PartnerEndpoint {
   public JAXBElement<PaGetPaymentV2Response> paGetPaymentV2(
       @RequestPayload JAXBElement<PaGetPaymentV2Request> request)
       throws PartnerValidationException, DatatypeConfigurationException {
+    var value = request.getValue();
+    summaryArgs(RequestArgs.paGetPaymentV2(value));
+    payment(PA_GET_PAYMENT_V2,
+        value.getQrCode() == null ? null : value.getQrCode().getNoticeNumber(), value.getIdPA());
     return factory.createPaGetPaymentV2Response(
         partnerService.paGetPaymentV2(request.getValue(), CommonUtil.getServiceType()));
   }
@@ -78,6 +92,10 @@ public class PartnerEndpoint {
   @PayloadRoot(localPart = "paSendRTReq")
   @ResponsePayload
   public JAXBElement<PaSendRTRes> paSendRT(@RequestPayload JAXBElement<PaSendRTReq> request) {
+    var receipt = request.getValue().getReceipt();
+    payment(PA_SEND_RT, receipt == null ? null : receipt.getNoticeNumber(),
+        receipt == null ? null : receipt.getFiscalCode());
+    summaryArgs(RequestArgs.paSendRT(request.getValue()));
     return factory.createPaSendRTRes(partnerService.paSendRT(request.getValue()));
   }
 
@@ -86,6 +104,10 @@ public class PartnerEndpoint {
   @ResponsePayload
   public JAXBElement<PaSendRTV2Response> paSendRTV2(
       @RequestPayload JAXBElement<PaSendRTV2Request> request) {
+    var receipt = request.getValue().getReceipt();
+    payment(PA_SEND_RT_V2, receipt == null ? null : receipt.getNoticeNumber(),
+        receipt == null ? null : receipt.getFiscalCode());
+    summaryArgs(RequestArgs.paSendRTV2(request.getValue()));
     return factory.createPaSendRTV2Response(partnerService.paSendRTV2(request.getValue()));
   }
 
@@ -94,7 +116,22 @@ public class PartnerEndpoint {
   @ResponsePayload
   public JAXBElement<PaDemandPaymentNoticeResponse> paDemandPaymentNotice(
       @RequestPayload JAXBElement<PaDemandPaymentNoticeRequest> request) {
+    summaryArgs(RequestArgs.paDemandPaymentNotice(request.getValue()));
+    payment(PA_DEMAND_PAYMENT_NOTICE, null, request.getValue().getIdPA());
     return factory.createPaDemandPaymentNoticeResponse(
         partnerService.paDemandPaymentNotice(request.getValue()));
+  }
+
+  private static void summaryArgs(String args) {
+    if (OperationLogScope.currentOrNull() != null) {
+      OperationLogScope.current().summaryArgs(args);
+    }
+  }
+
+  private static void payment(String method, String noticeNumber, String creditorFiscalCode) {
+    if (OperationLogScope.currentOrNull() != null) {
+      org.slf4j.MDC.put("method", method);
+      OperationLogScope.current().setPaymentLogContext(noticeNumber, creditorFiscalCode);
+    }
   }
 }

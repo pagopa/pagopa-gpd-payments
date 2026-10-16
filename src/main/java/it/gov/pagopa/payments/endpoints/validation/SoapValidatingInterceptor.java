@@ -1,20 +1,28 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
+import it.gov.pagopa.payments.config.LoggingAspect;
+import it.gov.pagopa.payments.logging.EventDetails;
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.LogEvent;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Locale;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
+import javax.xml.transform.dom.DOMSource;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
 import org.springframework.ws.soap.server.endpoint.interceptor.PayloadValidatingInterceptor;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
@@ -23,6 +31,9 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
 
   private static final String SOAP_PREFIX = "soapenv";
   private static final String EXCLUDED_PRIMITIVES = "paDemandPaymentNoticeResponse";
+  private final LogEventWriter logEvents = new LogEventWriter(log);
+  private static final Pattern XSD_ERROR_KEY =
+      Pattern.compile("^((?:cvc|s4s|src|cos|sch-props|schema_reference|wf)-[A-Za-z0-9_.-]+):");
   private final List<String> amountNodeElements =
       List.of("paymentAmount", "amount", "transferAmount");
 
@@ -31,18 +42,16 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       MessageContext messageContext, SAXParseException[] errors) {
 
     if (errors.length > 0) {
-      String validationErrorsString =
-          Arrays.stream(errors)
-              .map(
-                  error ->
-                      "["
-                          + error.getLineNumber()
-                          + ","
-                          + error.getColumnNumber()
-                          + "]: "
-                          + error.getMessage())
-              .collect(Collectors.joining(" -- "));
-      log.error(validationErrorsString);
+      var validationErrors = new ArrayList<EventDetails.ValidationError>();
+      for (var error : errors) {
+        var matcher =
+            XSD_ERROR_KEY.matcher(error.getMessage() == null ? "" : error.getMessage());
+        validationErrors.add(new EventDetails.ValidationError(
+            error.getLineNumber(), error.getColumnNumber(),
+            matcher.find() ? matcher.group(1) : "invalid-xml"));
+      }
+      logEvents.logEvent(LogEvent.SOAP_REQUEST_VALIDATION_FAILED,
+          new EventDetails.Validation(validationErrors));
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }
     return true;
@@ -55,6 +64,83 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
     SaajSoapMessage soapResponse = (SaajSoapMessage) messageContext.getResponse();
     alterSoapEnvelope(soapResponse);
     return super.handleResponse(messageContext, endpoint);
+  }
+
+  @Override
+  public void afterCompletion(MessageContext messageContext, Object endpoint, Exception exception) {
+    clearResponseMetadata();
+    // Read the final response, not an intermediate payload that validation may replace.
+    if (exception == null
+        && messageContext.hasResponse()
+        && messageContext.getResponse() instanceof SaajSoapMessage soapResponse) {
+      DOMSource body = (DOMSource) soapResponse.getSoapBody().getSource();
+      recordResponseOutcome(body.getNode());
+    }
+  }
+
+  static void recordResponseOutcome(Node body) {
+    clearResponseMetadata();
+    if (body == null) {
+      return;
+    }
+    if (body.getNodeType() == Node.DOCUMENT_NODE) {
+      body = firstElement(body);
+    }
+    if (body == null) {
+      return;
+    }
+    Node result = "Body".equals(localName(body)) ? firstElement(body) : body;
+    if (result == null) {
+      return;
+    }
+    for (Node child = result.getFirstChild(); child != null; child = child.getNextSibling()) {
+      if (child.getNodeType() != Node.ELEMENT_NODE) {
+        continue;
+      }
+      if ("outcome".equals(localName(child)) && firstElement(child) == null) {
+        String outcome = child.getTextContent().strip();
+        if (LoggingAspect.STATUS_OK.equals(outcome) || LoggingAspect.STATUS_KO.equals(outcome)) {
+          MDC.put(LoggingAspect.SOAP_OUTCOME, outcome);
+        }
+      } else if ("fault".equals(localName(child))) {
+        for (Node code = child.getFirstChild(); code != null; code = code.getNextSibling()) {
+          if (code.getNodeType() == Node.ELEMENT_NODE
+              && "faultCode".equals(localName(code))
+              && firstElement(code) == null) {
+            String faultCode = code.getTextContent().strip();
+            if (!faultCode.isEmpty()) {
+              MDC.put(LoggingAspect.FAULT_CODE, faultCode);
+              MDC.put(LoggingAspect.ERROR_CODE, faultCode);
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  static void clearResponseMetadata() {
+    MDC.remove(LoggingAspect.SOAP_OUTCOME);
+    MDC.remove(LoggingAspect.FAULT_CODE);
+    MDC.remove(LoggingAspect.ERROR_CODE);
+    MDC.remove(LoggingAspect.FAULT_DETAIL);
+  }
+
+  private static Node firstElement(Node parent) {
+    for (Node child = parent.getFirstChild(); child != null; child = child.getNextSibling()) {
+      if (child.getNodeType() == Node.ELEMENT_NODE) {
+        return child;
+      }
+    }
+    return null;
+  }
+
+  private static String localName(Node node) {
+    if (node.getLocalName() != null) {
+      return node.getLocalName();
+    }
+    String name = node.getNodeName();
+    return name.substring(name.indexOf(':') + 1);
   }
 
   private void alterSoapEnvelope(SaajSoapMessage soapResponse) {
@@ -71,7 +157,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       soapMessage.saveChanges();
     } catch (SOAPException e) {
 
-      log.error("Processing resulted in exception: " + e.getMessage());
+      FailureDiagnostics.absorbedFailure(logEvents, e);
     }
   }
 

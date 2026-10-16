@@ -5,6 +5,10 @@ import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
 import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.ConfigDataV1;
 import it.gov.pagopa.payments.client.ApiConfigCacheClient;
+import it.gov.pagopa.payments.logging.EventDetails;
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
+import it.gov.pagopa.payments.logging.OperationLogScope;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +23,8 @@ import javax.annotation.PostConstruct;
 @Service
 public class ConfigCacheService {
 
+    private static final LogEventWriter LOG_EVENTS = new LogEventWriter(log);
+
     public ApiConfigCacheClient apiConfigCacheClient;
 
     @Autowired
@@ -28,11 +34,14 @@ public class ConfigCacheService {
 
     @PostConstruct
     public void setConfigCacheData() {
-        try {
-            getConfigCacheData();
-            log.info("[PostConstruct] Successful getConfigCacheData, version: {}", ConfigCacheData.getVersion());
-        } catch (Exception e) {
-            log.error("[PostConstruct] Exception while setConfigCacheData: ", e);
+        try (OperationLogScope ignored = OperationLogScope.open(null, "initializeConfigCache")) {
+            try {
+                if (ConfigCacheData.isConfigDataNull()) {
+                    checkAndUpdateCache(null);
+                }
+            } catch (Exception e) {
+                FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
+            }
         }
     }
 
@@ -70,20 +79,45 @@ public class ConfigCacheService {
 
             ConfigDataV1 configDataV1;
 
+            boolean usableCache = !ConfigCacheData.isConfigDataNull();
+            long startedNanos = System.nanoTime();
             try {
                 configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
             } catch (FeignException feignException) {
-                log.error("[apiconfig-cache-update] Feign Exception while download cache {}: {}", feignException.getClass(), feignException.getMessage());
+                diagnoseDownloadFailure(startedNanos, feignException, usableCache);
                 return;
+            } catch (RuntimeException failure) {
+                FailureDiagnostics.dependencyFailure(EventDetails.Dependency.API_CONFIG_CACHE,
+                        EventDetails.DependencyOperation.REFRESH_CONFIGURATION, startedNanos, failure);
+                throw failure;
+            }
+
+            if (configDataV1 == null) {
+                FailureDiagnostics.absorbedFailure(
+                        LOG_EVENTS, new IllegalStateException("Configuration cache response is null"));
             }
 
             if (configDataV1 != null && (configDataV1.getVersion() == null || ConfigCacheData.getVersion() == null ||
                     configDataV1.getVersion().compareTo(ConfigCacheData.getVersion()) >= 0)) {
 
                 ConfigCacheData.setConfigData(configDataV1);
-
-                log.info("[apiconfig-cache-update] Cache version: {}", ConfigCacheData.getVersion());
             }
+        }
+    }
+
+    private void diagnoseDownloadFailure(long startedNanos, RuntimeException failure, boolean usableCache) {
+        Integer status = failure instanceof FeignException feign && feign.status() > 0
+                ? feign.status() : null;
+        EventDetails.DependencyCall details = new EventDetails.DependencyCall(
+                EventDetails.Dependency.API_CONFIG_CACHE,
+                EventDetails.DependencyOperation.REFRESH_CONFIGURATION, EventDetails.Outcome.KO,
+                status, (System.nanoTime() - startedNanos) / 1_000_000, null,
+                usableCache ? EventDetails.Reason.USABLE_CACHE_RETAINED : null, null);
+        LOG_EVENTS.dependencyFailed(details, usableCache
+                ? LogEventWriter.FailureDisposition.RECOVERABLE
+                : LogEventWriter.FailureDisposition.TERMINAL, failure);
+        if (!usableCache && OperationLogScope.currentOrNull() != null) {
+            OperationLogScope.current().recordDiagnosis();
         }
     }
 }

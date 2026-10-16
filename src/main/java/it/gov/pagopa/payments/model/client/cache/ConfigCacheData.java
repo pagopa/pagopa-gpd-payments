@@ -1,5 +1,7 @@
 package it.gov.pagopa.payments.model.client.cache;
 
+import it.gov.pagopa.payments.logging.LogEventWriter;
+import it.gov.pagopa.payments.logging.FailureDiagnostics;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,6 +14,8 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class ConfigCacheData {
+
+    private static final LogEventWriter LOG_EVENTS = new LogEventWriter(log);
 
     @Data
     @Builder
@@ -42,7 +46,7 @@ public class ConfigCacheData {
             setStationCreditorInstitutionMap(configDataV1);
             setStationMaintenanceMap(configDataV1);
         } catch (Exception e) {
-            log.error("Exception while setConfigCacheData: ", e);
+            FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
         }
     }
 
@@ -77,7 +81,7 @@ public class ConfigCacheData {
                     })
                     .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
         } catch (Exception e) {
-            log.error("Exception while set active StationMaintenance Map: ", e);
+            FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
             // reset activeStationMaintenanceMap
             activeStationMaintenanceMap = null;
         }
@@ -97,7 +101,7 @@ public class ConfigCacheData {
                 stationCreditorInstitutionMap.put(newKey, stationCI);
             }
         } catch (Exception e) {
-            log.error("Exception while set StationCreditorInstitution Map: ", e);
+            FailureDiagnostics.absorbedFailure(LOG_EVENTS, e);
             // reset stationCreditorInstitutionMap
             stationCreditorInstitutionMap = null;
         }
