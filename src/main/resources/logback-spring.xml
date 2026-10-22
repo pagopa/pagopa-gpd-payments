@@ -4,11 +4,12 @@
         <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
         <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
         <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+        <conversionRule conversionWord="structuredFields" converterClass="it.gov.pagopa.payments.logging.StructuredLogFieldsConverter"/>
 
         <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
             <layout class="ch.qos.logback.classic.PatternLayout">
                 <Pattern>
-                    %clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m %clr(%mdc){magenta}%n%wEx
+                    %clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m %clr(%mdc){magenta}%structuredFields%n%wEx
                 </Pattern>
             </layout>
         </appender>
@@ -19,12 +20,14 @@
     </springProfile>
 
     <springProfile name="default">
+        <springProperty name="ECS_SERVICE_NAME" source="info.application.name"/>
         <springProperty name="ECS_SERVICE_VERSION" source="info.application.version"/>
+        <springProperty name="ECS_SERVICE_ENVIRONMENT" source="info.properties.environment"/>
         <appender name="ECS_JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="co.elastic.logging.logback.EcsEncoder">
-                <serviceName>${SERVICE_NAME}</serviceName>
+            <encoder class="it.gov.pagopa.payments.logging.StructuredEcsEncoder">
+                <serviceName>${ECS_SERVICE_NAME}</serviceName>
                 <serviceVersion>${ECS_SERVICE_VERSION}</serviceVersion>
-                <serviceEnvironment>${ENV}</serviceEnvironment>
+                <serviceEnvironment>${ECS_SERVICE_ENVIRONMENT}</serviceEnvironment>
             </encoder>
         </appender>
 

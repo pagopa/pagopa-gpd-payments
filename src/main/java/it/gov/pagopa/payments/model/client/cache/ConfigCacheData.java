@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.model.client.cache;
 
+import it.gov.pagopa.payments.logging.TechnicalFailureLogging;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,15 +35,20 @@ public class ConfigCacheData {
         throw new IllegalStateException("Utility class");
     }
 
-    public static void setConfigData(ConfigDataV1 configDataV1) {
+    /**
+     * Rebuilds both maps, returning false if any rebuild failure was absorbed.
+     */
+    public static boolean setConfigData(ConfigDataV1 configDataV1) {
         try {
             if (configDataV1.getVersion() != null) {
                 version = configDataV1.getVersion();
             }
-            setStationCreditorInstitutionMap(configDataV1);
-            setStationMaintenanceMap(configDataV1);
+            boolean stationsUpdated = setStationCreditorInstitutionMap(configDataV1);
+            boolean maintenanceUpdated = setStationMaintenanceMap(configDataV1);
+            return stationsUpdated && maintenanceUpdated;
         } catch (Exception e) {
-            log.error("Exception while setConfigCacheData: ", e);
+            TechnicalFailureLogging.logTechnicalFailure(log, "Config cache data rebuild failed", e);
+            return false;
         }
     }
 
@@ -63,7 +69,7 @@ public class ConfigCacheData {
         else return stationCreditorInstitutionMap.get(creditorInstitution.concat(station));
     }
 
-    private static void setStationMaintenanceMap(ConfigDataV1 configDataV1) {
+    private static boolean setStationMaintenanceMap(ConfigDataV1 configDataV1) {
         // Filter out all stations for which maintenance is over (pruning now > end)
         long now = Instant.now().getEpochSecond();
         try {
@@ -76,14 +82,16 @@ public class ConfigCacheData {
                         return endTimestamp > now;
                     })
                     .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
+            return true;
         } catch (Exception e) {
-            log.error("Exception while set active StationMaintenance Map: ", e);
+            TechnicalFailureLogging.logTechnicalFailure(log, "Config cache maintenance map rebuild failed", e);
             // reset activeStationMaintenanceMap
             activeStationMaintenanceMap = null;
+            return false;
         }
     }
 
-    private static void setStationCreditorInstitutionMap(ConfigDataV1 configDataV1) {
+    private static boolean setStationCreditorInstitutionMap(ConfigDataV1 configDataV1) {
         stationCreditorInstitutionMap = new ConcurrentHashMap<>();
         try {
             for (StationCreditorInstitution st : configDataV1.getStationCreditorInstitutionMap().values()) {
@@ -96,10 +104,12 @@ public class ConfigCacheData {
                         .build();
                 stationCreditorInstitutionMap.put(newKey, stationCI);
             }
+            return true;
         } catch (Exception e) {
-            log.error("Exception while set StationCreditorInstitution Map: ", e);
+            TechnicalFailureLogging.logTechnicalFailure(log, "Config cache creditor institution map rebuild failed", e);
             // reset stationCreditorInstitutionMap
             stationCreditorInstitutionMap = null;
+            return false;
         }
     }
 }

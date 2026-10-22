@@ -23,6 +23,12 @@ import org.springframework.xml.xsd.XsdSchema;
 @Configuration
 public class WebServicesConfiguration extends WsConfigurerAdapter {
 
+  private final RequestLoggingInterceptor loggingInterceptor;
+
+  public WebServicesConfiguration(RequestLoggingInterceptor loggingInterceptor) {
+    this.loggingInterceptor = loggingInterceptor;
+  }
+
   @Bean
   public ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(
       ApplicationContext applicationContext, SoapMessageDispatcher servlet) {
@@ -69,6 +75,7 @@ public class WebServicesConfiguration extends WsConfigurerAdapter {
   @Override
   public void addInterceptors(List<EndpointInterceptor> interceptors) {
 
+    interceptors.add(loggingInterceptor);
     SoapValidatingInterceptor validatingInterceptor = new SoapValidatingInterceptor();
     validatingInterceptor.setValidateRequest(true);
     validatingInterceptor.setValidateResponse(true);

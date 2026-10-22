@@ -11,6 +11,7 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.logging.TechnicalFailureLogging;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptModelResponse;
 import it.gov.pagopa.payments.model.*;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.slf4j.MDC;
 
 import javax.validation.constraints.NotBlank;
 
@@ -75,8 +77,7 @@ public class PaymentsService {
             return this.setReceiptsOutput(checkedReceipts, filteredEntities.getTotalPages(), pageNum);
 
         } catch (TableServiceException e) {
-            log.error("Error in processing get organizations list", e);
-            throw new AppException(AppError.DB_ERROR, "ALL");
+            throw new AppException(AppError.DB_ERROR, e, "ALL");
         }
     }
 
@@ -95,10 +96,9 @@ public class PaymentsService {
             return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
         } catch (TableServiceException e) {
             if(e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND){
-                throw new AppException(AppError.RECEIPT_NOT_FOUND, organizationFiscalCode, iuv);
+                throw new AppException(AppError.RECEIPT_NOT_FOUND, e, organizationFiscalCode, iuv);
             }
-            log.error("Error in organization table connection", e);
-            throw new AppException(AppError.DB_ERROR);
+            throw new AppException(AppError.DB_ERROR, e);
         }
     }
 
@@ -125,7 +125,7 @@ public class PaymentsService {
                 tableClient.updateEntity(tableEntity);
             }
         } catch (TableServiceException e) {
-            throw new AppException(AppError.DB_ERROR, "Error when updating receipt status");
+            throw new AppException(AppError.DB_ERROR, e, "Error when updating receipt status");
         }
     }
     
@@ -135,20 +135,28 @@ public class PaymentsService {
         List<ReceiptModelResponse> checkedReceipts = new ArrayList<>();
 
         for (TableEntity tableEntity : result) {
+            Map<String, String> previous = MDC.getCopyOfContextMap();
             try {
+                MDC.put("ctx_creditor_id", tableEntity.getPartitionKey());
+                MDC.put("ctx_iuv", tableEntity.getRowKey());
+                MDC.remove("ctx_notice_number");
                 this.checkGPDDebtPosStatus(tableEntity);
                 checkedReceipts.add(
                         ConvertTableEntityToReceiptModelResponse.mapTableEntityToReceiptModelResponse(tableEntity));
             } catch (FeignException.NotFound e) {
-                log.error(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: "
-                                + "get not found exception in the recovery of payment options",
-                        e);
+                log.warn("Receipt omitted: payment option not found");
             } catch (AppException e) {
-                log.error(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: Receipt is not in an eligible state on"
-                                + " GPD in order to be returned to the caller",
-                        e);
+                if (e.getHttpStatus().is5xxServerError()) {
+                    TechnicalFailureLogging.logTechnicalFailure(log, "Receipt check failed", e);
+                } else {
+                    log.warn("Receipt omitted: ineligible payment state");
+                }
+            } finally {
+                if (previous == null) {
+                    MDC.clear();
+                } else {
+                    MDC.setContextMap(previous);
+                }
             }
         }
 

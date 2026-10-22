@@ -13,6 +13,8 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import it.gov.pagopa.payments.logging.StructuredLogFields;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,11 +33,13 @@ public class DeadLetterServiceImpl implements DeadLetterService {
 
             blobStorageClient.saveStringJsonToBlobStorage(json, filePath);
 
-            log.info(
-                    "Message persisted in dead-letter storage [messageId={},dequeueCount={},reason={}]",
-                    message.getMessageId(),
-                    message.getDequeueCount(),
-                    message.getReason());
+            var fields = JsonNodeFactory.instance.objectNode();
+            var details = fields.putObject("ctx_details")
+                    .put("dequeue_count", message.getDequeueCount());
+            if (message.getReason() != null) {
+                details.put("reason", message.getReason().name());
+            }
+            log.info("Message persisted in dead-letter storage", new StructuredLogFields(fields));
 
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(

@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.SpringBootTest;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +43,7 @@ class ConfigCacheServiceTest {
         doThrow(FeignException.class).when(apiConfigCacheClient).getCacheByKeys(anyString());
 
         // When
-        configCacheService.checkAndUpdateCache(cacheUpdateEvent);
+        assertFalse(configCacheService.checkAndUpdateCache(cacheUpdateEvent));
 
         // Then
         // Verify that the error was logged, the cache update call should be skipped
@@ -54,18 +56,17 @@ class ConfigCacheServiceTest {
     void testCheckAndUpdateCache_PostConstruct() {
         try (MockedStatic<ConfigCacheData> mockedConfigData = mockStatic(ConfigCacheData.class)) {
             // Given
-            ConfigCacheData.setConfigData(null); // Cache is null
-            mockedConfigData.when(ConfigCacheData::getVersion).thenReturn("787716055495419"); // Cache is not null
+            mockedConfigData.when(ConfigCacheData::isConfigDataNull).thenReturn(true);
+            mockedConfigData.when(ConfigCacheData::getVersion).thenReturn("787716055495419");
             ConfigDataV1 configDataV1 = getConfigDataV1("787716055495418");
-            when(apiConfigCacheClient.getCacheByKeys(anyString())).thenReturn(configDataV1);
             when(apiConfigCacheClient.getCacheByKeys(anyString())).thenReturn(configDataV1);
 
             // When
-            configCacheService.getConfigCacheData();
+            configCacheService.setConfigCacheData();
 
             // Then
-            // Assert: Verify that checkAndUpdateCache was called
-            mockedConfigData.verify(() -> configCacheService.checkAndUpdateCache(null), times(1));
+            verify(apiConfigCacheClient).getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
+            mockedConfigData.verify(() -> ConfigCacheData.setConfigData(any()), never());
         }
     }
 
@@ -81,7 +82,7 @@ class ConfigCacheServiceTest {
             when(apiConfigCacheClient.getCacheByKeys(anyString())).thenReturn(configDataV1);
 
             // When
-            configCacheService.checkAndUpdateCache(cacheUpdateEvent);
+            assertTrue(configCacheService.checkAndUpdateCache(cacheUpdateEvent));
 
             // Then
             verify(apiConfigCacheClient, times(1)).getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
@@ -99,9 +100,10 @@ class ConfigCacheServiceTest {
             CacheUpdateEvent cacheUpdateEvent = this.getCacheUpdateEvent("787716055495419");
             ConfigDataV1 configDataV1 = getConfigDataV1("787716055495419");
             when(apiConfigCacheClient.getCacheByKeys(anyString())).thenReturn(configDataV1);
+            mockedConfigData.when(() -> ConfigCacheData.setConfigData(configDataV1)).thenReturn(true);
 
             // When
-            configCacheService.checkAndUpdateCache(cacheUpdateEvent);
+            assertTrue(configCacheService.checkAndUpdateCache(cacheUpdateEvent));
 
             // Then
             verify(apiConfigCacheClient, times(1)).getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");

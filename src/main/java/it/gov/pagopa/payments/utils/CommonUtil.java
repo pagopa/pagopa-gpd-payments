@@ -77,7 +77,7 @@ public class CommonUtil {
 
   /**
    * The function permits to extract the <i>serviceType</i> value from header
-   * <b>X-Caller-Service-Type</b> in request. If no header is found with that
+   * <b>X-Client-Service-Type</b> in request. If no header is found with that
    * name, the value <i>"GPD"</i> is returned as default.
    *
    * @return the service type value
@@ -86,6 +86,10 @@ public class CommonUtil {
     HttpServletRequest servletRequest = ((HttpServletConnection)
             TransportContextHolder.getTransportContext().getConnection())
             .getHttpServletRequest();
+    return getServiceType(servletRequest);
+  }
+
+  public static String getServiceType(HttpServletRequest servletRequest) {
     String serviceType = servletRequest.getHeader(SERVICE_TYPE_HEADER);
     return Objects.requireNonNullElse(serviceType, "GPD");
   }

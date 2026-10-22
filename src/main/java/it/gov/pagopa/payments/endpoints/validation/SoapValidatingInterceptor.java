@@ -2,13 +2,12 @@ package it.gov.pagopa.payments.endpoints.validation;
 
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
+import it.gov.pagopa.payments.logging.TechnicalFailureLogging;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -31,21 +30,17 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       MessageContext messageContext, SAXParseException[] errors) {
 
     if (errors.length > 0) {
-      String validationErrorsString =
-          Arrays.stream(errors)
-              .map(
-                  error ->
-                      "["
-                          + error.getLineNumber()
-                          + ","
-                          + error.getColumnNumber()
-                          + "]: "
-                          + error.getMessage())
-              .collect(Collectors.joining(" -- "));
-      log.error(validationErrorsString);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }
     return true;
+  }
+
+  @Override
+  protected boolean handleResponseValidationErrors(
+      MessageContext messageContext, SAXParseException[] errors) {
+    TechnicalFailureLogging.logTechnicalFailure(
+        log, "SOAP response validation failed", errors[0]);
+    return false;
   }
 
   @Override
@@ -71,7 +66,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       soapMessage.saveChanges();
     } catch (SOAPException e) {
 
-      log.error("Processing resulted in exception: " + e.getMessage());
+      TechnicalFailureLogging.logTechnicalFailure(log, "SOAP envelope formatting failed", e);
     }
   }
 

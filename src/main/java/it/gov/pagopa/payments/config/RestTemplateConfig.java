@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.config;
 
+import it.gov.pagopa.payments.logging.VerticalServiceLoggingInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.xml.MarshallingHttpMessageConverter;
@@ -13,6 +14,7 @@ public class RestTemplateConfig {
   public RestTemplate restTemplate() {
     RestTemplate restTemplate = new RestTemplate();
     restTemplate.getMessageConverters().add(0, jaxbMarshallingHttpMessageConverter());
+    restTemplate.getInterceptors().add(new VerticalServiceLoggingInterceptor());
     return restTemplate;
   }
 
