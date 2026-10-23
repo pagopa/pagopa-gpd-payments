@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.config;
 
+import static it.gov.pagopa.payments.config.RequestLogCapture.arguments;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.controller.BaseController;
 import it.gov.pagopa.payments.controller.DeadLetterController;
 import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
@@ -25,6 +27,8 @@ import it.gov.pagopa.payments.service.DeadLetterService;
 import it.gov.pagopa.payments.service.PaymentsService;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import java.util.List;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +38,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 class RequestLoggingMvcTest {
 
@@ -50,8 +57,9 @@ class RequestLoggingMvcTest {
     DeadLetterService deadLetters = mock(DeadLetterService.class);
     when(deadLetters.getDeadLetters(anyInt())).thenReturn(List.of());
     mvc = MockMvcBuilders
-        .standaloneSetup(controller, new DeadLetterController(deadLetters), new BaseController())
-        .setControllerAdvice(new ErrorHandler())
+        .standaloneSetup(controller, new DeadLetterController(deadLetters), new BaseController(),
+            new ValidationController())
+        .setControllerAdvice(new ErrorHandler(), new RestResponseLoggingAdvice())
         .addInterceptors(new RequestLoggingInterceptor())
         .addFilters(filter)
         .build();
@@ -87,8 +95,8 @@ class RequestLoggingMvcTest {
     assertEquals("DEBUG", logEntry.path("log.level").textValue());
     assertEquals("healthCheck", logEntry.path("method").textValue());
     assertEquals("health-request", logEntry.path("correlation_id").textValue());
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
-    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
+    assertEquals(200, logEntry.path("http_code").intValue());
     assertEquals("OK", logEntry.path("status").textValue());
   }
 
@@ -112,8 +120,10 @@ class RequestLoggingMvcTest {
     assertFalse(logEntry.has("ctx_notice_number"));
     assertEquals("OK", logEntry.path("status").asText());
     assertFalse(logEntry.toString().contains("private-body"));
-    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
-    assertEquals(1, logEntry.path("args").size());
+    assertEquals("GPD", arguments(logEntry).path("serviceType").textValue());
+    assertEquals(1, arguments(logEntry).size());
+    assertFalse(logEntry.has("faultCode"));
+    assertFalse(logEntry.has("faultDetail"));
   }
 
   @ParameterizedTest
@@ -131,10 +141,10 @@ class RequestLoggingMvcTest {
     filter.logCompletedRequest(result.getRequest());
 
     JsonNode logEntry = capture.singleSummary();
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
     if (path.equals("/payments/org/receipts")) {
-      assertEquals(0, logEntry.path("args").path("pageNum").intValue());
-      assertEquals(20, logEntry.path("args").path("pageSize").intValue());
+      assertEquals(0, arguments(logEntry).path("pageNum").intValue());
+      assertEquals(20, arguments(logEntry).path("pageSize").intValue());
     }
   }
 
@@ -146,9 +156,10 @@ class RequestLoggingMvcTest {
 
     JsonNode logEntry = capture.singleSummary();
     assertEquals("getDeadLetters", logEntry.path("method").asText());
-    assertEquals(400, logEntry.path("http.response.status_code").intValue());
+    assertEquals(400, logEntry.path("http_code").intValue());
     assertEquals("KO", logEntry.path("status").asText());
-    assertFalse(logEntry.toString().contains("not-a-number"));
+    assertFalse(arguments(logEntry).toString().contains("not-a-number"));
+    assertResponseFault(result, logEntry);
   }
 
   @Test
@@ -161,7 +172,64 @@ class RequestLoggingMvcTest {
 
     JsonNode logEntry = capture.singleSummary();
     assertEquals("getReceiptByIUV", logEntry.path("method").asText());
-    assertEquals(404, logEntry.path("http.response.status_code").intValue());
+    assertEquals(404, logEntry.path("http_code").intValue());
     assertEquals("KO", logEntry.path("status").asText());
+    assertResponseFault(result, logEntry);
+  }
+
+  @Test
+  void technicalFailureLogsTheFinalPublicProblemInsteadOfTheExceptionMessage() throws Exception {
+    when(payments.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), isNull()))
+        .thenThrow(new IllegalStateException("PRIVATE downstream message"));
+    MvcResult result = mvc.perform(get("/payments/org/receipts/iuv"))
+        .andExpect(status().isInternalServerError()).andReturn();
+    filter.logCompletedRequest(result.getRequest());
+
+    JsonNode logEntry = capture.singleSummary();
+    assertResponseFault(result, logEntry);
+    assertEquals(ErrorHandler.INTERNAL_SERVER_ERROR, logEntry.path("faultCode").textValue());
+    assertEquals("An unexpected error occurred.", logEntry.path("faultDetail").textValue());
+    assertFalse(logEntry.toString().contains("PRIVATE"));
+  }
+
+  @Test
+  void validationFailureLogsOnlyTheFinalProblemMetadata() throws Exception {
+    MvcResult result = mvc.perform(
+        org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+            .post("/logging-validation")
+            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"\"}"))
+        .andExpect(status().isBadRequest()).andReturn();
+    filter.logCompletedRequest(result.getRequest());
+
+    JsonNode logEntry = capture.singleSummary();
+    assertResponseFault(result, logEntry);
+    assertEquals(ErrorHandler.BAD_REQUEST, logEntry.path("faultCode").textValue());
+    assertTrue(logEntry.path("faultDetail").textValue().contains("name"));
+    assertFalse(arguments(logEntry).has("name"));
+  }
+
+  private void assertResponseFault(MvcResult result, JsonNode logEntry) throws Exception {
+    JsonNode body = new ObjectMapper().readTree(result.getResponse().getContentAsByteArray());
+    assertTrue(logEntry.path("faultCode").isTextual());
+    assertTrue(logEntry.path("faultDetail").isTextual());
+    assertEquals(body.path("title"), logEntry.path("faultCode"));
+    assertEquals(body.path("detail"), logEntry.path("faultDetail"));
+    assertTrue(logEntry.path("http_code").isIntegralNumber());
+    assertEquals(result.getResponse().getStatus(), logEntry.path("http_code").intValue());
+    assertFalse(logEntry.has("ctx_soap_fault_code"));
+    assertFalse(logEntry.has("ctx_soap_outcome"));
+  }
+
+  @RestController
+  static class ValidationController {
+    @PostMapping("/logging-validation")
+    public String validate(@Valid @RequestBody ValidationInput input) {
+      return "validated";
+    }
+  }
+
+  static class ValidationInput {
+    @NotBlank public String name;
   }
 }

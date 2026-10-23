@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.endpoint;
 
+import static it.gov.pagopa.payments.config.RequestLogCapture.arguments;
 import static it.gov.pagopa.payments.utils.SoapActions.PA_VERIFY_PAYMENT_NOTICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -147,6 +148,11 @@ class PartnerXsdValidationTest {
         });
 
     assertSummary(200, "KO");
+    JsonNode logEntry = logs.singleSummary();
+    assertEquals(PaaErrorEnum.PAA_SEMANTICA.getFaultCode(),
+        logEntry.path("faultCode").textValue());
+    assertEquals(PaaErrorEnum.PAA_SEMANTICA.getDescription(),
+        logEntry.path("faultDetail").textValue());
   }
 
   @ParameterizedTest
@@ -165,7 +171,7 @@ class PartnerXsdValidationTest {
         .exchange().expectStatus().isOk();
 
     JsonNode logEntry = logs.singleSummary();
-    assertEquals(serviceType, logEntry.path("args").path("serviceType").textValue());
+    assertEquals(serviceType, arguments(logEntry).path("serviceType").textValue());
     assertEquals("OK", logEntry.path("status").asText());
     assertEquals("INFO", logEntry.path("log.level").asText());
     Mockito.verify(partnerService).paVerifyPaymentNotice(Mockito.any(), Mockito.eq(serviceType));
@@ -184,6 +190,11 @@ class PartnerXsdValidationTest {
         .expectBody(String.class).value(body ->
             assertTrue(body.contains("<faultCode>PAA_SYSTEM_ERROR</faultCode>")));
     assertSummary(200, "KO", 1);
+    JsonNode logEntry = logs.singleSummary();
+    assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR.getFaultCode(),
+        logEntry.path("faultCode").textValue());
+    assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR.getDescription(),
+        logEntry.path("faultDetail").textValue());
   }
 
   @ParameterizedTest
@@ -215,7 +226,7 @@ class PartnerXsdValidationTest {
 
     JsonNode logEntry = logs.singleSummary();
     assertEquals(operation, logEntry.path("method").textValue());
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
     assertEquals("KO", logEntry.path("status").textValue());
     Mockito.verifyNoInteractions(partnerService);
   }
@@ -268,7 +279,7 @@ class PartnerXsdValidationTest {
     assertEquals("DEBUG", logEntry.path("log.level").textValue());
     assertEquals("healthCheck", logEntry.path("method").asText());
     assertEquals("rest-request", logEntry.path("correlation_id").asText());
-    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals(200, logEntry.path("http_code").intValue());
     assertEquals("OK", logEntry.path("status").asText());
   }
 
@@ -279,7 +290,7 @@ class PartnerXsdValidationTest {
   private void assertSummary(
       int httpStatus, String operationStatus, int expectedDiagnostics) throws Exception {
     JsonNode logEntry = logs.singleSummary();
-    boolean systemError = "PAA_SYSTEM_ERROR".equals(logEntry.path("ctx_soap_fault_code").asText());
+    boolean systemError = "PAA_SYSTEM_ERROR".equals(logEntry.path("faultCode").asText());
     assertEquals(systemError ? "ERROR" : "INFO", logEntry.path("log.level").asText());
     var diagnostics = applicationLogs.events.stream()
         .filter(event -> event.getLevel() == ch.qos.logback.classic.Level.ERROR)
@@ -294,26 +305,32 @@ class PartnerXsdValidationTest {
       assertFalse(encoded.path("error.stack_trace").asText().contains("SECRET"));
     }
     assertEquals(PA_VERIFY_PAYMENT_NOTICE, logEntry.path("method").asText());
-    assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
+    assertTrue(logEntry.path("http_code").isIntegralNumber());
+    assertEquals(httpStatus, logEntry.path("http_code").intValue());
+    assertTrue(logEntry.path("response_time").isIntegralNumber());
+    assertTrue(logEntry.path("response_time").longValue() >= 0);
     assertEquals(operationStatus, logEntry.path("status").asText());
     assertFalse(logEntry.has("event_action"));
     assertFalse(logEntry.has("event_outcome"));
     assertFalse(logEntry.path("correlation_id").asText().isEmpty());
-    assertTrue(logEntry.path("event.duration").isIntegralNumber());
-    assertTrue(logEntry.path("args").isObject());
-    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
-    assertFalse(logEntry.path("args").has("amount"));
-    assertFalse(logEntry.path("args").has("debtor"));
-    assertFalse(logEntry.path("args").has("noticeNumber"));
+    assertFalse(logEntry.has("event.duration"));
+    assertFalse(logEntry.has("http.response.status_code"));
+    assertFalse(logEntry.has("ctx_soap_fault_code"));
+    assertEquals("GPD", arguments(logEntry).path("serviceType").textValue());
+    assertFalse(arguments(logEntry).has("amount"));
+    assertFalse(arguments(logEntry).has("debtor"));
+    assertFalse(arguments(logEntry).has("noticeNumber"));
     if (httpStatus == 200) {
       assertEquals(operationStatus, logEntry.path("ctx_soap_outcome").asText());
     } else {
       assertFalse(logEntry.has("ctx_soap_outcome"));
     }
     if ("KO".equals(operationStatus)) {
-      assertFalse(logEntry.path("ctx_soap_fault_code").asText().isEmpty());
+      assertFalse(logEntry.path("faultCode").asText().isEmpty());
+      assertTrue(logEntry.path("faultDetail").isTextual());
     } else {
-      assertFalse(logEntry.has("ctx_soap_fault_code"));
+      assertFalse(logEntry.has("faultCode"));
+      assertFalse(logEntry.has("faultDetail"));
     }
   }
 

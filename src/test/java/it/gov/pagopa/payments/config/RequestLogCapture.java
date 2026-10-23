@@ -21,6 +21,14 @@ import org.slf4j.LoggerFactory;
 /** Captures frozen request summaries, including those emitted on container completion threads. */
 public final class RequestLogCapture implements AutoCloseable {
 
+  public static JsonNode arguments(JsonNode event) throws Exception {
+    assertTrue(event.path("args").isTextual(), "Emitted args must be a JSON string");
+    JsonNode arguments = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
+        .readTree(event.path("args").textValue());
+    assertTrue(arguments.isObject(), "The args string must contain an approved object projection");
+    return arguments;
+  }
+
   private final Logger logger = (Logger) LoggerFactory.getLogger(RequestFilter.class);
   private final Level previousLevel = logger.getLevel();
   private final CountDownLatch completed = new CountDownLatch(1);

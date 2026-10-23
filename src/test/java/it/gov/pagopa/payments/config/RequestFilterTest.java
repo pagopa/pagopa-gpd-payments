@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.config;
 
+import static it.gov.pagopa.payments.config.RequestLogCapture.arguments;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,6 +21,7 @@ import it.gov.pagopa.payments.utils.CommonUtil;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
@@ -33,6 +35,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class RequestFilterTest {
 
@@ -84,12 +87,15 @@ class RequestFilterTest {
     assertEquals("OK", logEntry.path("status").asText());
     assertFalse(logEntry.has("event_action"));
     assertFalse(logEntry.has("event_outcome"));
-    assertTrue(logEntry.path("event.duration").isIntegralNumber());
-    assertTrue(logEntry.path("event.duration").longValue() >= 0);
-    assertTrue(logEntry.path("http.response.status_code").isIntegralNumber());
-    assertEquals(201, logEntry.path("http.response.status_code").intValue());
-    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
-    assertEquals(1, logEntry.path("args").size());
+    assertFalse(logEntry.has("event.duration"));
+    assertFalse(logEntry.has("http.response.status_code"));
+    assertFalse(logEntry.has("ctx_soap_fault_code"));
+    assertEquals("GPD", arguments(logEntry).path("serviceType").textValue());
+    assertEquals(1, arguments(logEntry).size());
+    assertTrue(logEntry.path("http_code").isIntegralNumber());
+    assertEquals(201, logEntry.path("http_code").intValue());
+    assertTrue(logEntry.path("response_time").isIntegralNumber());
+    assertTrue(logEntry.path("response_time").longValue() >= 0);
     assertFalse(logEntry.has("requestId"));
     assertFalse(logEntry.has("startTime"));
     assertFalse(logEntry.has("operationId"));
@@ -112,7 +118,7 @@ class RequestFilterTest {
     JsonNode logEntry = capture.singleSummary();
     assertEquals(httpStatus < 400 ? "DEBUG" : "WARN", logEntry.path("log.level").textValue());
     assertEquals(httpStatus < 400 ? "OK" : "KO", logEntry.path("status").textValue());
-    assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
+    assertEquals(httpStatus, logEntry.path("http_code").intValue());
   }
 
   @ParameterizedTest
@@ -163,8 +169,8 @@ class RequestFilterTest {
 
     JsonNode logEntry = capture.singleSummary();
     assertEquals(serviceType == null ? "GPD" : serviceType,
-        logEntry.path("args").path("serviceType").textValue());
-    assertEquals(1, logEntry.path("args").size());
+        arguments(logEntry).path("serviceType").textValue());
+    assertEquals(1, arguments(logEntry).size());
     assertNull(MDC.get("args"));
   }
 
@@ -200,19 +206,35 @@ class RequestFilterTest {
   }
 
   @Test
-  void durationIsInNanosecondsAndIncludesTimeUntilActualCompletion() throws Exception {
+  void responseTimeIsInMillisecondsAndIncludesTimeUntilActualCompletion() throws Exception {
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
     filter.doFilter(request, response, (req, res) -> {});
     HttpRequestLogContext context = HttpRequestLogContext.from(request);
-    long durationBeforeCompletion = context.durationNanos();
+    long durationBeforeCompletion = context.responseTimeMillis();
 
     filter.logCompletedRequest(request);
 
-    long durationAfterCompletion = context.durationNanos();
-    long loggedDuration = capture.singleSummary().path("event.duration").longValue();
+    long durationAfterCompletion = context.responseTimeMillis();
+    long loggedDuration = capture.singleSummary().path("response_time").longValue();
     assertTrue(loggedDuration >= durationBeforeCompletion);
     assertTrue(loggedDuration <= durationAfterCompletion);
+  }
+
+  @Test
+  void responseTimeMillisConvertsMonotonicElapsedTimeToWholeMilliseconds() {
+    HttpRequestLogContext context =
+        new HttpRequestLogContext("timed-request", new MockHttpServletResponse());
+    long startedNanos = System.nanoTime() - TimeUnit.MILLISECONDS.toNanos(2345);
+    ReflectionTestUtils.setField(context, "startedNanos", startedNanos);
+    long minimumMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos);
+
+    long actualMillis = context.responseTimeMillis();
+
+    long maximumMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos);
+    assertTrue(actualMillis >= 2345);
+    assertTrue(actualMillis >= minimumMillis);
+    assertTrue(actualMillis <= maximumMillis);
   }
 
   @ParameterizedTest
@@ -240,7 +262,7 @@ class RequestFilterTest {
     assertTrue(capture.summaries().isEmpty());
     response.setStatus(500);
     filter.logCompletedRequest(request);
-    assertEquals(500, capture.singleSummary().path("http.response.status_code").intValue());
+    assertEquals(500, capture.singleSummary().path("http_code").intValue());
     assertEquals("KO", capture.singleSummary().path("status").asText());
     assertEquals(Map.of("outer", "preserved"), MDC.getCopyOfContextMap());
   }
@@ -273,7 +295,7 @@ class RequestFilterTest {
     JsonNode logEntry = capture.singleSummary();
     assertEquals("original-id", logEntry.path("correlation_id").asText());
     assertEquals("getReceiptByIUV", logEntry.path("method").asText());
-    assertEquals(422, logEntry.path("http.response.status_code").intValue());
+    assertEquals(422, logEntry.path("http_code").intValue());
     assertEquals("KO", logEntry.path("status").asText());
   }
 
@@ -286,7 +308,7 @@ class RequestFilterTest {
     filter.logCompletedRequest(request);
 
     JsonNode logEntry = capture.singleSummary();
-    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals(200, logEntry.path("http_code").intValue());
     assertEquals("KO", logEntry.path("status").asText());
     assertFalse(logEntry.has("ctx_soap_outcome"));
   }
@@ -312,10 +334,12 @@ class RequestFilterTest {
     assertEquals("PAA_SYSTEM_ERROR".equals(faultCode) ? "ERROR" : "INFO",
         logEntry.path("log.level").asText());
     assertEquals("paGetPayment", logEntry.path("method").asText());
-    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals(200, logEntry.path("http_code").intValue());
     assertEquals("KO", logEntry.path("status").asText());
     assertEquals("KO", logEntry.path("ctx_soap_outcome").asText());
-    assertEquals(faultCode, logEntry.path("ctx_soap_fault_code").asText());
+    assertFalse(logEntry.has("ctx_soap_fault_code"));
+    assertEquals(faultCode, logEntry.path("faultCode").textValue());
+    assertFalse(logEntry.has("faultDetail"));
     assertFalse(logEntry.has("error.stack_trace"));
     assertEquals(outer, MDC.getCopyOfContextMap());
   }
@@ -330,7 +354,7 @@ class RequestFilterTest {
 
     JsonNode logEntry = capture.singleSummary();
     assertEquals("OK", logEntry.path("status").asText());
-    assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
+    assertEquals(httpStatus, logEntry.path("http_code").intValue());
     assertFalse(logEntry.has("event_action"));
     assertFalse(logEntry.has("event_outcome"));
   }
@@ -344,7 +368,7 @@ class RequestFilterTest {
     filter.logCompletedRequest(request);
 
     JsonNode logEntry = capture.singleSummary();
-    assertEquals(103, logEntry.path("http.response.status_code").intValue());
+    assertEquals(103, logEntry.path("http_code").intValue());
     assertFalse(logEntry.has("status"));
     assertFalse(logEntry.has("event_outcome"));
     assertEquals("OK", MDC.get("status"));
@@ -405,6 +429,8 @@ class RequestFilterTest {
       assertNull(MDC.get("args"));
       HttpRequestLogContext.from(first).recordResponseIuvLog("actual-iuv");
       HttpRequestLogContext.from(first).markFailure();
+      firstResponse.setStatus(400);
+      HttpRequestLogContext.from(first).recordRestFaultLog("Rejected", "Public rejection");
       MDC.put("args", "must-not-leak");
     });
     filter.logCompletedRequest(first);
@@ -412,8 +438,11 @@ class RequestFilterTest {
     assertEquals("creditor", firstRecord.path("ctx_creditor_id").asText());
     assertEquals("000123", firstRecord.path("ctx_notice_number").asText());
     assertEquals("actual-iuv", firstRecord.path("ctx_iuv").asText());
-    assertEquals("station", firstRecord.path("args").path("idStation").asText());
-    assertEquals("ACA", firstRecord.path("args").path("serviceType").textValue());
+    assertEquals("station", arguments(firstRecord).path("idStation").asText());
+    assertEquals("ACA", arguments(firstRecord).path("serviceType").textValue());
+    assertEquals("Rejected", firstRecord.path("faultCode").textValue());
+    assertEquals("Public rejection", firstRecord.path("faultDetail").textValue());
+    assertFalse(firstRecord.has("ctx_soap_fault_code"));
     MockHttpServletRequest second = new MockHttpServletRequest();
     MockHttpServletResponse secondResponse = new MockHttpServletResponse();
     filter.doFilter(second, secondResponse, (req, res) -> {
@@ -430,11 +459,35 @@ class RequestFilterTest {
     JsonNode logEntry = capture.encodedEvent(capture.summaries().get(1));
     assertNotEquals(firstResponse.getHeader("X-Request-Id"), secondResponse.getHeader("X-Request-Id"));
     assertFalse(logEntry.has("method"));
-    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
-    assertEquals(1, logEntry.path("args").size());
+    assertEquals("GPD", arguments(logEntry).path("serviceType").textValue());
+    assertEquals(1, arguments(logEntry).size());
     assertFalse(logEntry.has("ctx_creditor_id"));
     assertFalse(logEntry.has("ctx_notice_number"));
     assertFalse(logEntry.has("ctx_iuv"));
+    assertFalse(logEntry.has("faultCode"));
+    assertFalse(logEntry.has("faultDetail"));
     assertEquals("OK", logEntry.path("status").asText());
+  }
+
+  @Test
+  void responseFaultFieldsStayOutOfRequestFieldsAndMdc() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    filter.doFilter(request, response, (req, res) -> {
+      HttpRequestLogContext context = HttpRequestLogContext.from(request);
+      context.recordSoapResponseLog("KO", "PAA_SEMANTICA", "Application rejection");
+      ObjectNode requestFields = JsonNodeFactory.instance.objectNode();
+      context.addRequestLogFields(requestFields);
+      assertFalse(requestFields.has("faultCode"));
+      assertFalse(requestFields.has("faultDetail"));
+      assertNull(MDC.get("faultCode"));
+      assertNull(MDC.get("faultDetail"));
+    });
+    filter.logCompletedRequest(request);
+
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("PAA_SEMANTICA", logEntry.path("faultCode").textValue());
+    assertFalse(logEntry.has("ctx_soap_fault_code"));
+    assertEquals("Application rejection", logEntry.path("faultDetail").textValue());
   }
 }

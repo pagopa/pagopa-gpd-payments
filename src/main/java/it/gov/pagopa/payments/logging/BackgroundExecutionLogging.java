@@ -3,6 +3,7 @@ package it.gov.pagopa.payments.logging;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,8 @@ public final class BackgroundExecutionLogging {
         MDC.put(HttpRequestLogContext.STATUS, execution.failed ? "KO" : "OK");
         LOG.info("Background execution completed", new StructuredLogFields(
             JsonNodeFactory.instance.objectNode()
-                .put("event.duration", Math.max(0L, System.nanoTime() - started))));
+                .put("response_time",
+                    TimeUnit.NANOSECONDS.toMillis(Math.max(0L, System.nanoTime() - started)))));
       } finally {
         if (previous == null) {
           MDC.clear();

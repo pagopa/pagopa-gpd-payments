@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.logging;
 
+import static it.gov.pagopa.payments.config.RequestLogCapture.arguments;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -38,7 +39,7 @@ class LoggingConfigurationTest {
     String legacy = logForProfile(profiles, false);
 
     assertTrue(legacy.contains("Legacy operation completed"));
-    assertFalse(legacy.contains("event.duration"));
+    assertFalse(legacy.contains("response_time"));
     assertFalse(legacy.contains("args="));
   }
 
@@ -58,9 +59,11 @@ class LoggingConfigurationTest {
     assertEquals("OK", logEntry.path("status").asText());
     assertFalse(logEntry.has("event_action"));
     assertFalse(logEntry.has("event_outcome"));
-    assertTrue(logEntry.path("event.duration").isIntegralNumber());
-    assertTrue(logEntry.path("http.response.status_code").isIntegralNumber());
-    assertTrue(logEntry.path("args").isObject());
+    assertTrue(logEntry.path("response_time").isIntegralNumber());
+    assertTrue(logEntry.path("http_code").isIntegralNumber());
+    assertEquals(1, arguments(logEntry).path("pageNum").intValue());
+    assertEquals(200, logEntry.path("http_code").intValue());
+    assertEquals(123, logEntry.path("response_time").longValue());
     assertEquals(IllegalStateException.class.getName(), logEntry.path("error.type").asText());
   }
 
@@ -74,8 +77,8 @@ class LoggingConfigurationTest {
     assertTrue(text.contains("correlation_id=request-1"));
     assertTrue(text.contains("method=testOperation"));
     assertTrue(text.contains("status=OK"));
-    assertTrue(text.contains("event.duration=123"));
-    assertTrue(text.contains("http.response.status_code=200"));
+    assertTrue(text.contains("http_code=200"));
+    assertTrue(text.contains("response_time=123"));
     assertTrue(text.contains("args={\"pageNum\":1}"));
     assertTrue(text.contains("IllegalStateException: technical failure"));
   }
@@ -102,9 +105,9 @@ class LoggingConfigurationTest {
       appender.setOutputStream(output);
       if (structured) {
         ObjectNode values = new ObjectMapper().createObjectNode();
-        values.put("event.duration", 123L);
-        values.put("http.response.status_code", 200);
-        values.putObject("args").put("pageNum", 1);
+        values.put("response_time", 123L);
+        values.put("http_code", 200);
+        values.put("args", "{\"pageNum\":1}");
         MDC.put("correlation_id", "request-1");
         MDC.put("method", "testOperation");
         MDC.put("status", "OK");

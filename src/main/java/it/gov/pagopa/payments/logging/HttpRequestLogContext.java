@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.logging;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -32,6 +33,8 @@ public final class HttpRequestLogContext {
   private volatile boolean failed;
   private volatile String soapOutcome;
   private volatile String soapFaultCode;
+  private volatile String faultCode;
+  private volatile String faultDetail;
   private volatile String creditorId;
   private volatile String noticeNumber;
   private volatile String iuv;
@@ -67,24 +70,44 @@ public final class HttpRequestLogContext {
     failed = true;
     soapOutcome = null;
     soapFaultCode = null;
+    faultCode = null;
+    faultDetail = null;
   }
 
   /** Records only response metadata; a technical SOAP Fault has a code but no application outcome. */
   public void recordSoapResponseLog(String outcome, String faultCode) {
+    recordSoapResponseLog(outcome, faultCode, null);
+  }
+
+  public void recordSoapResponseLog(String outcome, String faultCode, String faultDetail) {
     soapOutcome = outcome;
     soapFaultCode = faultCode;
+    this.faultCode = faultCode;
+    this.faultDetail = faultDetail;
     if (STATUS_KO.equals(outcome) || faultCode != null) {
       failed = true;
     }
   }
 
-  /** Adds SOAP response fields only to the final request summary. */
+  /** Records only the REST error response's title and detail, never its entire body. */
+  public void recordRestFaultLog(String code, String detail) {
+    faultCode = code;
+    faultDetail = detail;
+  }
+
+  public void addResponseFaultLogFields(ObjectNode fields) {
+    if (faultCode != null) {
+      fields.put("faultCode", faultCode);
+    }
+    if (faultDetail != null) {
+      fields.put("faultDetail", faultDetail);
+    }
+  }
+
+  /** Adds the application SOAP outcome only to the final request summary. */
   public void populateSoapResponseLogMdc() {
     if (soapOutcome != null) {
       MDC.put("ctx_soap_outcome", soapOutcome);
-    }
-    if (soapFaultCode != null) {
-      MDC.put("ctx_soap_fault_code", soapFaultCode);
     }
   }
 
@@ -142,8 +165,8 @@ public final class HttpRequestLogContext {
     return completed.compareAndSet(false, true);
   }
 
-  public long durationNanos() {
-    return System.nanoTime() - startedNanos;
+  public long responseTimeMillis() {
+    return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos);
   }
 
   public int responseStatus() {

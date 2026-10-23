@@ -26,10 +26,8 @@ public final class StructuredLogFields {
     Objects.requireNonNull(fields, "fields");
     fields.fields().forEachRemaining(StructuredLogFields::validateField);
     this.fields = fields.deepCopy();
-    for (String name : new String[] {"args", "ctx_details"}) {
-      if (this.fields.has(name) && this.fields.get(name).isEmpty()) {
-        this.fields.remove(name);
-      }
+    if (this.fields.has("ctx_details") && this.fields.get("ctx_details").isEmpty()) {
+      this.fields.remove("ctx_details");
     }
   }
 
@@ -37,15 +35,16 @@ public final class StructuredLogFields {
     JsonNode value = field.getValue();
     boolean valid =
         switch (field.getKey()) {
-          case "event.duration" ->
+          case "response_time" ->
               value.isIntegralNumber() && value.canConvertToLong() && value.longValue() >= 0;
-          case "http.response.status_code" ->
+          case "http_code" ->
               value.isIntegralNumber()
                   && value.canConvertToInt()
                   && value.intValue() >= 100
                   && value.intValue() <= 599;
-          case "args", "ctx_details" -> value.isObject();
-          case "error.type", "error.message", "error.stack_trace" -> value.isTextual();
+          case "ctx_details" -> value.isObject();
+          case "args", "error.type", "error.message", "error.stack_trace", "faultCode", "faultDetail" ->
+              value.isTextual();
           default -> false;
         };
     if (!valid) {
@@ -94,6 +93,8 @@ public final class StructuredLogFields {
       text.append(' ').append(entry.getKey()).append('=');
       if ("error.stack_trace".equals(entry.getKey())) {
         text.append('\n').append(entry.getValue().textValue());
+      } else if ("args".equals(entry.getKey())) {
+        text.append(entry.getValue().textValue());
       } else {
         text.append(entry.getValue());
       }

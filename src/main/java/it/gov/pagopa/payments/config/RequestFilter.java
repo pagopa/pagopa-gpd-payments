@@ -99,10 +99,12 @@ public class RequestFilter implements Filter {
         log.warn("HTTP operation result unavailable at request completion");
       }
       ObjectNode fields = JsonNodeFactory.instance.objectNode();
-      fields.put("event.duration", context.durationNanos());
-      fields.put("http.response.status_code", context.responseStatus());
+      fields.put("response_time", context.responseTimeMillis());
+      fields.put("http_code", context.responseStatus());
       context.addRequestLogFields(fields);
+      context.addResponseFaultLogFields(fields);
       fields.with("args").put("serviceType", CommonUtil.getServiceType(request));
+      fields.put("args", fields.get("args").toString());
       StructuredLogFields structured = new StructuredLogFields(fields);
       String method = MDC.get(HttpRequestLogContext.METHOD);
       if (context.hasSoapSystemErrorForLogging()) {

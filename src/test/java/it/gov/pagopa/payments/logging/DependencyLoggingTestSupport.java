@@ -71,14 +71,17 @@ abstract class DependencyLoggingTestSupport {
     assertFalse(fields.has("ctx_soap_outcome"));
     assertFalse(fields.has("httpCode"));
     assertEquals(2, fields.path("ctx_details").size());
-    assertTrue(fields.get("event.duration").isIntegralNumber());
-    assertTrue(fields.get("event.duration").longValue() >= 0);
+    assertFalse(fields.has("event.duration"));
+    assertFalse(fields.has("http.response.status_code"));
+    assertFalse(fields.has("ctx_soap_fault_code"));
+    assertTrue(fields.path("response_time").isIntegralNumber());
+    assertTrue(fields.path("response_time").longValue() >= 0);
     assertTrue(fields.get("ctx_details").isObject());
     if (code == null) {
-      assertFalse(fields.has("http.response.status_code"));
+      assertFalse(fields.has("http_code"));
     } else {
-      assertTrue(fields.get("http.response.status_code").isInt());
-      assertEquals(code.intValue(), fields.get("http.response.status_code").intValue());
+      assertTrue(fields.path("http_code").isIntegralNumber());
+      assertEquals(code.intValue(), fields.path("http_code").intValue());
     }
     String output = fields + event.getFormattedMessage();
     assertFalse(output.contains("SECRET"));

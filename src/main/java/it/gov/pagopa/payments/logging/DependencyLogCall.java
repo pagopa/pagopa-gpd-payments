@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +58,10 @@ final class DependencyLogCall {
       return;
     }
     ObjectNode fields = JsonNodeFactory.instance.objectNode();
-    fields.put("event.duration", Math.max(0L, System.nanoTime() - started));
+    fields.put("response_time",
+        TimeUnit.NANOSECONDS.toMillis(Math.max(0L, System.nanoTime() - started)));
     if (status != null) {
-      fields.put("http.response.status_code", status);
+      fields.put("http_code", status);
     }
     fields.putObject("ctx_details")
         .put("dependency", dependency)

@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.config;
 
+import static it.gov.pagopa.payments.config.RequestLogCapture.arguments;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -117,7 +118,16 @@ class ActuatorHealthLoggingTest {
     JsonNode logEntry = capture.singleSummary();
     assertEquals("INFO", logEntry.path("log.level").textValue());
     assertFalse(logEntry.has("method"));
-    assertEquals(response.statusCode(), logEntry.path("http.response.status_code").intValue());
+    assertEquals(response.statusCode(), logEntry.path("http_code").intValue());
+    if (response.statusCode() == 404) {
+      assertTrue(response.body().isEmpty());
+      assertFalse(logEntry.has("faultCode"));
+      assertFalse(logEntry.has("faultDetail"));
+      assertFalse(logEntry.has("ctx_soap_fault_code"));
+    } else {
+      assertFalse(logEntry.has("faultCode"));
+      assertFalse(logEntry.has("faultDetail"));
+    }
   }
 
   private HttpResponse<String> getCompleted(String path) throws Exception {
@@ -146,10 +156,10 @@ class ActuatorHealthLoggingTest {
     assertEquals(level, logEntry.path("log.level").textValue());
     assertEquals(status, logEntry.path("status").textValue());
     assertEquals(REQUEST_ID, logEntry.path("correlation_id").textValue());
-    assertTrue(logEntry.path("event.duration").isIntegralNumber());
-    assertTrue(logEntry.path("event.duration").longValue() >= 0);
-    assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertTrue(logEntry.path("response_time").isIntegralNumber());
+    assertTrue(logEntry.path("response_time").longValue() >= 0);
+    assertEquals(httpStatus, logEntry.path("http_code").intValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
     assertNotNull(logEntry.get("@timestamp"));
   }
 
@@ -160,6 +170,7 @@ class ActuatorHealthLoggingTest {
 
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration
-  @Import({RequestLoggingConfiguration.class, RequestLoggingInterceptor.class, RequestFilter.class})
+  @Import({RequestLoggingConfiguration.class, RequestLoggingInterceptor.class, RequestFilter.class,
+      RestResponseLoggingAdvice.class})
   static class TestApplication {}
 }

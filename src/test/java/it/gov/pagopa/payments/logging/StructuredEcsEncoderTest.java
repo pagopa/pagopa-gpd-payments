@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.logging;
 
+import static it.gov.pagopa.payments.config.RequestLogCapture.arguments;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -87,20 +88,24 @@ class StructuredEcsEncoderTest {
   @Test
   void nativeEncoderSerializesMdcAsStrings() throws Exception {
     LoggingEvent event =
-        event(null, null, Map.of("event.duration", "123", "args", "{\"pageSize\":20}"));
+        event(null, null, Map.of("event.duration", "123", "http.response.status_code", "200",
+            "args", "{\"pageSize\":20}"));
 
     JsonNode logEntry = json.readTree(encoder.encode(event));
 
     assertTrue(logEntry.path("event.duration").isTextual());
+    assertTrue(logEntry.path("http.response.status_code").isTextual());
     assertTrue(logEntry.path("args").isTextual());
+    assertFalse(logEntry.has("response_time"));
+    assertFalse(logEntry.has("http_code"));
   }
 
   @Test
   void writesTypedFieldsWithoutChangingMessageOrMdc() throws Exception {
     ObjectNode values = json.createObjectNode();
-    values.put("event.duration", 123456L);
-    values.put("http.response.status_code", 200);
-    values.putObject("args").put("pageSize", 20).put("standIn", false);
+    values.put("response_time", 123456L);
+    values.put("http_code", 200);
+    values.put("args", "{\"pageSize\":20,\"standIn\":false}");
     values.putObject("ctx_details").put("dependency", "gpd").put("path", "/paymentoptions/{nav}");
     StructuredLogFields fields = new StructuredLogFields(values);
     LoggingEvent event =
@@ -110,31 +115,68 @@ class StructuredEcsEncoderTest {
 
     assertEquals("Operation completed", logEntry.path("message").asText());
     assertEquals("request-1", logEntry.path("correlation_id").asText());
-    assertTrue(logEntry.path("event.duration").isIntegralNumber());
-    assertEquals(123456L, logEntry.path("event.duration").longValue());
-    assertTrue(logEntry.path("http.response.status_code").isIntegralNumber());
-    assertEquals(200, logEntry.path("http.response.status_code").intValue());
-    assertTrue(logEntry.path("args").isObject());
-    assertEquals(20, logEntry.path("args").path("pageSize").intValue());
-    assertFalse(logEntry.path("args").path("standIn").booleanValue());
+    assertFalse(logEntry.has("event.duration"));
+    assertFalse(logEntry.has("http.response.status_code"));
+    assertFalse(logEntry.has("ctx_soap_fault_code"));
+    assertEquals(20, arguments(logEntry).path("pageSize").intValue());
+    assertFalse(arguments(logEntry).path("standIn").booleanValue());
+    assertTrue(logEntry.path("http_code").isIntegralNumber());
+    assertEquals(200, logEntry.path("http_code").intValue());
+    assertTrue(logEntry.path("response_time").isIntegralNumber());
+    assertEquals(123456L, logEntry.path("response_time").longValue());
     assertEquals("gpd", logEntry.path("ctx_details").path("dependency").asText());
     assertEquals(Map.of("correlation_id", "request-1"), event.getMDCPropertyMap());
   }
 
   @Test
-  void typedFieldsReplaceMdcAliasesWithoutDuplicateKeys() throws Exception {
+  void typedFieldsReplaceSameNamedMdcValuesWithoutDuplicateKeys() throws Exception {
     ObjectNode values = json.createObjectNode();
-    values.put("event.duration", 10L);
-    values.putObject("args").put("pageNum", 0);
+    values.put("response_time", 10L);
+    values.put("http_code", 204);
+    values.put("args", "{\"pageNum\":0}");
     LoggingEvent event =
         event(new Object[] {new StructuredLogFields(values)}, null,
-            Map.of("args", "{legacy=value}", "event.duration", "9"));
+            Map.of("args", "{legacy=value}",
+                "http_code", "500", "response_time", "99"));
 
     JsonNode logEntry = json.readTree(encoder.encode(event));
 
-    assertTrue(logEntry.path("args").isObject());
-    assertEquals(10, logEntry.path("event.duration").longValue());
+    assertEquals(0, arguments(logEntry).path("pageNum").intValue());
+    assertEquals(204, logEntry.path("http_code").intValue());
+    assertEquals(10, logEntry.path("response_time").longValue());
     assertEquals("{legacy=value}", event.getMDCPropertyMap().get("args"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(longs = {0L, 1L, 123L, 123_456_789L, Long.MAX_VALUE})
+  void responseTimePreservesNumericMillisecondsWithoutConversion(long millis) throws Exception {
+    ObjectNode values = json.createObjectNode().put("response_time", millis);
+    StructuredLogFields fields = new StructuredLogFields(values);
+
+    JsonNode logEntry = json.readTree(encoder.encode(event(new Object[] {fields}, null)));
+
+    assertEquals(values, fields.toJson());
+    assertTrue(logEntry.path("response_time").isIntegralNumber());
+    assertEquals(millis, logEntry.path("response_time").longValue());
+    assertFalse(logEntry.has("http_code"));
+    assertFalse(logEntry.has("event.duration"));
+    assertTrue(fields.toReadableText().contains("response_time=" + millis));
+  }
+
+  @Test
+  void httpCodeDoesNotInventADurationOrCarryFieldsBetweenEvents() throws Exception {
+    ObjectNode values = json.createObjectNode().put("http_code", 503);
+    JsonNode status = json.readTree(encoder.encode(
+        event(new Object[] {new StructuredLogFields(values)}, null)));
+    assertTrue(status.path("http_code").isIntegralNumber());
+    assertEquals(503, status.path("http_code").intValue());
+    assertFalse(status.has("response_time"));
+
+    JsonNode next = json.readTree(encoder.encode(
+        event(new Object[] {new StructuredLogFields(json.createObjectNode())}, null)));
+    assertFalse(next.has("http_code"));
+    assertFalse(next.has("response_time"));
+    assertFalse(next.has("args"));
   }
 
   @Test
@@ -160,57 +202,87 @@ class StructuredEcsEncoderTest {
   @Test
   void takesAnImmutableSnapshotOfTypedValues() throws Exception {
     ObjectNode values = json.createObjectNode();
-    ObjectNode args = values.putObject("args").put("pageNum", 1);
+    values.put("args", "{\"pageNum\":1}");
+    values.putObject("ctx_details").put("path", "original");
     StructuredLogFields fields = new StructuredLogFields(values);
-    args.put("pageNum", 99);
-    values.put("event.duration", 99);
-    fields.toJson().with("args").put("pageNum", 100);
+    values.put("args", "{\"pageNum\":99}");
+    values.with("ctx_details").put("path", "mutated");
+    values.put("response_time", 99);
+    ObjectNode snapshot = fields.toJson();
+    snapshot.put("args", "{\"pageNum\":100}");
+    snapshot.with("ctx_details").put("path", "snapshot-mutation");
+    snapshot.put("response_time", 100);
 
     JsonNode logEntry = json.readTree(encoder.encode(event(new Object[] {fields}, null)));
 
-    assertEquals(1, logEntry.path("args").path("pageNum").intValue());
+    assertEquals(1, arguments(logEntry).path("pageNum").intValue());
+    assertEquals("original", logEntry.path("ctx_details").path("path").textValue());
     assertFalse(logEntry.has("event.duration"));
+    assertFalse(logEntry.has("response_time"));
+    assertFalse(logEntry.has("http_code"));
   }
 
   @Test
-  void omitsEmptyObjectsAndPreservesScalarJsonTypes() throws Exception {
+  void omitsEmptyDetailsAndPreservesPreSerializedArgumentValues() throws Exception {
     ObjectNode values = json.createObjectNode();
-    values.putObject("args");
     values.putObject("ctx_details");
     JsonNode empty = json.readTree(
         encoder.encode(event(new Object[] {new StructuredLogFields(values)}, null)));
     assertFalse(empty.has("args"));
     assertFalse(empty.has("ctx_details"));
 
-    ObjectNode args = values.with("args");
+    ObjectNode args = json.createObjectNode();
     args.put("identifier", "00123");
     args.put("enabled", false);
     args.put("count", 0);
     args.putNull("optional");
     args.putArray("codes").add("01").add("02");
+    args.put("serviceType", "custom \"service\"\nvalue");
+    values.put("args", args.toString());
     JsonNode logEntry = json.readTree(
         encoder.encode(event(new Object[] {new StructuredLogFields(values)}, null)));
-    assertEquals("00123", logEntry.path("args").path("identifier").textValue());
-    assertTrue(logEntry.path("args").path("enabled").isBoolean());
-    assertFalse(logEntry.path("args").path("enabled").booleanValue());
-    assertTrue(logEntry.path("args").path("count").isIntegralNumber());
-    assertEquals(0, logEntry.path("args").path("count").intValue());
-    assertTrue(logEntry.path("args").path("optional").isNull());
-    assertEquals("01", logEntry.path("args").path("codes").get(0).textValue());
+    JsonNode decoded = arguments(logEntry);
+    assertEquals("00123", decoded.path("identifier").textValue());
+    assertTrue(decoded.path("enabled").isBoolean());
+    assertFalse(decoded.path("enabled").booleanValue());
+    assertTrue(decoded.path("count").isIntegralNumber());
+    assertEquals(0, decoded.path("count").intValue());
+    assertTrue(decoded.path("optional").isNull());
+    assertEquals("01", decoded.path("codes").get(0).textValue());
+    assertEquals("custom \"service\"\nvalue", decoded.path("serviceType").textValue());
+    assertEquals(args.toString(), logEntry.path("args").textValue());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "ordinary text", "{pageNum=0}", "{\"pageNum\":1}", "[]", "null"})
+  void argumentsRemainOrdinaryTextWithoutParsingOrReformatting(String text) throws Exception {
+    ObjectNode values = json.createObjectNode().put("args", text);
+    StructuredLogFields fields = new StructuredLogFields(values);
+
+    assertEquals(values, fields.toJson());
+    JsonNode logEntry = json.readTree(encoder.encode(event(new Object[] {fields}, null)));
+    assertTrue(logEntry.path("args").isTextual());
+    assertEquals(text, logEntry.path("args").textValue());
   }
 
   @ParameterizedTest
   @ValueSource(strings = {
-      "{\"event.duration\":\"10\"}",
-      "{\"event.duration\":-1}",
-      "{\"event.duration\":1.5}",
-      "{\"event.duration\":9223372036854775808}",
-      "{\"http.response.status_code\":\"200\"}",
-      "{\"http.response.status_code\":99}",
-      "{\"http.response.status_code\":600}",
-      "{\"http.response.status_code\":200.5}",
-      "{\"args\":\"{pageNum=0}\"}",
+      "{\"response_time\":\"10\"}",
+      "{\"response_time\":-1}",
+      "{\"response_time\":1.5}",
+      "{\"response_time\":9223372036854775808}",
+      "{\"http_code\":\"200\"}",
+      "{\"http_code\":99}",
+      "{\"http_code\":600}",
+      "{\"http_code\":200.5}",
+      "{\"args\":{}}",
       "{\"args\":[]}",
+      "{\"args\":null}",
+      "{\"faultCode\":500}",
+      "{\"faultDetail\":{}}",
+      "{\"event.duration\":1}",
+      "{\"http.response.status_code\":200}",
+      "{\"ctx_soap_fault_code\":\"PAA_SEMANTICA\"}",
       "{\"ctx_details\":null}",
       "{\"message\":\"replacement\"}",
       "{\"service.name\":\"replacement\"}",
@@ -225,6 +297,9 @@ class StructuredEcsEncoderTest {
   @Test
   void rejectsArbitraryJavaObjectsRawJsonAndNonFiniteNumbers() {
     ObjectNode values = json.createObjectNode();
+    values.putPOJO("args", new Object());
+    assertThrows(IllegalArgumentException.class, () -> new StructuredLogFields(values));
+    values.remove("args");
     ObjectNode details = values.putObject("ctx_details");
     details.putPOJO("payload", new Object());
     assertThrows(IllegalArgumentException.class, () -> new StructuredLogFields(values));

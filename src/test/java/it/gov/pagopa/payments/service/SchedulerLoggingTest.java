@@ -310,8 +310,8 @@ class SchedulerLoggingTest {
     assertEquals("retryPaSendRT.message", summary.path("method").asText());
     assertEquals(status, summary.path("status").asText());
     assertEquals("INFO", summary.path("log.level").asText());
-    assertTrue(summary.path("event.duration").isIntegralNumber());
-    assertTrue(summary.path("event.duration").longValue() >= 0);
+    assertTrue(summary.path("response_time").isIntegralNumber());
+    assertTrue(summary.path("response_time").longValue() >= 0);
     assertNotEquals("outer-correlation", summary.path("correlation_id").asText());
     assertDoesNotThrow(() -> UUID.fromString(summary.path("correlation_id").asText()));
     for (var field : Map.of("ctx_creditor_id", creditor == null ? "" : creditor,

@@ -91,14 +91,18 @@ public class RequestLoggingInterceptor implements HandlerInterceptor, EndpointIn
     }
     if (response.getSoapBody().hasFault()) {
       context.recordSoapResponseLog(
-          null, response.getSoapBody().getFault().getFaultCode().toString());
+          null,
+          response.getSoapBody().getFault().getFaultCode().toString(),
+          response.getSoapBody().getFault().getFaultStringOrReason());
     } else if (response.getSoapBody().getPayloadSource() instanceof DOMSource source
         && source.getNode() instanceof Element payload) {
       String outcome = childText(payload, "outcome");
       Element fault = child(payload, "fault");
+      String description = childText(fault, "description");
       context.recordSoapResponseLog(
           "OK".equals(outcome) || "KO".equals(outcome) ? outcome : null,
-          fault == null ? null : childText(fault, "faultCode"));
+          childText(fault, "faultCode"),
+          description == null ? childText(fault, "faultString") : description);
       context.recordResponseIuvLog(RequestLogProjection.soapResponseIuv(payload));
     } else {
       log.warn("SOAP response logging requires a DOM payload");
@@ -106,6 +110,9 @@ public class RequestLoggingInterceptor implements HandlerInterceptor, EndpointIn
   }
 
   private static Element child(Element parent, String name) {
+    if (parent == null) {
+      return null;
+    }
     for (Node node = parent.getFirstChild(); node != null; node = node.getNextSibling()) {
       if (node instanceof Element element && name.equals(element.getLocalName())) {
         return element;

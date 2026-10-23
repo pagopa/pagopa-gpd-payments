@@ -58,11 +58,17 @@ class BackgroundExecutionLoggingTest {
       assertNotEquals(first.path("correlation_id"), second.path("correlation_id"));
       assertNotEquals(parent.path("correlation_id"), first.path("correlation_id"));
       assertFalse(parent.has("ctx_iuv"));
-      assertTrue(parent.path("event.duration").isIntegralNumber());
+      assertTrue(parent.path("response_time").isIntegralNumber());
       for (var event : logs.events) {
         var logEntry = logs.encodedEvent(event);
         assertEquals("Background execution completed", logEntry.path("message").asText());
         assertFalse(logEntry.has("http.response.status_code"));
+        assertFalse(logEntry.has("event.duration"));
+        assertFalse(logEntry.has("http_code"));
+        assertTrue(logEntry.path("response_time").isIntegralNumber());
+        assertTrue(logEntry.path("response_time").longValue() >= 0);
+        assertFalse(logEntry.has("faultCode"));
+        assertFalse(logEntry.has("faultDetail"));
         assertFalse(logEntry.has("ctx_soap_outcome"));
         assertFalse(logEntry.has("ctx_soap_fault_code"));
         assertFalse(logEntry.has("args"));

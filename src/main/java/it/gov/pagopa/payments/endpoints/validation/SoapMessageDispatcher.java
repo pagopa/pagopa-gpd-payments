@@ -110,7 +110,11 @@ public class SoapMessageDispatcher extends MessageDispatcherServlet {
       writeSoapMessage(response, marshalToDocument(faultElement));
       HttpRequestLogContext context = HttpRequestLogContext.from(request);
       if (context != null) {
-        context.recordSoapResponseLog("KO", fault.errorEnum().getFaultCode());
+        String description = fault.errorEnum().getDescription();
+        context.recordSoapResponseLog(
+            "KO",
+            fault.errorEnum().getFaultCode(),
+            description == null ? fault.errorEnum().getFaultString() : description);
       }
     } catch (ParserConfigurationException | SOAPException | JAXBException | IOException e) {
       TechnicalFailureLogging.logTechnicalFailure(log, "SOAP fault response could not be written", e);

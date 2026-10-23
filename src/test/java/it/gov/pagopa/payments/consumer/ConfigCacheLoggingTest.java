@@ -193,9 +193,9 @@ class ConfigCacheLoggingTest {
         assertEquals(correlationId, logEntry.path("correlation_id").asText());
         assertEquals("handleCacheEvent", logEntry.path("method").asText());
         assertEquals(status, logEntry.path("status").asText());
-        assertTrue(logEntry.path("event.duration").isIntegralNumber());
-        assertTrue(logEntry.path("event.duration").longValue() >= 0);
-        assertFalse(logEntry.has("http.response.status_code"));
+        assertTrue(logEntry.path("response_time").isIntegralNumber());
+        assertTrue(logEntry.path("response_time").longValue() >= 0);
+        assertFalse(logEntry.has("http_code"));
         assertFalse(logEntry.has("http.request.method"));
         assertFalse(logEntry.has("ctx_soap_outcome"));
         assertFalse(logEntry.has("args"));

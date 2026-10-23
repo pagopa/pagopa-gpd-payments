@@ -311,7 +311,7 @@ class ConfigCacheFailureLoggingTest {
                 JsonNode logEntry = new ObjectMapper().readTree(encoder.encode(event));
                 if (logEntry.has("error.type")) {
                     diagnoses.add(event);
-                } else if (logEntry.has("event.duration")) {
+                } else if (logEntry.has("response_time")) {
                     summaries.add(logEntry);
                 }
             }
@@ -324,7 +324,7 @@ class ConfigCacheFailureLoggingTest {
         JsonNode summary = summaries.get(0);
         assertEquals("KO", summary.path("status").asText());
         assertEquals(method, summary.path("method").asText());
-        assertFalse(summary.has("http.response.status_code"));
+        assertFalse(summary.has("http_code"));
         assertEquals(summary.path("correlation_id").asText(),
                 diagnoses.get(0).getMDCPropertyMap().get("correlation_id"));
     }

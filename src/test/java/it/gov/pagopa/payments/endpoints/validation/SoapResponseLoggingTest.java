@@ -42,12 +42,18 @@ class SoapResponseLoggingTest {
 
       assertEquals("KO", logEntry.path("status").asText());
       assertEquals(writingFails ? 500 : 200, response.getStatus());
+      assertEquals(response.getStatus(), logEntry.path("http_code").intValue());
       if (writingFails) {
         assertFalse(logEntry.has("ctx_soap_outcome"));
         assertFalse(logEntry.has("ctx_soap_fault_code"));
+        assertFalse(logEntry.has("faultCode"));
+        assertFalse(logEntry.has("faultDetail"));
       } else {
         assertEquals("KO", logEntry.path("ctx_soap_outcome").asText());
-        assertEquals("PAA_SEMANTICA", logEntry.path("ctx_soap_fault_code").asText());
+        assertEquals("PAA_SEMANTICA", logEntry.path("faultCode").textValue());
+        assertFalse(logEntry.has("ctx_soap_fault_code"));
+        assertEquals(PaaErrorEnum.PAA_SEMANTICA.getDescription(),
+            logEntry.path("faultDetail").textValue());
       }
     }
   }

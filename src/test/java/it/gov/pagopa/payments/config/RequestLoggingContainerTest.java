@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.config;
 
+import static it.gov.pagopa.payments.config.RequestLogCapture.arguments;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -79,8 +80,8 @@ class RequestLoggingContainerTest {
     JsonNode logEntry = capture.singleSummary();
     assertEquals("request-container", logEntry.path("correlation_id").asText());
     assertEquals("testOperation", logEntry.path("method").asText());
-    assertEquals(201, logEntry.path("http.response.status_code").intValue());
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(201, logEntry.path("http_code").intValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
     assertEquals("OK", logEntry.path("status").asText());
   }
 
@@ -91,8 +92,8 @@ class RequestLoggingContainerTest {
     assertEquals(500, response.statusCode());
     assertEquals("error response", response.body());
     JsonNode logEntry = capture.singleSummary();
-    assertEquals(500, logEntry.path("http.response.status_code").intValue());
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(500, logEntry.path("http_code").intValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
     assertEquals("KO", logEntry.path("status").asText());
     assertEquals("testOperation", logEntry.path("method").asText());
   }
@@ -103,8 +104,8 @@ class RequestLoggingContainerTest {
 
     assertEquals(422, response.statusCode());
     JsonNode logEntry = capture.singleSummary();
-    assertEquals(422, logEntry.path("http.response.status_code").intValue());
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(422, logEntry.path("http_code").intValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
     assertEquals("KO", logEntry.path("status").asText());
     assertEquals("testOperation", logEntry.path("method").asText());
   }
@@ -116,8 +117,8 @@ class RequestLoggingContainerTest {
     assertEquals(202, response.statusCode());
     assertEquals("accepted", response.body());
     JsonNode logEntry = capture.singleSummary();
-    assertEquals(202, logEntry.path("http.response.status_code").intValue());
-    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(202, logEntry.path("http_code").intValue());
+    assertEquals("ACA", arguments(logEntry).path("serviceType").textValue());
     assertEquals("OK", logEntry.path("status").asText());
     assertEquals("request-container", logEntry.path("correlation_id").asText());
   }
