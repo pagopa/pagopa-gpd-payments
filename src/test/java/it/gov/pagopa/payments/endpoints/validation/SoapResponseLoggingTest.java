@@ -38,16 +38,16 @@ class SoapResponseLoggingTest {
     try (RequestLogCapture logs = new RequestLogCapture()) {
       filter.doFilter(request, response, (req, res) -> dispatcher.doService(request, response));
       filter.logCompletedRequest(request);
-      JsonNode record = logs.singleSummary();
+      JsonNode logEntry = logs.singleSummary();
 
-      assertEquals("KO", record.path("status").asText());
+      assertEquals("KO", logEntry.path("status").asText());
       assertEquals(writingFails ? 500 : 200, response.getStatus());
       if (writingFails) {
-        assertFalse(record.has("ctx_soap_outcome"));
-        assertFalse(record.has("ctx_soap_fault_code"));
+        assertFalse(logEntry.has("ctx_soap_outcome"));
+        assertFalse(logEntry.has("ctx_soap_fault_code"));
       } else {
-        assertEquals("KO", record.path("ctx_soap_outcome").asText());
-        assertEquals("PAA_SEMANTICA", record.path("ctx_soap_fault_code").asText());
+        assertEquals("KO", logEntry.path("ctx_soap_outcome").asText());
+        assertEquals("PAA_SEMANTICA", logEntry.path("ctx_soap_fault_code").asText());
       }
     }
   }
@@ -68,7 +68,9 @@ class SoapResponseLoggingTest {
           }
 
           @Override
-          public void setWriteListener(WriteListener listener) {}
+          public void setWriteListener(WriteListener listener) {
+            // This synchronous failing stream never schedules non-blocking write callbacks.
+          }
         };
       }
     };

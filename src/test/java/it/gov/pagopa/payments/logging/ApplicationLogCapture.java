@@ -32,7 +32,7 @@ public final class ApplicationLogCapture implements AutoCloseable {
     root.setLevel(Level.DEBUG);
   }
 
-  public JsonNode record(ILoggingEvent event) throws Exception {
+  public JsonNode encodedEvent(ILoggingEvent event) throws Exception {
     StructuredEcsEncoder encoder = new StructuredEcsEncoder();
     encoder.setContext(root.getLoggerContext());
     encoder.start();

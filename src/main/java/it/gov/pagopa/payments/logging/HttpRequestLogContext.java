@@ -25,14 +25,18 @@ public final class HttpRequestLogContext {
   private final String correlationId;
   private final long startedNanos = System.nanoTime();
   private final AtomicBoolean completed = new AtomicBoolean();
+  // The servlet lifecycle owns response access; volatile only publishes the latest dispatch wrapper.
+  @SuppressWarnings("java:S3077")
   private volatile HttpServletResponse response;
-  private volatile String method;
+  private volatile String operationMethod;
   private volatile boolean failed;
   private volatile String soapOutcome;
   private volatile String soapFaultCode;
   private volatile String creditorId;
   private volatile String noticeNumber;
   private volatile String iuv;
+  // Published as an owned snapshot and never mutated; readers receive a defensive copy.
+  @SuppressWarnings("java:S3077")
   private volatile ObjectNode requestArgs;
 
   public HttpRequestLogContext(String correlationId, HttpServletResponse response) {
@@ -55,7 +59,7 @@ public final class HttpRequestLogContext {
 
   /** Sets the logical API operation, not the HTTP verb. */
   public void setMethod(String method) {
-    this.method = method;
+    this.operationMethod = method;
     MDC.put(METHOD, method);
   }
 
@@ -106,8 +110,9 @@ public final class HttpRequestLogContext {
 
   /** Arguments are event-local and emitted once; dependency events must not inherit them via MDC. */
   public void addRequestLogFields(ObjectNode fields) {
-    if (requestArgs != null && !requestArgs.isEmpty()) {
-      fields.set("args", requestArgs.deepCopy());
+    ObjectNode args = requestArgs;
+    if (args != null && !args.isEmpty()) {
+      fields.set("args", args.deepCopy());
     }
   }
 
@@ -126,6 +131,7 @@ public final class HttpRequestLogContext {
   /** Rebuilds only known request metadata, not MDC left on a reused container thread. */
   public void populateMdc() {
     MDC.put(CORRELATION_ID, correlationId);
+    String method = operationMethod;
     if (method != null) {
       MDC.put(METHOD, method);
     }

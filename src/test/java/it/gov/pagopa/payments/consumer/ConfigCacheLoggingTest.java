@@ -189,17 +189,17 @@ class ConfigCacheLoggingTest {
     }
 
     private void assertSummary(ILoggingEvent event, String correlationId, String status) throws Exception {
-        JsonNode record = encoded(event);
-        assertEquals(correlationId, record.path("correlation_id").asText());
-        assertEquals("handleCacheEvent", record.path("method").asText());
-        assertEquals(status, record.path("status").asText());
-        assertTrue(record.path("event.duration").isIntegralNumber());
-        assertTrue(record.path("event.duration").longValue() >= 0);
-        assertFalse(record.has("http.response.status_code"));
-        assertFalse(record.has("http.request.method"));
-        assertFalse(record.has("ctx_soap_outcome"));
-        assertFalse(record.has("args"));
-        assertFalse(record.has("error.type"));
+        JsonNode logEntry = encoded(event);
+        assertEquals(correlationId, logEntry.path("correlation_id").asText());
+        assertEquals("handleCacheEvent", logEntry.path("method").asText());
+        assertEquals(status, logEntry.path("status").asText());
+        assertTrue(logEntry.path("event.duration").isIntegralNumber());
+        assertTrue(logEntry.path("event.duration").longValue() >= 0);
+        assertFalse(logEntry.has("http.response.status_code"));
+        assertFalse(logEntry.has("http.request.method"));
+        assertFalse(logEntry.has("ctx_soap_outcome"));
+        assertFalse(logEntry.has("args"));
+        assertFalse(logEntry.has("error.type"));
     }
 
     private void assertPrivateOutput() {

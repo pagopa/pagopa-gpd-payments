@@ -21,6 +21,7 @@ import it.gov.pagopa.payments.model.partner.ObjectFactory;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import java.util.List;
 import java.util.Map;
+import javax.xml.datatype.DatatypeConfigurationException;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
@@ -35,13 +36,16 @@ class PartnerFailureLoggingTest {
   }
 
   @Test
-  void convertedTechnicalFailureRetainsCauseAndIsNotDiagnosedBeforeTheBoundary() throws Exception {
+  void convertedTechnicalFailureRetainsCauseAndIsNotDiagnosedBeforeTheBoundary()
+      throws DatatypeConfigurationException {
     var cause = new IllegalStateException("SECRET dependency response");
     when(gpd.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(cause);
+    PartnerService partner = service(List.of());
+    var request = PaSendRTReqMock.getMockV2("001234");
     try (ApplicationLogCapture logs = new ApplicationLogCapture()) {
       var failure = assertThrows(PartnerValidationException.class,
-          () -> service(List.of()).paSendRTV2(PaSendRTReqMock.getMockV2("001234")));
+          () -> partner.paSendRTV2(request));
       assertSame(cause, failure.getCause());
       assertEquals(PaaErrorEnum.PAA_SYSTEM_ERROR, failure.getError());
       assertTrue(logs.events.isEmpty());
@@ -62,8 +66,8 @@ class PartnerFailureLoggingTest {
       assertEquals(1, logs.events.stream()
           .filter(event -> event.getLevel() == ch.qos.logback.classic.Level.ERROR).count());
       for (var event : logs.events) {
-        assertFalse(logs.record(event).toString().contains("SECRET"));
-        assertFalse(logs.record(event).has("ctx_soap_fault_code"));
+        assertFalse(logs.encodedEvent(event).toString().contains("SECRET"));
+        assertFalse(logs.encodedEvent(event).has("ctx_soap_fault_code"));
       }
     } finally {
       if (previous == null) MDC.clear();
@@ -72,7 +76,8 @@ class PartnerFailureLoggingTest {
   }
 
   @Test
-  void concurrentDuplicateDuringReceiptRecoveryIsNotDiagnosedAsATechnicalFailure() throws Exception {
+  void concurrentDuplicateDuringReceiptRecoveryIsNotDiagnosedAsATechnicalFailure()
+      throws DatatypeConfigurationException {
     when(gpd.sendPaymentOptionReceipt(anyString(), anyString(), any(PaymentOptionModel.class)))
         .thenThrow(mock(FeignException.Conflict.class));
     var missing = mock(TableServiceException.class, RETURNS_DEEP_STUBS);
@@ -81,9 +86,11 @@ class PartnerFailureLoggingTest {
     var duplicate = mock(TableServiceException.class, RETURNS_DEEP_STUBS);
     when(duplicate.getValue().getErrorCode()).thenReturn(TableErrorCode.ENTITY_ALREADY_EXISTS);
     doThrow(duplicate).when(tables).createEntity(any());
+    PartnerService partner = service(List.of());
+    var request = PaSendRTReqMock.getMockV2("001234");
     try (ApplicationLogCapture logs = new ApplicationLogCapture()) {
       var rejection = assertThrows(PartnerValidationException.class,
-          () -> service(List.of()).paSendRTV2(PaSendRTReqMock.getMockV2("001234")));
+          () -> partner.paSendRTV2(request));
       assertEquals(PaaErrorEnum.PAA_RECEIPT_DUPLICATA, rejection.getError());
       assertTrue(logs.events.isEmpty());
       verify(tables).createEntity(any());
@@ -101,7 +108,7 @@ class PartnerFailureLoggingTest {
           .paSendRTV2(PaSendRTReqMock.getMockV2("001234")).getOutcome());
       assertEquals(1, logs.events.size());
       assertEquals("PAA_SEMANTICA",
-          logs.record(logs.events.get(0)).path("ctx_details")
+          logs.encodedEvent(logs.events.get(0)).path("ctx_details")
               .path("suppressed_fault_code").asText());
       assertEquals(ch.qos.logback.classic.Level.WARN, logs.events.get(0).getLevel());
     }

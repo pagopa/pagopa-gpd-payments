@@ -20,20 +20,22 @@ import reactor.core.publisher.Mono;
 /** Builder-installed observer, positioned inside the SDK retry policy. Does not consume bodies. */
 public final class AzureStorageLoggingPolicy implements HttpPipelinePolicy {
   private static final String CALLER_CONTEXT_KEY = AzureStorageLoggingPolicy.class.getName() + ".mdc";
+  private static final String AZURE_TABLES = "azure-tables";
+  private static final String AZURE_QUEUE = "azure-queue";
+  private static final String AZURE_BLOB = "azure-blob";
+  private static final String DELETE = "DELETE";
   private final String dependency;
 
   public AzureStorageLoggingPolicy(String dependency) {
     switch (dependency) {
-      case "azure-tables":
-        this.dependency = "azure-tables";
+      case AZURE_TABLES:
+        this.dependency = AZURE_TABLES;
         break;
-      case "azure-queue":
-      case "azure-storage-queue":
-        this.dependency = "azure-queue";
+      case AZURE_QUEUE, "azure-storage-queue":
+        this.dependency = AZURE_QUEUE;
         break;
-      case "azure-blob":
-      case "azure-storage-blob":
-        this.dependency = "azure-blob";
+      case AZURE_BLOB, "azure-storage-blob":
+        this.dependency = AZURE_BLOB;
         break;
       default:
         throw new IllegalArgumentException("Unsupported Azure logging dependency");
@@ -90,63 +92,46 @@ public final class AzureStorageLoggingPolicy implements HttpPipelinePolicy {
   private record CallerContext(Map<String, String> values) {}
 
   private DependencyLogCall newCall(HttpRequest request, Map<String, String> caller) {
-    String verb = request.getHttpMethod().name();
-    String operation = "request";
-    if ("azure-tables".equals(dependency)) {
-      String path = request.getUrl().getPath().toLowerCase(Locale.ROOT);
-      switch (verb) {
-        case "GET":
-          operation = path.contains("(") || path.contains("%28") ? "getEntity" : "listEntities";
-          break;
-        case "POST":
-          operation = "createEntity";
-          break;
-        case "PUT":
-        case "MERGE":
-        case "PATCH":
-          operation = "updateEntity";
-          break;
-        case "DELETE":
-          operation = "deleteEntity";
-          break;
-        default:
-          break;
-      }
-    } else if ("azure-queue".equals(dependency)) {
-      switch (verb) {
-        case "POST":
-          operation = "sendMessage";
-          break;
-        case "GET":
-          operation = "receiveMessage";
-          break;
-        case "PUT":
-          operation = "updateMessage";
-          break;
-        case "DELETE":
-          operation = "deleteMessage";
-          break;
-        default:
-          break;
-      }
-    } else {
-      switch (verb) {
-        case "GET":
-          String query = request.getUrl().getQuery();
-          operation = query != null && hasListComponent(query) ? "list" : "download";
-          break;
-        case "PUT":
-        case "POST":
-          operation = "upload";
-          break;
-        case "DELETE":
-          operation = "delete";
-          break;
-        default:
-          break;
-      }
-    }
+    String operation = switch (dependency) {
+      case AZURE_TABLES -> tableOperation(request);
+      case AZURE_QUEUE -> queueOperation(request);
+      default -> blobOperation(request);
+    };
     return new DependencyLogCall(dependency, dependency + "." + operation, operation, caller);
+  }
+
+  private static String tableOperation(HttpRequest request) {
+    String verb = request.getHttpMethod().name();
+    String path = request.getUrl().getPath().toLowerCase(Locale.ROOT);
+    return switch (verb) {
+      case "GET" -> path.contains("(") || path.contains("%28") ? "getEntity" : "listEntities";
+      case "POST" -> "createEntity";
+      case "PUT", "MERGE", "PATCH" -> "updateEntity";
+      case DELETE -> "deleteEntity";
+      default -> "request";
+    };
+  }
+
+  private static String queueOperation(HttpRequest request) {
+    return switch (request.getHttpMethod().name()) {
+      case "POST" -> "sendMessage";
+      case "GET" -> "receiveMessage";
+      case "PUT" -> "updateMessage";
+      case DELETE -> "deleteMessage";
+      default -> "request";
+    };
+  }
+
+  private static String blobOperation(HttpRequest request) {
+    return switch (request.getHttpMethod().name()) {
+      case "GET" -> {
+        String query = request.getUrl().getQuery();
+        yield query != null && hasListComponent(query) ? "list" : "download";
+      }
+      case "PUT", "POST" -> "upload";
+      case DELETE -> "delete";
+      default -> "request";
+    };
   }
 
   private static boolean hasListComponent(String query) {

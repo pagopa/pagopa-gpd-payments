@@ -77,7 +77,7 @@ public class ConfigCacheData {
                     .filter(station -> {
                         String endDateString = String.valueOf(station.getValue().getEndDate());
                         OffsetDateTime endDatetime = OffsetDateTime.parse(endDateString, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-                        double endTimestamp = endDatetime.toInstant().getEpochSecond();
+                        long endTimestamp = endDatetime.toInstant().getEpochSecond();
 
                         return endTimestamp > now;
                     })

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import it.gov.pagopa.payments.client.GpdClient;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.logging.ApplicationLogCapture;
@@ -65,14 +66,15 @@ class PartnerAcaLoggingTest {
         case PAYMENT_NOT_STANDIN -> payment.setPayStandIn(false);
       }
 
+      var request = PaVerifyPaymentNoticeReqMock.getMock();
       PartnerValidationException exception = assertThrows(PartnerValidationException.class,
-          () -> service.paVerifyPaymentNotice(PaVerifyPaymentNoticeReqMock.getMock(), "ACA"));
+          () -> service.paVerifyPaymentNotice(request, "ACA"));
 
       assertEquals(rejection == Rejection.CACHE_UNAVAILABLE
           ? PaaErrorEnum.PAA_SYSTEM_ERROR : PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO,
           exception.getError());
       assertEquals(List.of(ACA_ENTRY, rejection.message),
-          logs.events.stream().map(event -> event.getFormattedMessage()).toList());
+          logs.events.stream().map(ILoggingEvent::getFormattedMessage).toList());
       logs.events.forEach(event -> assertEquals(Level.WARN, event.getLevel()));
     }
   }
@@ -91,7 +93,7 @@ class PartnerAcaLoggingTest {
               .getOutcome());
 
       assertEquals(List.of(ACA_ENTRY),
-          logs.events.stream().map(event -> event.getFormattedMessage()).toList());
+          logs.events.stream().map(ILoggingEvent::getFormattedMessage).toList());
       assertEquals(Level.WARN, logs.events.get(0).getLevel());
     }
   }

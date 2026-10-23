@@ -2,7 +2,6 @@ package it.gov.pagopa.payments.logging;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import it.gov.pagopa.payments.controller.BaseController;
 import it.gov.pagopa.payments.controller.DeadLetterController;
 import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
 import java.util.Map;
@@ -18,6 +17,7 @@ import org.w3c.dom.Node;
 public final class RequestLogProjection {
 
   private static final Logger LOG = LoggerFactory.getLogger(RequestLogProjection.class);
+  private static final String SEGREGATION_CODES = "segregationCodes";
 
   private RequestLogProjection() {}
 
@@ -85,7 +85,7 @@ public final class RequestLogProjection {
     if (PaymentsController.class.isAssignableFrom(controller)) {
       switch (method) {
         case "getReceiptByIUV" -> {
-          put(args, "segregationCodes", request.getParameter("segregationCodes"));
+          put(args, SEGREGATION_CODES, request.getParameter(SEGREGATION_CODES));
           return new Projection(
               pathVariable(request, "organizationfiscalcode"), null,
               pathVariable(request, "iuv"), args);
@@ -96,7 +96,7 @@ public final class RequestLogProjection {
           put(args, "service", request.getParameter("service"));
           put(args, "from", request.getParameter("from"));
           put(args, "to", request.getParameter("to"));
-          put(args, "segregationCodes", request.getParameter("segregationCodes"));
+          put(args, SEGREGATION_CODES, request.getParameter(SEGREGATION_CODES));
           return new Projection(pathVariable(request, "organizationfiscalcode"), null, null, args);
         }
         default -> {
@@ -112,16 +112,6 @@ public final class RequestLogProjection {
         }
         case "getDeadLetter" -> {
           // Blob filenames are deliberately outside this conservative allowlist.
-          return emptyProjection();
-        }
-        default -> {
-          return emptyProjection();
-        }
-      }
-    }
-    if (BaseController.class.isAssignableFrom(controller)) {
-      switch (method) {
-        case "home", "healthCheck" -> {
           return emptyProjection();
         }
         default -> {

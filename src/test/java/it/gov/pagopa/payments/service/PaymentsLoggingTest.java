@@ -152,8 +152,9 @@ class PaymentsLoggingTest {
         () -> payments.getReceiptByOrganizationFCAndIUV("creditor", "00123", null));
     assertConverted(missing, original,
         new AppException(AppError.RECEIPT_NOT_FOUND, "creditor", "00123"));
+    List<String> allowedSegregationCodes = List.of("00");
     AppException forbidden = assertThrows(AppException.class,
-        () -> payments.getReceiptByOrganizationFCAndIUV("creditor", "99123", List.of("00")));
+        () -> payments.getReceiptByOrganizationFCAndIUV("creditor", "99123", allowedSegregationCodes));
     assertEquals(AppError.FORBIDDEN_SEGREGATION_CODE.getHttpStatus(), forbidden.getHttpStatus());
     assertTrue(records.isEmpty());
     verify(table, never()).getEntity("creditor", "99123");
@@ -162,7 +163,55 @@ class PaymentsLoggingTest {
   }
 
   @Test
-  void mixedListRestoresEachRowContextAndDiagnosesOnlyAbsorbedDbFailure() {
+  void mixedListPreservesEligibleResultsAndRestoresEachRowContext() {
+    MixedListScenario scenario = exerciseMixedList();
+    PaymentsResult<ReceiptModelResponse> result = scenario.result();
+
+    assertEquals(List.of("iuv-one", "iuv-last"), result.getResults().stream()
+        .map(ReceiptModelResponse::getIuv).toList());
+    assertEquals(List.of("creditor-one", "creditor-last"), result.getResults().stream()
+        .map(ReceiptModelResponse::getOrganizationFiscalCode).toList());
+    assertEquals(2, result.getLength());
+    assertEquals(0, result.getCurrentPageNumber());
+    assertEquals(1, result.getTotalPages());
+    assertEquals(5, scenario.rows().size());
+    for (ReceiptModelResponse receipt : result.getResults()) {
+      assertEquals("DEBTOR_SECRET", receipt.getDebtor());
+      assertEquals("2026-10-01T10:15:30", receipt.getPaymentDateTime());
+      assertEquals(Status.PAID.name(), receipt.getStatus());
+    }
+    assertEquals(5, scenario.observedContexts().size());
+    assertEquals(List.of("iuv-one", "iuv-db", "iuv-missing", "iuv-unpaid", "iuv-last"),
+        scenario.observedContexts().stream().map(context -> context.get("ctx_iuv")).toList());
+    assertEquals(OUTER, MDC.getCopyOfContextMap());
+    verify(table, never()).updateEntity(scenario.notFoundRow());
+    verify(table, never()).updateEntity(scenario.unpaidRow());
+  }
+
+  @Test
+  void mixedListDiagnosesOnlyAbsorbedDbFailureAndKeepsBusinessOmissionsPrivate() {
+    exerciseMixedList();
+
+    assertEquals(3, records.size());
+    JsonNode diagnosis = named("Receipt check failed");
+    assertEquals("ERROR", diagnosis.path("log.level").asText());
+    assertEquals("creditor-db", diagnosis.path("ctx_creditor_id").asText());
+    assertEquals("iuv-db", diagnosis.path("ctx_iuv").asText());
+    assertEquals(AppException.class.getName(), diagnosis.path("error.type").asText());
+    assertEquals(new AppException(AppError.DB_ERROR).getMessage(),
+        diagnosis.path("error.message").asText());
+    assertTrue(diagnosis.path("error.stack_trace").asText().contains(TableServiceException.class.getName()));
+    assertTrue(diagnosis.path("error.stack_trace").asText().contains("at "));
+    assertEquals("WARN", named("Receipt omitted: payment option not found").path("log.level").asText());
+    assertEquals("iuv-missing", named("Receipt omitted: payment option not found").path("ctx_iuv").asText());
+    assertEquals("WARN", named("Receipt omitted: ineligible payment state").path("log.level").asText());
+    assertEquals("iuv-unpaid", named("Receipt omitted: ineligible payment state").path("ctx_iuv").asText());
+    assertEquals(1, records.stream().filter(logEntry ->
+        "ERROR".equals(logEntry.path("log.level").asText())).count());
+    assertSafeEvents();
+  }
+
+  private MixedListScenario exerciseMixedList() {
     TableEntity first = row("creditor-one", "iuv-one", Status.CREATED);
     TableEntity dbFailureRow = row("creditor-db", "iuv-db", Status.CREATED);
     TableEntity notFoundRow = row("creditor-missing", "iuv-missing", Status.CREATED);
@@ -198,44 +247,15 @@ class PaymentsLoggingTest {
     PaymentsResult<ReceiptModelResponse> result = payments.getOrganizationReceipts(
         "requested-creditor", null, null, "2026-10-01", "2026-10-02", 0, 10, null, null);
 
-    assertEquals(List.of("iuv-one", "iuv-last"), result.getResults().stream()
-        .map(ReceiptModelResponse::getIuv).toList());
-    assertEquals(List.of("creditor-one", "creditor-last"), result.getResults().stream()
-        .map(ReceiptModelResponse::getOrganizationFiscalCode).toList());
-    assertEquals(2, result.getLength());
-    assertEquals(0, result.getCurrentPageNumber());
-    assertEquals(1, result.getTotalPages());
-    assertEquals(5, rows.size());
-    for (ReceiptModelResponse receipt : result.getResults()) {
-      assertEquals("DEBTOR_SECRET", receipt.getDebtor());
-      assertEquals("2026-10-01T10:15:30", receipt.getPaymentDateTime());
-      assertEquals(Status.PAID.name(), receipt.getStatus());
-    }
-    assertEquals(5, observedContexts.size());
-    assertEquals(List.of("iuv-one", "iuv-db", "iuv-missing", "iuv-unpaid", "iuv-last"),
-        observedContexts.stream().map(context -> context.get("ctx_iuv")).toList());
-    assertEquals(OUTER, MDC.getCopyOfContextMap());
-    verify(table, never()).updateEntity(notFoundRow);
-    verify(table, never()).updateEntity(unpaidRow);
-
-    assertEquals(3, records.size());
-    JsonNode diagnosis = named("Receipt check failed");
-    assertEquals("ERROR", diagnosis.path("log.level").asText());
-    assertEquals("creditor-db", diagnosis.path("ctx_creditor_id").asText());
-    assertEquals("iuv-db", diagnosis.path("ctx_iuv").asText());
-    assertEquals(AppException.class.getName(), diagnosis.path("error.type").asText());
-    assertEquals(new AppException(AppError.DB_ERROR).getMessage(),
-        diagnosis.path("error.message").asText());
-    assertTrue(diagnosis.path("error.stack_trace").asText().contains(TableServiceException.class.getName()));
-    assertTrue(diagnosis.path("error.stack_trace").asText().contains("at "));
-    assertEquals("WARN", named("Receipt omitted: payment option not found").path("log.level").asText());
-    assertEquals("iuv-missing", named("Receipt omitted: payment option not found").path("ctx_iuv").asText());
-    assertEquals("WARN", named("Receipt omitted: ineligible payment state").path("log.level").asText());
-    assertEquals("iuv-unpaid", named("Receipt omitted: ineligible payment state").path("ctx_iuv").asText());
-    assertEquals(1, records.stream().filter(record ->
-        "ERROR".equals(record.path("log.level").asText())).count());
-    assertSafeEvents();
+    return new MixedListScenario(result, rows, observedContexts, notFoundRow, unpaidRow);
   }
+
+  private record MixedListScenario(
+      PaymentsResult<ReceiptModelResponse> result,
+      List<TableEntity> rows,
+      List<Map<String, String>> observedContexts,
+      TableEntity notFoundRow,
+      TableEntity unpaidRow) {}
 
   @Test
   void unexpectedRowFailurePropagatesUnchangedAndStillRestoresOuterContext() {
@@ -245,8 +265,9 @@ class PaymentsLoggingTest {
       throw failure;
     });
 
+    List<TableEntity> rows = List.of(row("creditor", "iuv", Status.CREATED));
     assertSame(failure, assertThrows(IllegalStateException.class,
-        () -> payments.getGPDCheckedReceiptsList(List.of(row("creditor", "iuv", Status.CREATED)))));
+        () -> payments.getGPDCheckedReceiptsList(rows)));
 
     assertEquals(OUTER, MDC.getCopyOfContextMap());
     assertTrue(records.isEmpty());
@@ -304,7 +325,7 @@ class PaymentsLoggingTest {
 
   private JsonNode named(String message) {
     List<JsonNode> matching = records.stream()
-        .filter(record -> message.equals(record.path("message").asText())).toList();
+        .filter(logEntry -> message.equals(logEntry.path("message").asText())).toList();
     assertEquals(1, matching.size(), message);
     return matching.get(0);
   }
@@ -314,21 +335,21 @@ class PaymentsLoggingTest {
     for (ILoggingEvent event : events) {
       assertNull(event.getThrowableProxy());
     }
-    for (JsonNode record : records) {
-      String encoded = record.toString();
+    for (JsonNode logEntry : records) {
+      String encoded = logEntry.toString();
       for (String secret : List.of(SECRET, "RECEIPT_PAYLOAD_SECRET", "DEBTOR_SECRET",
           "URL_SECRET", "<receipt>")) {
         assertFalse(encoded.contains(secret), encoded);
       }
-      assertEquals(OUTER.get("method"), record.path("method").asText());
-      assertEquals(OUTER.get("correlation_id"), record.path("correlation_id").asText());
-      assertFalse(record.has("ctx_notice_number"));
-      assertFalse(record.has("args"));
-      assertFalse(record.has("httpCode"));
-      assertFalse(record.has("httpMethod"));
-      assertFalse(record.has("soap_method"));
-      assertFalse(record.has("fault_code"));
-      record.fieldNames().forEachRemaining(name -> {
+      assertEquals(OUTER.get("method"), logEntry.path("method").asText());
+      assertEquals(OUTER.get("correlation_id"), logEntry.path("correlation_id").asText());
+      assertFalse(logEntry.has("ctx_notice_number"));
+      assertFalse(logEntry.has("args"));
+      assertFalse(logEntry.has("httpCode"));
+      assertFalse(logEntry.has("httpMethod"));
+      assertFalse(logEntry.has("soap_method"));
+      assertFalse(logEntry.has("fault_code"));
+      logEntry.fieldNames().forEachRemaining(name -> {
         assertFalse(name.startsWith("http."), name);
         assertFalse(name.startsWith("soap."), name);
       });

@@ -15,6 +15,8 @@ public final class BackgroundExecutionLogging {
 
   private BackgroundExecutionLogging() {}
 
+  // Errors must propagate after marking KO; structured arguments are consumed by the encoders.
+  @SuppressWarnings({"java:S1181", "java:S3457"})
   public static void runWithLogging(
       String method, Consumer<BackgroundExecutionLogging> action) {
     Map<String, String> previous = MDC.getCopyOfContextMap();

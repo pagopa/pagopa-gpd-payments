@@ -164,10 +164,10 @@ class PartnerXsdValidationTest {
         .bodyValue(validRequest())
         .exchange().expectStatus().isOk();
 
-    JsonNode record = logs.singleSummary();
-    assertEquals(serviceType, record.path("args").path("serviceType").textValue());
-    assertEquals("OK", record.path("status").asText());
-    assertEquals("INFO", record.path("log.level").asText());
+    JsonNode logEntry = logs.singleSummary();
+    assertEquals(serviceType, logEntry.path("args").path("serviceType").textValue());
+    assertEquals("OK", logEntry.path("status").asText());
+    assertEquals("INFO", logEntry.path("log.level").asText());
     Mockito.verify(partnerService).paVerifyPaymentNotice(Mockito.any(), Mockito.eq(serviceType));
   }
 
@@ -213,10 +213,10 @@ class PartnerXsdValidationTest {
         .expectBody(String.class).value(body ->
             assertTrue(body.contains("<faultCode>PAA_SINTASSI_XSD</faultCode>")));
 
-    JsonNode record = logs.singleSummary();
-    assertEquals(operation, record.path("method").textValue());
-    assertEquals("ACA", record.path("args").path("serviceType").textValue());
-    assertEquals("KO", record.path("status").textValue());
+    JsonNode logEntry = logs.singleSummary();
+    assertEquals(operation, logEntry.path("method").textValue());
+    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals("KO", logEntry.path("status").textValue());
     Mockito.verifyNoInteractions(partnerService);
   }
 
@@ -264,12 +264,12 @@ class PartnerXsdValidationTest {
         .header("X-Request-Id", "rest-request")
         .exchange().expectStatus().isOk();
 
-    JsonNode record = logs.singleSummary();
-    assertEquals("DEBUG", record.path("log.level").textValue());
-    assertEquals("healthCheck", record.path("method").asText());
-    assertEquals("rest-request", record.path("correlation_id").asText());
-    assertEquals(200, record.path("http.response.status_code").intValue());
-    assertEquals("OK", record.path("status").asText());
+    JsonNode logEntry = logs.singleSummary();
+    assertEquals("DEBUG", logEntry.path("log.level").textValue());
+    assertEquals("healthCheck", logEntry.path("method").asText());
+    assertEquals("rest-request", logEntry.path("correlation_id").asText());
+    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals("OK", logEntry.path("status").asText());
   }
 
   private void assertSummary(int httpStatus, String operationStatus) throws Exception {
@@ -278,42 +278,42 @@ class PartnerXsdValidationTest {
 
   private void assertSummary(
       int httpStatus, String operationStatus, int expectedDiagnostics) throws Exception {
-    JsonNode record = logs.singleSummary();
-    boolean systemError = "PAA_SYSTEM_ERROR".equals(record.path("ctx_soap_fault_code").asText());
-    assertEquals(systemError ? "ERROR" : "INFO", record.path("log.level").asText());
+    JsonNode logEntry = logs.singleSummary();
+    boolean systemError = "PAA_SYSTEM_ERROR".equals(logEntry.path("ctx_soap_fault_code").asText());
+    assertEquals(systemError ? "ERROR" : "INFO", logEntry.path("log.level").asText());
     var diagnostics = applicationLogs.events.stream()
         .filter(event -> event.getLevel() == ch.qos.logback.classic.Level.ERROR)
         .filter(event -> !"HTTP request completed".equals(event.getMessage()))
-        .filter(event -> record.path("correlation_id").asText()
+        .filter(event -> logEntry.path("correlation_id").asText()
             .equals(event.getMDCPropertyMap().get("correlation_id")))
         .toList();
     assertEquals(expectedDiagnostics, diagnostics.size());
     for (var diagnostic : diagnostics) {
-      JsonNode encoded = applicationLogs.record(diagnostic);
+      JsonNode encoded = applicationLogs.encodedEvent(diagnostic);
       assertFalse(encoded.path("error.stack_trace").asText().isBlank());
       assertFalse(encoded.path("error.stack_trace").asText().contains("SECRET"));
     }
-    assertEquals(PA_VERIFY_PAYMENT_NOTICE, record.path("method").asText());
-    assertEquals(httpStatus, record.path("http.response.status_code").intValue());
-    assertEquals(operationStatus, record.path("status").asText());
-    assertFalse(record.has("event_action"));
-    assertFalse(record.has("event_outcome"));
-    assertFalse(record.path("correlation_id").asText().isEmpty());
-    assertTrue(record.path("event.duration").isIntegralNumber());
-    assertTrue(record.path("args").isObject());
-    assertEquals("GPD", record.path("args").path("serviceType").textValue());
-    assertFalse(record.path("args").has("amount"));
-    assertFalse(record.path("args").has("debtor"));
-    assertFalse(record.path("args").has("noticeNumber"));
+    assertEquals(PA_VERIFY_PAYMENT_NOTICE, logEntry.path("method").asText());
+    assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
+    assertEquals(operationStatus, logEntry.path("status").asText());
+    assertFalse(logEntry.has("event_action"));
+    assertFalse(logEntry.has("event_outcome"));
+    assertFalse(logEntry.path("correlation_id").asText().isEmpty());
+    assertTrue(logEntry.path("event.duration").isIntegralNumber());
+    assertTrue(logEntry.path("args").isObject());
+    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
+    assertFalse(logEntry.path("args").has("amount"));
+    assertFalse(logEntry.path("args").has("debtor"));
+    assertFalse(logEntry.path("args").has("noticeNumber"));
     if (httpStatus == 200) {
-      assertEquals(operationStatus, record.path("ctx_soap_outcome").asText());
+      assertEquals(operationStatus, logEntry.path("ctx_soap_outcome").asText());
     } else {
-      assertFalse(record.has("ctx_soap_outcome"));
+      assertFalse(logEntry.has("ctx_soap_outcome"));
     }
     if ("KO".equals(operationStatus)) {
-      assertFalse(record.path("ctx_soap_fault_code").asText().isEmpty());
+      assertFalse(logEntry.path("ctx_soap_fault_code").asText().isEmpty());
     } else {
-      assertFalse(record.has("ctx_soap_fault_code"));
+      assertFalse(logEntry.has("ctx_soap_fault_code"));
     }
   }
 

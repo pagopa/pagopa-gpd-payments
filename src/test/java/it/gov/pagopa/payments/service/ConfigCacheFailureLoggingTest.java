@@ -120,7 +120,7 @@ class ConfigCacheFailureLoggingTest {
     }
 
     @Test
-    void populatedStartupSkipsRefreshAndRestoresCallerContextWithOkSummary() throws Exception {
+    void populatedStartupSkipsRefreshAndRestoresCallerContextWithOkSummary() {
         Map<String, String> previous = MDC.getCopyOfContextMap();
         Map<String, String> caller = Map.of("correlation_id", "startup-caller", "method", "caller",
                 "unrelated", "preserve");
@@ -308,11 +308,11 @@ class ConfigCacheFailureLoggingTest {
         encoder.start();
         try {
             for (ILoggingEvent event : events) {
-                JsonNode record = new ObjectMapper().readTree(encoder.encode(event));
-                if (record.has("error.type")) {
+                JsonNode logEntry = new ObjectMapper().readTree(encoder.encode(event));
+                if (logEntry.has("error.type")) {
                     diagnoses.add(event);
-                } else if (record.has("event.duration")) {
-                    summaries.add(record);
+                } else if (logEntry.has("event.duration")) {
+                    summaries.add(logEntry);
                 }
             }
         } finally {
@@ -354,12 +354,12 @@ class ConfigCacheFailureLoggingTest {
         layout.start();
         try {
             String ecs = new String(encoder.encode(event), StandardCharsets.UTF_8);
-            JsonNode record = new ObjectMapper().readTree(ecs);
-            assertTrue(record.has("error.type"));
-            assertTrue(record.has("error.message"));
-            assertTrue(record.has("error.stack_trace"));
-            assertFalse(record.path("error.stack_trace").asText().contains(SECRET));
-            assertTrue(layout.doLayout(event).contains(record.get("error.message").toString()));
+            JsonNode logEntry = new ObjectMapper().readTree(ecs);
+            assertTrue(logEntry.has("error.type"));
+            assertTrue(logEntry.has("error.message"));
+            assertTrue(logEntry.has("error.stack_trace"));
+            assertFalse(logEntry.path("error.stack_trace").asText().contains(SECRET));
+            assertTrue(layout.doLayout(event).contains(logEntry.get("error.message").toString()));
         } finally {
             layout.stop();
             encoder.stop();

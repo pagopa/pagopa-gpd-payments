@@ -49,20 +49,20 @@ class StructuredEcsEncoderTest {
     event.setTimeStamp(1792573234567L);
     event.setThreadName("test-worker");
 
-    JsonNode record = json.readTree(encoder.encode(event));
+    JsonNode logEntry = json.readTree(encoder.encode(event));
 
-    assertEquals(Instant.ofEpochMilli(event.getTimeStamp()), Instant.parse(record.path("@timestamp").asText()));
-    assertEquals("INFO", record.path("log.level").asText());
-    assertEquals("Operation completed", record.path("message").asText());
-    assertEquals("1.2.0", record.path("ecs.version").asText());
-    assertEquals("pagopa-gpd-payments", record.path("service.name").asText());
-    assertEquals("test-version", record.path("service.version").asText());
-    assertEquals("dev", record.path("service.environment").asText());
-    assertEquals("pagopa-gpd-payments", record.path("event.dataset").asText());
-    assertEquals("test-worker", record.path("process.thread.name").asText());
-    assertEquals("test.logger", record.path("log.logger").asText());
-    assertFalse(record.has("event.duration"));
-    assertFalse(record.has("args"));
+    assertEquals(Instant.ofEpochMilli(event.getTimeStamp()), Instant.parse(logEntry.path("@timestamp").asText()));
+    assertEquals("INFO", logEntry.path("log.level").asText());
+    assertEquals("Operation completed", logEntry.path("message").asText());
+    assertEquals("1.2.0", logEntry.path("ecs.version").asText());
+    assertEquals("pagopa-gpd-payments", logEntry.path("service.name").asText());
+    assertEquals("test-version", logEntry.path("service.version").asText());
+    assertEquals("dev", logEntry.path("service.environment").asText());
+    assertEquals("pagopa-gpd-payments", logEntry.path("event.dataset").asText());
+    assertEquals("test-worker", logEntry.path("process.thread.name").asText());
+    assertEquals("test.logger", logEntry.path("log.logger").asText());
+    assertFalse(logEntry.has("event.duration"));
+    assertFalse(logEntry.has("args"));
   }
 
   @Test
@@ -89,10 +89,10 @@ class StructuredEcsEncoderTest {
     LoggingEvent event =
         event(null, null, Map.of("event.duration", "123", "args", "{\"pageSize\":20}"));
 
-    JsonNode record = json.readTree(encoder.encode(event));
+    JsonNode logEntry = json.readTree(encoder.encode(event));
 
-    assertTrue(record.path("event.duration").isTextual());
-    assertTrue(record.path("args").isTextual());
+    assertTrue(logEntry.path("event.duration").isTextual());
+    assertTrue(logEntry.path("args").isTextual());
   }
 
   @Test
@@ -106,18 +106,18 @@ class StructuredEcsEncoderTest {
     LoggingEvent event =
         event(new Object[] {fields}, null, Map.of("correlation_id", "request-1"));
 
-    JsonNode record = json.readTree(encoder.encode(event));
+    JsonNode logEntry = json.readTree(encoder.encode(event));
 
-    assertEquals("Operation completed", record.path("message").asText());
-    assertEquals("request-1", record.path("correlation_id").asText());
-    assertTrue(record.path("event.duration").isIntegralNumber());
-    assertEquals(123456L, record.path("event.duration").longValue());
-    assertTrue(record.path("http.response.status_code").isIntegralNumber());
-    assertEquals(200, record.path("http.response.status_code").intValue());
-    assertTrue(record.path("args").isObject());
-    assertEquals(20, record.path("args").path("pageSize").intValue());
-    assertFalse(record.path("args").path("standIn").booleanValue());
-    assertEquals("gpd", record.path("ctx_details").path("dependency").asText());
+    assertEquals("Operation completed", logEntry.path("message").asText());
+    assertEquals("request-1", logEntry.path("correlation_id").asText());
+    assertTrue(logEntry.path("event.duration").isIntegralNumber());
+    assertEquals(123456L, logEntry.path("event.duration").longValue());
+    assertTrue(logEntry.path("http.response.status_code").isIntegralNumber());
+    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertTrue(logEntry.path("args").isObject());
+    assertEquals(20, logEntry.path("args").path("pageSize").intValue());
+    assertFalse(logEntry.path("args").path("standIn").booleanValue());
+    assertEquals("gpd", logEntry.path("ctx_details").path("dependency").asText());
     assertEquals(Map.of("correlation_id", "request-1"), event.getMDCPropertyMap());
   }
 
@@ -130,10 +130,10 @@ class StructuredEcsEncoderTest {
         event(new Object[] {new StructuredLogFields(values)}, null,
             Map.of("args", "{legacy=value}", "event.duration", "9"));
 
-    JsonNode record = json.readTree(encoder.encode(event));
+    JsonNode logEntry = json.readTree(encoder.encode(event));
 
-    assertTrue(record.path("args").isObject());
-    assertEquals(10, record.path("event.duration").longValue());
+    assertTrue(logEntry.path("args").isObject());
+    assertEquals(10, logEntry.path("event.duration").longValue());
     assertEquals("{legacy=value}", event.getMDCPropertyMap().get("args"));
   }
 
@@ -147,14 +147,14 @@ class StructuredEcsEncoderTest {
     LoggingEvent event = event(new Object[] {new StructuredLogFields(values)}, failure);
 
     String encoded = new String(encoder.encode(event), StandardCharsets.UTF_8);
-    JsonNode record = json.readTree(encoded);
+    JsonNode logEntry = json.readTree(encoded);
 
     assertEquals(1, encoded.lines().count());
     assertTrue(encoded.endsWith("\n"));
-    assertEquals(value, record.path("ctx_details").path("value").asText());
-    assertEquals(RuntimeException.class.getName(), record.path("error.type").asText());
-    assertEquals("technical\nfailure", record.path("error.message").asText());
-    assertTrue(record.path("error.stack_trace").asText().contains("IllegalStateException: cause"));
+    assertEquals(value, logEntry.path("ctx_details").path("value").asText());
+    assertEquals(RuntimeException.class.getName(), logEntry.path("error.type").asText());
+    assertEquals("technical\nfailure", logEntry.path("error.message").asText());
+    assertTrue(logEntry.path("error.stack_trace").asText().contains("IllegalStateException: cause"));
   }
 
   @Test
@@ -166,10 +166,10 @@ class StructuredEcsEncoderTest {
     values.put("event.duration", 99);
     fields.toJson().with("args").put("pageNum", 100);
 
-    JsonNode record = json.readTree(encoder.encode(event(new Object[] {fields}, null)));
+    JsonNode logEntry = json.readTree(encoder.encode(event(new Object[] {fields}, null)));
 
-    assertEquals(1, record.path("args").path("pageNum").intValue());
-    assertFalse(record.has("event.duration"));
+    assertEquals(1, logEntry.path("args").path("pageNum").intValue());
+    assertFalse(logEntry.has("event.duration"));
   }
 
   @Test
@@ -188,15 +188,15 @@ class StructuredEcsEncoderTest {
     args.put("count", 0);
     args.putNull("optional");
     args.putArray("codes").add("01").add("02");
-    JsonNode record = json.readTree(
+    JsonNode logEntry = json.readTree(
         encoder.encode(event(new Object[] {new StructuredLogFields(values)}, null)));
-    assertEquals("00123", record.path("args").path("identifier").textValue());
-    assertTrue(record.path("args").path("enabled").isBoolean());
-    assertFalse(record.path("args").path("enabled").booleanValue());
-    assertTrue(record.path("args").path("count").isIntegralNumber());
-    assertEquals(0, record.path("args").path("count").intValue());
-    assertTrue(record.path("args").path("optional").isNull());
-    assertEquals("01", record.path("args").path("codes").get(0).textValue());
+    assertEquals("00123", logEntry.path("args").path("identifier").textValue());
+    assertTrue(logEntry.path("args").path("enabled").isBoolean());
+    assertFalse(logEntry.path("args").path("enabled").booleanValue());
+    assertTrue(logEntry.path("args").path("count").isIntegralNumber());
+    assertEquals(0, logEntry.path("args").path("count").intValue());
+    assertTrue(logEntry.path("args").path("optional").isNull());
+    assertEquals("01", logEntry.path("args").path("codes").get(0).textValue());
   }
 
   @ParameterizedTest
@@ -248,10 +248,10 @@ class StructuredEcsEncoderTest {
             new Object[] {"test", new StructuredLogFields(json.createObjectNode())});
     event.setMDCPropertyMap(Map.of());
 
-    JsonNode record = json.readTree(encoder.encode(event));
+    JsonNode logEntry = json.readTree(encoder.encode(event));
 
-    assertEquals("Operation test completed", record.path("message").asText());
-    assertFalse(record.has("args"));
+    assertEquals("Operation test completed", logEntry.path("message").asText());
+    assertFalse(logEntry.has("args"));
   }
 
   private LoggingEvent event(Object[] arguments, Throwable failure) {

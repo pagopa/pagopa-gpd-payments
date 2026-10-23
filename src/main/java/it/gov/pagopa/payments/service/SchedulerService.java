@@ -82,9 +82,18 @@ public class SchedulerService {
         XPathFactory xPathfactory = XPathFactory.newInstance();
         XPath xpath = xPathfactory.newXPath();
         // The message is dequeued and locked for a timeout equal to <queueReceiveInvisibilityTime> seconds
-        List<QueueMessageItem> queueList;
+        List<QueueMessageItem> queueList = receiveRetryMessages();
+        for (QueueMessageItem message : queueList) {
+            BackgroundExecutionLogging.runWithLogging("retryPaSendRT.message",
+                    execution -> retryMessage(message, xpath, execution));
+        }
+    }
+
+    // Queue boundary logging must include fatal failures without swallowing or wrapping Errors.
+    @SuppressWarnings("java:S1181")
+    private List<QueueMessageItem> receiveRetryMessages() {
         try {
-            queueList = queueClient.receiveMessages(
+            return queueClient.receiveMessages(
                 10,
                 Duration.ofSeconds(queueReceiveInvisibilityTime),
                 null,
@@ -94,24 +103,31 @@ public class SchedulerService {
             TechnicalFailureLogging.logTechnicalFailure(log, "Retry queue receive failed", failure);
             throw failure;
         }
-        for(QueueMessageItem message: queueList) {
-            BackgroundExecutionLogging.runWithLogging("retryPaSendRT.message", execution -> {
-              try {
-                if (checkQueueCountValidity(message)) {
-                    try {
-                        handlingXml(getMessageContent(message), xpath, message, execution);
-                    } catch (XPathExpressionException e) {
-                        execution.markFailureForLogging();
-                        TechnicalFailureLogging.logTechnicalFailure(log, "Receipt retry XML evaluation failed", e);
-                    }
-                } else {
-                    moveToDeadLetter(message, execution);
-                }
-              } catch (RuntimeException | Error failure) {
-                TechnicalFailureLogging.logTechnicalFailure(log, "Receipt retry processing failed", failure);
-                throw failure;
-              }
-            });
+    }
+
+    // Keep fatal failures observable within the per-message logging context and rethrow unchanged.
+    @SuppressWarnings("java:S1181")
+    private void retryMessage(
+            QueueMessageItem message, XPath xpath, BackgroundExecutionLogging execution) {
+        try {
+            if (checkQueueCountValidity(message)) {
+                retryReceiptXml(message, xpath, execution);
+            } else {
+                moveToDeadLetter(message, execution);
+            }
+        } catch (RuntimeException | Error failure) {
+            TechnicalFailureLogging.logTechnicalFailure(log, "Receipt retry processing failed", failure);
+            throw failure;
+        }
+    }
+
+    private void retryReceiptXml(
+            QueueMessageItem message, XPath xpath, BackgroundExecutionLogging execution) {
+        try {
+            handlingXml(getMessageContent(message), xpath, message, execution);
+        } catch (XPathExpressionException e) {
+            execution.markFailureForLogging();
+            TechnicalFailureLogging.logTechnicalFailure(log, "Receipt retry XML evaluation failed", e);
         }
     }
 

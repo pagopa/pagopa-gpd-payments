@@ -47,9 +47,9 @@ class BackgroundExecutionLoggingTest {
         });
       });
       assertEquals(3, logs.events.size());
-      var first = logs.record(logs.events.get(0));
-      var second = logs.record(logs.events.get(1));
-      var parent = logs.record(logs.events.get(2));
+      var first = logs.encodedEvent(logs.events.get(0));
+      var second = logs.encodedEvent(logs.events.get(1));
+      var parent = logs.encodedEvent(logs.events.get(2));
       assertEquals("KO", first.path("status").asText());
       assertEquals("000123", first.path("ctx_notice_number").asText());
       assertEquals("OK", second.path("status").asText());
@@ -60,12 +60,12 @@ class BackgroundExecutionLoggingTest {
       assertFalse(parent.has("ctx_iuv"));
       assertTrue(parent.path("event.duration").isIntegralNumber());
       for (var event : logs.events) {
-        var record = logs.record(event);
-        assertEquals("Background execution completed", record.path("message").asText());
-        assertFalse(record.has("http.response.status_code"));
-        assertFalse(record.has("ctx_soap_outcome"));
-        assertFalse(record.has("ctx_soap_fault_code"));
-        assertFalse(record.has("args"));
+        var logEntry = logs.encodedEvent(event);
+        assertEquals("Background execution completed", logEntry.path("message").asText());
+        assertFalse(logEntry.has("http.response.status_code"));
+        assertFalse(logEntry.has("ctx_soap_outcome"));
+        assertFalse(logEntry.has("ctx_soap_fault_code"));
+        assertFalse(logEntry.has("args"));
       }
       assertEquals(Map.of("method", "caller", "args", "SECRET", "httpCode", "500"),
           MDC.getCopyOfContextMap());
@@ -84,7 +84,7 @@ class BackgroundExecutionLoggingTest {
           }));
       assertSame(failure, actual);
       assertEquals(1, logs.events.size());
-      assertEquals("KO", logs.record(logs.events.get(0)).path("status").asText());
+      assertEquals("KO", logs.encodedEvent(logs.events.get(0)).path("status").asText());
       assertEquals("caller", MDC.get("method"));
       assertEquals("SECRET", MDC.get("args"));
     }

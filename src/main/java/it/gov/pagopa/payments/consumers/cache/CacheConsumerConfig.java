@@ -30,6 +30,8 @@ public class CacheConsumerConfig {
         return this::handleCacheEvent;
     }
 
+    // Log fatal failures at the consumer boundary, then propagate the original Error unchanged.
+    @SuppressWarnings("java:S1181")
     public void handleCacheEvent(Message<CacheUpdateEvent> cacheEventMessage) {
         BackgroundExecutionLogging.runWithLogging("handleCacheEvent", execution -> {
             try {

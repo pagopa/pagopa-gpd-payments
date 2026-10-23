@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.MDC;
 import reactor.core.publisher.Flux;
@@ -71,16 +72,18 @@ class AzureStorageLoggingPolicyTest extends DependencyLoggingTestSupport {
   void networkFailureAndStreamFailurePreserveOriginalErrors() {
     IOException failure = new IOException("SECRET credential");
     HttpPipeline unavailable = pipeline("azure-blob", request -> Mono.error(failure));
+    Mono<HttpResponse> unavailableResponse = unavailable.send(request());
     RuntimeException thrown = assertThrows(RuntimeException.class,
-        () -> unavailable.send(request()).block());
+        unavailableResponse::block);
     assertSame(failure, reactor.core.Exceptions.unwrap(thrown));
     assertEvent(0, null, "KO", "WARN");
 
     HttpPipeline brokenBody = pipeline("azure-blob",
         request -> Mono.just(response(request, 200, Flux.error(failure))));
     HttpResponse response = brokenBody.send(request()).block();
+    Mono<List<ByteBuffer>> responseBody = response.getBody().collectList();
     RuntimeException bodyError = assertThrows(RuntimeException.class,
-        () -> response.getBody().collectList().block());
+        responseBody::block);
     assertSame(failure, reactor.core.Exceptions.unwrap(bodyError));
     response.close();
     assertEquals(2, events.size());
@@ -176,6 +179,51 @@ class AzureStorageLoggingPolicyTest extends DependencyLoggingTestSupport {
     assertEquals(1, events.size());
     assertEvent(0, 200, "OK", "INFO");
     assertEquals("azure-blob.list", events.get(0).getMDCPropertyMap().get("method"));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "azure-tables, GET, /SECRET%28PartitionKey=%27SECRET%27%29, azure-tables.getEntity",
+    "azure-tables, GET, /SECRET?filter=%28SECRET%29, azure-tables.listEntities",
+    "azure-tables, PUT, /SECRET, azure-tables.updateEntity",
+    "azure-tables, PATCH, /SECRET, azure-tables.updateEntity",
+    "azure-tables, POST, /SECRET, azure-tables.createEntity",
+    "azure-tables, DELETE, /SECRET, azure-tables.deleteEntity",
+    "azure-tables, HEAD, /SECRET, azure-tables.request",
+    "azure-queue, GET, /SECRET/messages, azure-queue.receiveMessage",
+    "azure-queue, PUT, /SECRET/messages, azure-queue.updateMessage",
+    "azure-queue, DELETE, /SECRET/messages, azure-queue.deleteMessage",
+    "azure-queue, OPTIONS, /SECRET/messages, azure-queue.request",
+    "azure-storage-queue, POST, /SECRET/messages, azure-queue.sendMessage",
+    "azure-blob, GET, /SECRET, azure-blob.download",
+    "azure-blob, GET, /SECRET?sig=SECRET&CoMp=LiSt, azure-blob.list",
+    "azure-blob, GET, /SECRET?xcomp=list, azure-blob.download",
+    "azure-blob, GET, /SECRET?comp=list-other, azure-blob.download",
+    "azure-blob, PUT, /SECRET, azure-blob.upload",
+    "azure-blob, POST, /SECRET, azure-blob.upload",
+    "azure-blob, DELETE, /SECRET, azure-blob.delete",
+    "azure-blob, HEAD, /SECRET, azure-blob.request",
+    "azure-storage-blob, GET, /SECRET?comp=list, azure-blob.list"
+  })
+  void mapsStorageRequestsToControlledOperationNames(
+      String dependency, HttpMethod method, String path, String expectedMethod) {
+    HttpPipeline pipeline = pipeline(dependency,
+        request -> Mono.just(response(request, 200, Flux.empty())));
+    HttpResponse response = pipeline.send(
+        new HttpRequest(method, "https://example.test" + path)).block();
+
+    assertTrue(events.isEmpty());
+    response.close();
+
+    assertEquals(1, events.size());
+    assertEquals(expectedMethod, events.get(0).getMDCPropertyMap().get("method"));
+    var fields = assertEvent(0, 200, "OK", "INFO");
+    int separator = expectedMethod.indexOf('.');
+    assertEquals(expectedMethod.substring(0, separator),
+        fields.path("ctx_details").path("dependency").asText());
+    assertEquals(expectedMethod.substring(separator + 1),
+        fields.path("ctx_details").path("path").asText());
+    assertCallerUnchanged();
   }
 
   private static HttpPipeline pipeline(String dependency, HttpClient transport) {

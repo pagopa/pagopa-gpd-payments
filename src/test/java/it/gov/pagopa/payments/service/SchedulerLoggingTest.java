@@ -213,8 +213,8 @@ class SchedulerLoggingTest {
     assertSummary(summaries().get(1), "OK", "next-creditor", "next-nav", "next-iuv");
     assertNotEquals(summaries().get(0).path("correlation_id"), summaries().get(1).path("correlation_id"));
     assertEquals(1, named("Dead-letter persistence failed; message retained in retry queue").size());
-    assertEquals(1, records.stream().filter(record ->
-        "ERROR".equals(record.path("log.level").asText())).count());
+    assertEquals(1, records.stream().filter(logEntry ->
+        "ERROR".equals(logEntry.path("log.level").asText())).count());
     assertEquals(OUTER, MDC.getCopyOfContextMap());
     assertSafeEvents();
   }
@@ -250,8 +250,8 @@ class SchedulerLoggingTest {
     verify(queue).deleteMessage(duplicate.getMessageId(), duplicate.getPopReceipt());
     assertEquals(1, summaries().size());
     assertSummary(summaries().get(0), "KO", "creditor", "nav", "iuv");
-    assertTrue(records.stream().noneMatch(record ->
-        "ERROR".equals(record.path("log.level").asText())));
+    assertTrue(records.stream().noneMatch(logEntry ->
+        "ERROR".equals(logEntry.path("log.level").asText())));
     assertEquals(OUTER, MDC.getCopyOfContextMap());
     assertSafeEvents();
   }
@@ -298,7 +298,7 @@ class SchedulerLoggingTest {
   }
 
   private List<JsonNode> named(String message) {
-    return records.stream().filter(record -> message.equals(record.path("message").asText())).toList();
+    return records.stream().filter(logEntry -> message.equals(logEntry.path("message").asText())).toList();
   }
 
   private List<JsonNode> summaries() {
@@ -329,7 +329,7 @@ class SchedulerLoggingTest {
     for (ILoggingEvent event : events) {
       assertNull(event.getThrowableProxy());
     }
-    for (JsonNode record : records) {
+    for (JsonNode logEntry : records) {
       assertTrue(List.of(
           "Background execution completed",
           "Receipt retry failed",
@@ -337,8 +337,8 @@ class SchedulerLoggingTest {
           "Receipt retry scheduled",
           "Maximum retry attempts reached: message moved to dead-letter storage",
           "Dead-letter persistence failed; message retained in retry queue")
-          .contains(record.path("message").asText()));
-      com.fasterxml.jackson.databind.node.ObjectNode withoutExceptionMessage = record.deepCopy();
+          .contains(logEntry.path("message").asText()));
+      com.fasterxml.jackson.databind.node.ObjectNode withoutExceptionMessage = logEntry.deepCopy();
       withoutExceptionMessage.remove("error.message");
       String encoded = withoutExceptionMessage.toString();
       for (String secret : List.of(PAYLOAD_SECRET, RECEIPT_SECRET, FAILURE_SECRET,
@@ -346,12 +346,12 @@ class SchedulerLoggingTest {
           "URL_SECRET", "<receipt>")) {
         assertFalse(encoded.contains(secret), encoded);
       }
-      assertFalse(record.has("args"));
-      assertFalse(record.has("httpCode"));
-      assertFalse(record.has("httpMethod"));
-      assertFalse(record.has("soap_method"));
-      assertFalse(record.has("fault_code"));
-      record.fieldNames().forEachRemaining(name -> {
+      assertFalse(logEntry.has("args"));
+      assertFalse(logEntry.has("httpCode"));
+      assertFalse(logEntry.has("httpMethod"));
+      assertFalse(logEntry.has("soap_method"));
+      assertFalse(logEntry.has("fault_code"));
+      logEntry.fieldNames().forEachRemaining(name -> {
         assertFalse(name.startsWith("http."), name);
         assertFalse(name.startsWith("soap."), name);
       });

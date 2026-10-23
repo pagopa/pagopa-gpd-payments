@@ -69,7 +69,8 @@ class FeignDependencyLoggingCapabilityTest extends DependencyLoggingTestSupport 
     };
     Response response = capability.enrich((Client) (request, options) -> response(request, 200, body))
         .execute(unknownRequest(), new Request.Options());
-    assertSame(failure, assertThrows(IOException.class, () -> response.body().asInputStream().read()));
+    InputStream responseBody = response.body().asInputStream();
+    assertSame(failure, assertThrows(IOException.class, responseBody::read));
     response.close();
     assertEquals(1, events.size());
     assertEvent(0, 200, "KO", "WARN");
@@ -84,7 +85,8 @@ class FeignDependencyLoggingCapabilityTest extends DependencyLoggingTestSupport 
     };
     Response response = capability.enrich((Client) (request, options) -> response(request, 200, body))
         .execute(unknownRequest(), new Request.Options());
-    assertSame(failure, assertThrows(IOException.class, () -> response.body().close()));
+    Response.Body responseBody = response.body();
+    assertSame(failure, assertThrows(IOException.class, responseBody::close));
     assertEquals("unknown", assertEvent(0, 200, "KO", "WARN").path("ctx_details").path("path").asText());
   }
 
@@ -131,17 +133,21 @@ class FeignDependencyLoggingCapabilityTest extends DependencyLoggingTestSupport 
           @Override
           public int read(char[] chars, int offset, int length) throws IOException { throw failure; }
           @Override
-          public void close() {}
+          public void close() {
+            // This in-memory reader owns no resources; only its read failure is under test.
+          }
         };
       }
       @Override
-      public void close() {}
+      public void close() {
+        // This synthetic body owns no resources; response closing is observed by the wrapper.
+      }
     };
     Response response = capability.enrich((Client) (incoming, options) ->
         Response.builder().request(incoming).status(200).headers(Map.of()).body(body).build())
         .execute(unknownRequest(), new Request.Options());
-    assertSame(failure, assertThrows(IOException.class,
-        () -> response.body().asReader(StandardCharsets.UTF_8).read()));
+    java.io.Reader reader = response.body().asReader(StandardCharsets.UTF_8);
+    assertSame(failure, assertThrows(IOException.class, reader::read));
     response.close();
     assertEquals(1, events.size());
     assertEvent(0, 200, "KO", "WARN");
@@ -157,7 +163,7 @@ class FeignDependencyLoggingCapabilityTest extends DependencyLoggingTestSupport 
         null, StandardCharsets.UTF_8, new RequestTemplate());
   }
 
-  private static <T> Request request(Class<T> type, String name, String path) throws Exception {
+  private static <T> Request request(Class<T> type, String name, String path) {
     MethodMetadata metadata = new org.springframework.cloud.openfeign.support.SpringMvcContract()
         .parseAndValidateMetadata(type).stream()
         .filter(candidate -> candidate.method().getName().equals(name)).findFirst().orElseThrow();

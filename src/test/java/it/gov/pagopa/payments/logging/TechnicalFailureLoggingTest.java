@@ -28,14 +28,14 @@ class TechnicalFailureLoggingTest {
       assertEquals("OK", MDC.get("status"));
       assertEquals(1, logs.events.size());
       var event = logs.events.get(0);
-      var record = logs.record(event);
-      assertEquals(IllegalStateException.class.getName(), record.path("error.type").asText());
-      assertEquals(failure.getMessage(), record.path("error.message").asText());
-      assertEquals("KO", record.path("status").asText());
-      assertTrue(record.path("error.stack_trace").asText().contains("Caused by: java.io.IOException"));
-      assertFalse(record.path("error.stack_trace").asText().contains("Suppressed:"));
-      assertTrue(record.path("error.stack_trace").asText().contains("TechnicalFailureLoggingTest"));
-      assertFalse(record.toString().contains("SECRET"));
+      var logEntry = logs.encodedEvent(event);
+      assertEquals(IllegalStateException.class.getName(), logEntry.path("error.type").asText());
+      assertEquals(failure.getMessage(), logEntry.path("error.message").asText());
+      assertEquals("KO", logEntry.path("status").asText());
+      assertTrue(logEntry.path("error.stack_trace").asText().contains("Caused by: java.io.IOException"));
+      assertFalse(logEntry.path("error.stack_trace").asText().contains("Suppressed:"));
+      assertTrue(logEntry.path("error.stack_trace").asText().contains("TechnicalFailureLoggingTest"));
+      assertFalse(logEntry.toString().contains("SECRET"));
       assertNull(event.getThrowableProxy());
       String local = new StructuredLogFieldsConverter().convert(event);
       assertTrue(local.contains("\n\tat "));
@@ -61,7 +61,7 @@ class TechnicalFailureLoggingTest {
     try (ApplicationLogCapture logs = new ApplicationLogCapture()) {
       TechnicalFailureLogging.logTechnicalFailure(
           LoggerFactory.getLogger(getClass()), "Technical operation failed", failure);
-      var record = logs.record(logs.events.get(0));
+      var logEntry = logs.encodedEvent(logs.events.get(0));
       String expected = """
           java.lang.IllegalStateException
           \tat example.Outer.frame0(Outer.java:1)
@@ -73,8 +73,8 @@ class TechnicalFailureLoggingTest {
           \tat example.Root.frame1(Root.java:2)
           \tat example.Root.frame2(Root.java:3)
           \t... 4 frames omitted""";
-      assertEquals(expected, record.path("error.stack_trace").asText());
-      assertEquals("Original message", record.path("error.message").asText());
+      assertEquals(expected, logEntry.path("error.stack_trace").asText());
+      assertEquals("Original message", logEntry.path("error.message").asText());
       assertSame(intermediate, failure.getCause());
       assertSame(root, intermediate.getCause());
       assertEquals(5, failure.getStackTrace().length);
@@ -92,7 +92,7 @@ class TechnicalFailureLoggingTest {
     try (ApplicationLogCapture logs = new ApplicationLogCapture()) {
       TechnicalFailureLogging.logTechnicalFailure(
           LoggerFactory.getLogger(getClass()), "Technical operation failed", failure);
-      String trace = logs.record(logs.events.get(0)).path("error.stack_trace").asText();
+      String trace = logs.encodedEvent(logs.events.get(0)).path("error.stack_trace").asText();
       assertEquals(Math.min(3, frameCount),
           trace.lines().filter(line -> line.startsWith("\tat ")).count());
       assertFalse(trace.contains("Caused by:"));
@@ -114,7 +114,7 @@ class TechnicalFailureLoggingTest {
     try (ApplicationLogCapture logs = new ApplicationLogCapture()) {
       TechnicalFailureLogging.logTechnicalFailure(
           LoggerFactory.getLogger(getClass()), "Technical operation failed", failure);
-      String trace = logs.record(logs.events.get(0)).path("error.stack_trace").asText();
+      String trace = logs.encodedEvent(logs.events.get(0)).path("error.stack_trace").asText();
       assertTrue(trace.contains("Caused by: java.io.IOException"));
       assertFalse(trace.contains("IllegalArgumentException"));
       assertEquals(1, trace.lines().filter(line -> line.startsWith("Caused by:")).count());
@@ -129,11 +129,11 @@ class TechnicalFailureLoggingTest {
     try (ApplicationLogCapture logs = new ApplicationLogCapture()) {
       TechnicalFailureLogging.logTechnicalFailure(LoggerFactory.getLogger(getClass()),
           "Technical operation failed", new IllegalStateException(message));
-      var record = logs.record(logs.events.get(0));
+      var logEntry = logs.encodedEvent(logs.events.get(0));
       if (message == null) {
-        assertFalse(record.has("error.message"));
+        assertFalse(logEntry.has("error.message"));
       } else {
-        assertEquals(message, record.path("error.message").asText());
+        assertEquals(message, logEntry.path("error.message").asText());
       }
     }
   }
@@ -156,7 +156,7 @@ class TechnicalFailureLoggingTest {
     try (ApplicationLogCapture logs = new ApplicationLogCapture()) {
       TechnicalFailureLogging.logTechnicalFailure(
           LoggerFactory.getLogger(getClass()), "Technical operation failed", first);
-      String trace = logs.record(logs.events.get(0)).path("error.stack_trace").asText();
+      String trace = logs.encodedEvent(logs.events.get(0)).path("error.stack_trace").asText();
       assertTrue(trace.endsWith("Cyclic cause chain omitted"));
       assertFalse(trace.contains("Caused by:"));
       assertTrue(trace.lines().filter(line -> line.startsWith("\tat ")).count() <= 3);

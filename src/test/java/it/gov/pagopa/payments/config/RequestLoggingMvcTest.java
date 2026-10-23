@@ -83,13 +83,13 @@ class RequestLoggingMvcTest {
     filter.logCompletedRequest(result.getRequest());
     filter.logCompletedRequest(result.getRequest());
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("DEBUG", record.path("log.level").textValue());
-    assertEquals("healthCheck", record.path("method").textValue());
-    assertEquals("health-request", record.path("correlation_id").textValue());
-    assertEquals("ACA", record.path("args").path("serviceType").textValue());
-    assertEquals(200, record.path("http.response.status_code").intValue());
-    assertEquals("OK", record.path("status").textValue());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("DEBUG", logEntry.path("log.level").textValue());
+    assertEquals("healthCheck", logEntry.path("method").textValue());
+    assertEquals("health-request", logEntry.path("correlation_id").textValue());
+    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals("OK", logEntry.path("status").textValue());
   }
 
   @Test
@@ -104,16 +104,16 @@ class RequestLoggingMvcTest {
         .andExpect(content().string("<receipt>private-body</receipt>")).andReturn();
     filter.logCompletedRequest(result.getRequest());
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("getReceiptByIUV", record.path("method").asText());
-    assertEquals("mvc-request", record.path("correlation_id").asText());
-    assertEquals("org", record.path("ctx_creditor_id").asText());
-    assertEquals("iuv", record.path("ctx_iuv").asText());
-    assertFalse(record.has("ctx_notice_number"));
-    assertEquals("OK", record.path("status").asText());
-    assertFalse(record.toString().contains("private-body"));
-    assertEquals("GPD", record.path("args").path("serviceType").textValue());
-    assertEquals(1, record.path("args").size());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("getReceiptByIUV", logEntry.path("method").asText());
+    assertEquals("mvc-request", logEntry.path("correlation_id").asText());
+    assertEquals("org", logEntry.path("ctx_creditor_id").asText());
+    assertEquals("iuv", logEntry.path("ctx_iuv").asText());
+    assertFalse(logEntry.has("ctx_notice_number"));
+    assertEquals("OK", logEntry.path("status").asText());
+    assertFalse(logEntry.toString().contains("private-body"));
+    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(1, logEntry.path("args").size());
   }
 
   @ParameterizedTest
@@ -130,11 +130,11 @@ class RequestLoggingMvcTest {
         .andExpect(status().isOk()).andReturn();
     filter.logCompletedRequest(result.getRequest());
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("ACA", record.path("args").path("serviceType").textValue());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
     if (path.equals("/payments/org/receipts")) {
-      assertEquals(0, record.path("args").path("pageNum").intValue());
-      assertEquals(20, record.path("args").path("pageSize").intValue());
+      assertEquals(0, logEntry.path("args").path("pageNum").intValue());
+      assertEquals(20, logEntry.path("args").path("pageSize").intValue());
     }
   }
 
@@ -144,11 +144,11 @@ class RequestLoggingMvcTest {
         .andExpect(status().isBadRequest()).andReturn();
     filter.logCompletedRequest(result.getRequest());
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("getDeadLetters", record.path("method").asText());
-    assertEquals(400, record.path("http.response.status_code").intValue());
-    assertEquals("KO", record.path("status").asText());
-    assertFalse(record.toString().contains("not-a-number"));
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("getDeadLetters", logEntry.path("method").asText());
+    assertEquals(400, logEntry.path("http.response.status_code").intValue());
+    assertEquals("KO", logEntry.path("status").asText());
+    assertFalse(logEntry.toString().contains("not-a-number"));
   }
 
   @Test
@@ -159,9 +159,9 @@ class RequestLoggingMvcTest {
         .andExpect(status().isNotFound()).andReturn();
     filter.logCompletedRequest(result.getRequest());
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("getReceiptByIUV", record.path("method").asText());
-    assertEquals(404, record.path("http.response.status_code").intValue());
-    assertEquals("KO", record.path("status").asText());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("getReceiptByIUV", logEntry.path("method").asText());
+    assertEquals(404, logEntry.path("http.response.status_code").intValue());
+    assertEquals("KO", logEntry.path("status").asText());
   }
 }

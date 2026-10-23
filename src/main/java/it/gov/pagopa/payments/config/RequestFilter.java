@@ -37,6 +37,7 @@ public class RequestFilter implements Filter {
    * @throws ServletException if the processing fails for any other reason
    */
   @Override
+  @SuppressWarnings("java:S1181") // Mark fatal dispatch failures as KO, then rethrow them unchanged.
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     if (!(request instanceof HttpServletRequest httpRequest)

@@ -76,12 +76,12 @@ class RequestLoggingContainerTest {
 
     assertEquals(201, response.statusCode());
     assertEquals("request-container", response.headers().firstValue("X-Request-Id").orElseThrow());
-    JsonNode record = capture.singleSummary();
-    assertEquals("request-container", record.path("correlation_id").asText());
-    assertEquals("testOperation", record.path("method").asText());
-    assertEquals(201, record.path("http.response.status_code").intValue());
-    assertEquals("ACA", record.path("args").path("serviceType").textValue());
-    assertEquals("OK", record.path("status").asText());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("request-container", logEntry.path("correlation_id").asText());
+    assertEquals("testOperation", logEntry.path("method").asText());
+    assertEquals(201, logEntry.path("http.response.status_code").intValue());
+    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals("OK", logEntry.path("status").asText());
   }
 
   @Test
@@ -90,11 +90,11 @@ class RequestLoggingContainerTest {
 
     assertEquals(500, response.statusCode());
     assertEquals("error response", response.body());
-    JsonNode record = capture.singleSummary();
-    assertEquals(500, record.path("http.response.status_code").intValue());
-    assertEquals("ACA", record.path("args").path("serviceType").textValue());
-    assertEquals("KO", record.path("status").asText());
-    assertEquals("testOperation", record.path("method").asText());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals(500, logEntry.path("http.response.status_code").intValue());
+    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals("KO", logEntry.path("status").asText());
+    assertEquals("testOperation", logEntry.path("method").asText());
   }
 
   @Test
@@ -102,11 +102,11 @@ class RequestLoggingContainerTest {
     HttpResponse<String> response = get("/send-error");
 
     assertEquals(422, response.statusCode());
-    JsonNode record = capture.singleSummary();
-    assertEquals(422, record.path("http.response.status_code").intValue());
-    assertEquals("ACA", record.path("args").path("serviceType").textValue());
-    assertEquals("KO", record.path("status").asText());
-    assertEquals("testOperation", record.path("method").asText());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals(422, logEntry.path("http.response.status_code").intValue());
+    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals("KO", logEntry.path("status").asText());
+    assertEquals("testOperation", logEntry.path("method").asText());
   }
 
   @Test
@@ -115,11 +115,11 @@ class RequestLoggingContainerTest {
 
     assertEquals(202, response.statusCode());
     assertEquals("accepted", response.body());
-    JsonNode record = capture.singleSummary();
-    assertEquals(202, record.path("http.response.status_code").intValue());
-    assertEquals("ACA", record.path("args").path("serviceType").textValue());
-    assertEquals("OK", record.path("status").asText());
-    assertEquals("request-container", record.path("correlation_id").asText());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals(202, logEntry.path("http.response.status_code").intValue());
+    assertEquals("ACA", logEntry.path("args").path("serviceType").textValue());
+    assertEquals("OK", logEntry.path("status").asText());
+    assertEquals("request-container", logEntry.path("correlation_id").asText());
   }
 
   private HttpResponse<String> get(String path) throws Exception {

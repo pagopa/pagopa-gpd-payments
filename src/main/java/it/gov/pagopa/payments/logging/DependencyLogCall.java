@@ -51,6 +51,7 @@ final class DependencyLogCall {
     status = code >= 100 && code <= 599 ? code : null;
   }
 
+  @SuppressWarnings("java:S3457") // Structured arguments belong to the encoder, not message formatting.
   void complete(boolean failed) {
     if (!completed.compareAndSet(false, true)) {
       return;

@@ -31,10 +31,10 @@ public class StructuredEcsEncoder extends EcsEncoder {
       return encoded;
     }
     try {
-      ObjectNode record = (ObjectNode) JSON.readTree(encoded);
+      ObjectNode logRecord = (ObjectNode) JSON.readTree(encoded);
       // Replacing a legacy MDC field must not produce duplicate JSON keys.
-      record.setAll(fields.toJson());
-      return (JSON.writeValueAsString(record) + "\n").getBytes(StandardCharsets.UTF_8);
+      logRecord.setAll(fields.toJson());
+      return (JSON.writeValueAsString(logRecord) + "\n").getBytes(StandardCharsets.UTF_8);
     } catch (JsonProcessingException e) {
       addError("Unable to serialize structured log fields", e);
       throw new IllegalStateException("Unable to serialize structured log fields", e);

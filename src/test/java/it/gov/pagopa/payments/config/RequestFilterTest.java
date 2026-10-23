@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,13 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.gov.pagopa.payments.logging.HttpRequestLogContext;
 import it.gov.pagopa.payments.logging.RequestLogProjection;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
@@ -76,23 +77,23 @@ class RequestFilterTest {
     assertTrue(capture.summaries().isEmpty());
     filter.logCompletedRequest(request);
     assertEquals(outer, MDC.getCopyOfContextMap());
-    JsonNode record = capture.singleSummary();
+    JsonNode logEntry = capture.singleSummary();
     assertEquals("request-123:abc", response.getHeader("X-Request-Id"));
-    assertEquals("request-123:abc", record.path("correlation_id").asText());
-    assertEquals("getReceiptByIUV", record.path("method").asText());
-    assertEquals("OK", record.path("status").asText());
-    assertFalse(record.has("event_action"));
-    assertFalse(record.has("event_outcome"));
-    assertTrue(record.path("event.duration").isIntegralNumber());
-    assertTrue(record.path("event.duration").longValue() >= 0);
-    assertTrue(record.path("http.response.status_code").isIntegralNumber());
-    assertEquals(201, record.path("http.response.status_code").intValue());
-    assertEquals("GPD", record.path("args").path("serviceType").textValue());
-    assertEquals(1, record.path("args").size());
-    assertFalse(record.has("requestId"));
-    assertFalse(record.has("startTime"));
-    assertFalse(record.has("operationId"));
-    assertFalse(record.has("httpCode"));
+    assertEquals("request-123:abc", logEntry.path("correlation_id").asText());
+    assertEquals("getReceiptByIUV", logEntry.path("method").asText());
+    assertEquals("OK", logEntry.path("status").asText());
+    assertFalse(logEntry.has("event_action"));
+    assertFalse(logEntry.has("event_outcome"));
+    assertTrue(logEntry.path("event.duration").isIntegralNumber());
+    assertTrue(logEntry.path("event.duration").longValue() >= 0);
+    assertTrue(logEntry.path("http.response.status_code").isIntegralNumber());
+    assertEquals(201, logEntry.path("http.response.status_code").intValue());
+    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(1, logEntry.path("args").size());
+    assertFalse(logEntry.has("requestId"));
+    assertFalse(logEntry.has("startTime"));
+    assertFalse(logEntry.has("operationId"));
+    assertFalse(logEntry.has("httpCode"));
   }
 
   @ParameterizedTest
@@ -108,10 +109,10 @@ class RequestFilterTest {
     });
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
-    assertEquals(httpStatus < 400 ? "DEBUG" : "WARN", record.path("log.level").textValue());
-    assertEquals(httpStatus < 400 ? "OK" : "KO", record.path("status").textValue());
-    assertEquals(httpStatus, record.path("http.response.status_code").intValue());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals(httpStatus < 400 ? "DEBUG" : "WARN", logEntry.path("log.level").textValue());
+    assertEquals(httpStatus < 400 ? "OK" : "KO", logEntry.path("status").textValue());
+    assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
   }
 
   @Test
@@ -124,9 +125,9 @@ class RequestFilterTest {
     });
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("WARN", record.path("log.level").textValue());
-    assertEquals("KO", record.path("status").textValue());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("WARN", logEntry.path("log.level").textValue());
+    assertEquals("KO", logEntry.path("status").textValue());
   }
 
   @ParameterizedTest
@@ -141,10 +142,10 @@ class RequestFilterTest {
     filter.doFilter(request, new MockHttpServletResponse(), (req, res) -> {});
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
+    JsonNode logEntry = capture.singleSummary();
     assertEquals(serviceType == null ? "GPD" : serviceType,
-        record.path("args").path("serviceType").textValue());
-    assertEquals(1, record.path("args").size());
+        logEntry.path("args").path("serviceType").textValue());
+    assertEquals(1, logEntry.path("args").size());
     assertNull(MDC.get("args"));
   }
 
@@ -184,13 +185,15 @@ class RequestFilterTest {
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
     filter.doFilter(request, response, (req, res) -> {});
-    long start = System.nanoTime();
-    TimeUnit.MILLISECONDS.sleep(5);
-    long completionDelay = System.nanoTime() - start;
+    HttpRequestLogContext context = HttpRequestLogContext.from(request);
+    long durationBeforeCompletion = context.durationNanos();
 
     filter.logCompletedRequest(request);
 
-    assertTrue(capture.singleSummary().path("event.duration").longValue() >= completionDelay);
+    long durationAfterCompletion = context.durationNanos();
+    long loggedDuration = capture.singleSummary().path("event.duration").longValue();
+    assertTrue(loggedDuration >= durationBeforeCompletion);
+    assertTrue(loggedDuration <= durationAfterCompletion);
   }
 
   @ParameterizedTest
@@ -248,11 +251,11 @@ class RequestFilterTest {
     });
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("original-id", record.path("correlation_id").asText());
-    assertEquals("getReceiptByIUV", record.path("method").asText());
-    assertEquals(422, record.path("http.response.status_code").intValue());
-    assertEquals("KO", record.path("status").asText());
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("original-id", logEntry.path("correlation_id").asText());
+    assertEquals("getReceiptByIUV", logEntry.path("method").asText());
+    assertEquals(422, logEntry.path("http.response.status_code").intValue());
+    assertEquals("KO", logEntry.path("status").asText());
   }
 
   @Test
@@ -263,10 +266,10 @@ class RequestFilterTest {
         HttpRequestLogContext.from(request).markFailure());
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
-    assertEquals(200, record.path("http.response.status_code").intValue());
-    assertEquals("KO", record.path("status").asText());
-    assertFalse(record.has("ctx_soap_outcome"));
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals("KO", logEntry.path("status").asText());
+    assertFalse(logEntry.has("ctx_soap_outcome"));
   }
 
   @ParameterizedTest
@@ -286,15 +289,15 @@ class RequestFilterTest {
     filter.logCompletedRequest(request);
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
+    JsonNode logEntry = capture.singleSummary();
     assertEquals("PAA_SYSTEM_ERROR".equals(faultCode) ? "ERROR" : "INFO",
-        record.path("log.level").asText());
-    assertEquals("paGetPayment", record.path("method").asText());
-    assertEquals(200, record.path("http.response.status_code").intValue());
-    assertEquals("KO", record.path("status").asText());
-    assertEquals("KO", record.path("ctx_soap_outcome").asText());
-    assertEquals(faultCode, record.path("ctx_soap_fault_code").asText());
-    assertFalse(record.has("error.stack_trace"));
+        logEntry.path("log.level").asText());
+    assertEquals("paGetPayment", logEntry.path("method").asText());
+    assertEquals(200, logEntry.path("http.response.status_code").intValue());
+    assertEquals("KO", logEntry.path("status").asText());
+    assertEquals("KO", logEntry.path("ctx_soap_outcome").asText());
+    assertEquals(faultCode, logEntry.path("ctx_soap_fault_code").asText());
+    assertFalse(logEntry.has("error.stack_trace"));
     assertEquals(outer, MDC.getCopyOfContextMap());
   }
 
@@ -306,11 +309,11 @@ class RequestFilterTest {
     filter.doFilter(request, response, (req, res) -> response.setStatus(httpStatus));
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
-    assertEquals("OK", record.path("status").asText());
-    assertEquals(httpStatus, record.path("http.response.status_code").intValue());
-    assertFalse(record.has("event_action"));
-    assertFalse(record.has("event_outcome"));
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("OK", logEntry.path("status").asText());
+    assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
+    assertFalse(logEntry.has("event_action"));
+    assertFalse(logEntry.has("event_outcome"));
   }
 
   @Test
@@ -321,11 +324,50 @@ class RequestFilterTest {
     filter.doFilter(request, response, (req, res) -> response.setStatus(103));
     filter.logCompletedRequest(request);
 
-    JsonNode record = capture.singleSummary();
-    assertEquals(103, record.path("http.response.status_code").intValue());
-    assertFalse(record.has("status"));
-    assertFalse(record.has("event_outcome"));
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals(103, logEntry.path("http.response.status_code").intValue());
+    assertFalse(logEntry.has("status"));
+    assertFalse(logEntry.has("event_outcome"));
     assertEquals("OK", MDC.get("status"));
+  }
+
+  @Test
+  void requestContextOwnsADefensiveSnapshotOfProjectionArguments() {
+    HttpRequestLogContext context =
+        new HttpRequestLogContext("snapshot-request", new MockHttpServletResponse());
+    ObjectNode source = JsonNodeFactory.instance.objectNode();
+    source.putObject("nested").put("value", "original");
+    RequestLogProjection.Projection projection =
+        new RequestLogProjection.Projection(null, null, null, source);
+    context.recordRequestProjectionLog(projection);
+
+    ((ObjectNode) source.path("nested")).put("value", "source-mutation");
+    ((ObjectNode) projection.args().path("nested")).put("value", "accessor-mutation");
+    ObjectNode fields = JsonNodeFactory.instance.objectNode();
+    context.addRequestLogFields(fields);
+
+    assertEquals("original", fields.path("args").path("nested").path("value").textValue());
+    assertNull(MDC.get("args"));
+  }
+
+  @Test
+  void requestContextDoesNotExposeStoredArgumentsThroughSummaryFields() {
+    HttpRequestLogContext context =
+        new HttpRequestLogContext("snapshot-request", new MockHttpServletResponse());
+    ObjectNode source = JsonNodeFactory.instance.objectNode();
+    source.putObject("nested").put("value", "original");
+    context.recordRequestProjectionLog(
+        new RequestLogProjection.Projection(null, null, null, source));
+    ObjectNode firstFields = JsonNodeFactory.instance.objectNode();
+    context.addRequestLogFields(firstFields);
+
+    ((ObjectNode) firstFields.path("args").path("nested")).put("value", "summary-mutation");
+    ObjectNode secondFields = JsonNodeFactory.instance.objectNode();
+    context.addRequestLogFields(secondFields);
+
+    assertEquals(source, secondFields.path("args"));
+    assertNotSame(firstFields.path("args"), secondFields.path("args"));
+    assertNotSame(firstFields.path("args").path("nested"), secondFields.path("args").path("nested"));
   }
 
   @Test
@@ -366,14 +408,14 @@ class RequestFilterTest {
     filter.logCompletedRequest(second);
 
     assertEquals(2, capture.summaries().size());
-    JsonNode record = capture.record(capture.summaries().get(1));
+    JsonNode logEntry = capture.encodedEvent(capture.summaries().get(1));
     assertNotEquals(firstResponse.getHeader("X-Request-Id"), secondResponse.getHeader("X-Request-Id"));
-    assertFalse(record.has("method"));
-    assertEquals("GPD", record.path("args").path("serviceType").textValue());
-    assertEquals(1, record.path("args").size());
-    assertFalse(record.has("ctx_creditor_id"));
-    assertFalse(record.has("ctx_notice_number"));
-    assertFalse(record.has("ctx_iuv"));
-    assertEquals("OK", record.path("status").asText());
+    assertFalse(logEntry.has("method"));
+    assertEquals("GPD", logEntry.path("args").path("serviceType").textValue());
+    assertEquals(1, logEntry.path("args").size());
+    assertFalse(logEntry.has("ctx_creditor_id"));
+    assertFalse(logEntry.has("ctx_notice_number"));
+    assertFalse(logEntry.has("ctx_iuv"));
+    assertEquals("OK", logEntry.path("status").asText());
   }
 }

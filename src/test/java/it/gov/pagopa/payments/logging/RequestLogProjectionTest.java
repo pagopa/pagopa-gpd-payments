@@ -446,8 +446,12 @@ class RequestLogProjectionTest {
   }
 
   public static class UnrelatedController {
-    public void getReceiptByIUV() {}
+    public void getReceiptByIUV() {
+      // Only this unrelated controller's handler metadata is used by the projection test.
+    }
 
-    public void getDeadLetters() {}
+    public void getDeadLetters() {
+      // Only this unrelated controller's handler metadata is used by the projection test.
+    }
   }
 }

@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 
 /** Captures frozen request summaries, including those emitted on container completion threads. */
@@ -51,16 +50,16 @@ public final class RequestLogCapture implements AutoCloseable {
   public List<ILoggingEvent> summaries() {
     return appender.list.stream()
         .filter(event -> "HTTP request completed".equals(event.getMessage()))
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public JsonNode singleSummary() throws Exception {
     assertTrue(completed.await(5, TimeUnit.SECONDS), "Missing request completion log");
     assertEquals(1, summaries().size());
-    return record(summaries().get(0));
+    return encodedEvent(summaries().get(0));
   }
 
-  JsonNode record(ILoggingEvent event) throws Exception {
+  JsonNode encodedEvent(ILoggingEvent event) throws Exception {
     LoggerContext context = new LoggerContext();
     StructuredEcsEncoder encoder = new StructuredEcsEncoder();
     encoder.setContext(context);

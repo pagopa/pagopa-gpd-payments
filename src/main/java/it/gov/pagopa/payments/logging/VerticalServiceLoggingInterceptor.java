@@ -19,16 +19,7 @@ public final class VerticalServiceLoggingInterceptor implements ClientHttpReques
             "vertical-service", "paDemandPaymentNotice", "paDemandPaymentNotice");
     try {
       ClientHttpResponse response = execution.execute(request, body);
-      try {
-        call.response(response.getRawStatusCode());
-      } catch (IOException | RuntimeException error) {
-        try {
-          response.close();
-        } catch (RuntimeException closeError) {
-          error.addSuppressed(closeError);
-        }
-        throw error;
-      }
+      recordResponseStatus(response, call);
       return new ClientHttpResponse() {
         @Override
         public HttpStatus getStatusCode() throws IOException {
@@ -74,6 +65,24 @@ public final class VerticalServiceLoggingInterceptor implements ClientHttpReques
     } catch (IOException | RuntimeException error) {
       call.complete(true);
       throw error;
+    }
+  }
+
+  private static void recordResponseStatus(ClientHttpResponse response, DependencyLogCall call)
+      throws IOException {
+    try {
+      call.response(response.getRawStatusCode());
+    } catch (IOException | RuntimeException error) {
+      closeFailedResponse(response, error);
+      throw error;
+    }
+  }
+
+  private static void closeFailedResponse(ClientHttpResponse response, Exception error) {
+    try {
+      response.close();
+    } catch (RuntimeException closeError) {
+      error.addSuppressed(closeError);
     }
   }
 }

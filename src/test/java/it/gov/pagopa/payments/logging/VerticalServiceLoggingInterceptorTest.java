@@ -58,7 +58,8 @@ class VerticalServiceLoggingInterceptorTest extends DependencyLoggingTestSupport
     };
     ClientHttpResponse response = interceptor.intercept(request, new byte[0],
         (incoming, bytes) -> new MockClientHttpResponse(broken, 200));
-    assertSame(failure, assertThrows(IOException.class, () -> response.getBody().read()));
+    InputStream responseBody = response.getBody();
+    assertSame(failure, assertThrows(IOException.class, responseBody::read));
     response.close();
     assertEquals(1, events.size());
     assertEvent(0, 200, "KO", "WARN");

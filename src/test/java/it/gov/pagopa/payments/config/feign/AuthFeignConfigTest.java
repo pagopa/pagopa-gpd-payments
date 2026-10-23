@@ -74,7 +74,7 @@ class AuthFeignConfigTest {
       assertEquals("SECRET response", response);
       assertEquals(1, logs.events.size());
       assertEquals("Dependency interaction completed", logs.events.get(0).getMessage());
-      assertFalse(logs.record(logs.events.get(0)).toString().contains("SECRET"));
+      assertFalse(logs.encodedEvent(logs.events.get(0)).toString().contains("SECRET"));
     }
   }
 

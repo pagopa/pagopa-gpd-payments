@@ -38,7 +38,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -231,8 +230,7 @@ public class PartnerService {
                   restTemplate.exchange(
                       urlTarget, HttpMethod.POST, httpEntity, JAXBElement.class);
 
-      PaDemandPaymentNoticeResponse responseBody = response.getBody().getValue();
-      return responseBody;
+      return response.getBody().getValue();
     } catch (FeignException.NotFound e) {
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, e);
     } catch (Exception e) {
@@ -322,7 +320,7 @@ public class PartnerService {
                     paymentsTransferModelResponse ->
                         getTransferResponse(
                             paymentsTransferModelResponse, request.getTransferType()))
-                .collect(Collectors.toList()));
+                .toList());
 
     responseData.setTransferList(transferList);
     response.setData(responseData);
@@ -597,6 +595,8 @@ public class PartnerService {
     return sw.toString();
   }
 
+  // Keep the legacy checked contract: callers distinguish storage failures for receipt retries.
+  @SuppressWarnings("java:S1130")
   private void saveReceipt(ReceiptEntity receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
     try {
@@ -622,6 +622,8 @@ public class PartnerService {
     return tableEntity;
   }
 
+  // Keep the legacy checked contract aligned with receipt recovery and the scheduler-facing API.
+  @SuppressWarnings("java:S1130")
   private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv)
       throws InvalidKeyException, URISyntaxException, StorageException {
     try {
@@ -809,7 +811,7 @@ public class PartnerService {
     try {
       return this.getReceiptPaymentOption(
           noticeNumber, organizationFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity);
-    } catch (RetryableException e) {
+    } catch (RetryableException | StorageException e) {
       queueClient.sendMessageWithResponse(
           receiptEntity.getDocument(),
           Duration.ofSeconds(queueSendInvisibilityTime),
@@ -825,14 +827,6 @@ public class PartnerService {
           null,
           Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA, e);
-    } catch (StorageException e) {
-      queueClient.sendMessageWithResponse(
-          receiptEntity.getDocument(),
-          Duration.ofSeconds(queueSendInvisibilityTime),
-          null,
-          null,
-          Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     } catch (PartnerValidationException e) {
       // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
       throw e;
@@ -877,26 +871,8 @@ public class PartnerService {
       }
     } catch (FeignException.Conflict e) {
       // if PO is already paid on GPD --> checks and in case creates the receipt in PAID status.
-      try {
-        boolean receiptNotFoundInStorage = this.getReceipt(organizationFiscalCode, creditorReferenceId) == null;
-
-        boolean isNotACA = true; // default GPD -> it isn't ACA
-        if(paymentOption.getServiceType() != null) {
-          isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
-        }
-
-        if (receiptNotFoundInStorage && (isNotACA || isStandIn)) {
-          // if receipt is not found, or it's a {GPD,WISP} payment, or it's an ACA payments paid in stand-in,
-          // the receipt will be saved in the storage with the PAID status.
-          this.saveReceipt(receiptEntity);
-        }
-      } catch (Exception ex) {
-        if (ex instanceof PartnerValidationException rejection) {
-          TechnicalFailureLogging.logPartnerFailureIfTechnical(log, "Receipt recovery failed", rejection);
-        } else {
-          TechnicalFailureLogging.logTechnicalFailure(log, "Receipt recovery failed", ex);
-        }
-      }
+      recoverReceiptAfterConflict(
+          organizationFiscalCode, creditorReferenceId, paymentOption, isStandIn, receiptEntity);
       throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA, e);
     } catch (FeignException.NotFound e) {
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO, e);
@@ -904,6 +880,34 @@ public class PartnerService {
       throw e;
     }
     return paymentOption;
+  }
+
+  private void recoverReceiptAfterConflict(
+      String organizationFiscalCode,
+      String creditorReferenceId,
+      PaymentOptionModelResponse paymentOption,
+      boolean isStandIn,
+      ReceiptEntity receiptEntity) {
+    try {
+      boolean receiptNotFoundInStorage =
+          this.getReceipt(organizationFiscalCode, creditorReferenceId) == null;
+
+      boolean isNotACA = true; // default GPD -> it isn't ACA
+      if (paymentOption.getServiceType() != null) {
+        isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
+      }
+
+      if (receiptNotFoundInStorage && (isNotACA || isStandIn)) {
+        // Save a missing receipt for non-ACA payments or ACA payments paid in stand-in mode.
+        this.saveReceipt(receiptEntity);
+      }
+    } catch (Exception ex) {
+      if (ex instanceof PartnerValidationException rejection) {
+        TechnicalFailureLogging.logPartnerFailureIfTechnical(log, "Receipt recovery failed", rejection);
+      } else {
+        TechnicalFailureLogging.logTechnicalFailure(log, "Receipt recovery failed", ex);
+      }
+    }
   }
 
   public PaymentOptionModelResponse getReceiptPaymentOptionScheduler(

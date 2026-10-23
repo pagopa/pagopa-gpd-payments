@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.MDC;
@@ -33,7 +34,53 @@ class LoggingConfigurationTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"", "default", "default,local", "local"})
-  void preservesProfileSpecificOutputAndTypedContext(String profiles) throws Exception {
+  void preservesProfileSpecificAppenderAndLegacyOutput(String profiles) throws Exception {
+    String legacy = logForProfile(profiles, false);
+
+    assertTrue(legacy.contains("Legacy operation completed"));
+    assertFalse(legacy.contains("event.duration"));
+    assertFalse(legacy.contains("args="));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "default", "default,local"})
+  void jsonProfilesPreserveTypedContextAndTechnicalFailure(String profiles) throws Exception {
+    String text = logForProfile(profiles, true);
+    JsonNode logEntry = new ObjectMapper().readTree(text);
+
+    assertEquals(1, text.lines().count());
+    assertEquals("pagopa-gpd-payments", logEntry.path("service.name").asText());
+    assertEquals("test-version", logEntry.path("service.version").asText());
+    assertEquals("dev", logEntry.path("service.environment").asText());
+    assertEquals("Operation completed", logEntry.path("message").asText());
+    assertEquals("request-1", logEntry.path("correlation_id").asText());
+    assertEquals("testOperation", logEntry.path("method").asText());
+    assertEquals("OK", logEntry.path("status").asText());
+    assertFalse(logEntry.has("event_action"));
+    assertFalse(logEntry.has("event_outcome"));
+    assertTrue(logEntry.path("event.duration").isIntegralNumber());
+    assertTrue(logEntry.path("http.response.status_code").isIntegralNumber());
+    assertTrue(logEntry.path("args").isObject());
+    assertEquals(IllegalStateException.class.getName(), logEntry.path("error.type").asText());
+  }
+
+  @Test
+  void localProfilePreservesReadableContextAndTechnicalFailure() throws Exception {
+    String text = logForProfile("local", true);
+
+    assertFalse(text.stripLeading().startsWith("{"));
+    assertTrue(text.contains("INFO"));
+    assertTrue(text.contains("Operation completed"));
+    assertTrue(text.contains("correlation_id=request-1"));
+    assertTrue(text.contains("method=testOperation"));
+    assertTrue(text.contains("status=OK"));
+    assertTrue(text.contains("event.duration=123"));
+    assertTrue(text.contains("http.response.status_code=200"));
+    assertTrue(text.contains("args={\"pageNum\":1}"));
+    assertTrue(text.contains("IllegalStateException: technical failure"));
+  }
+
+  private String logForProfile(String profiles, boolean structured) throws Exception {
     MockEnvironment environment = environment("dev", "pagopa-gpd-payments");
     if (!profiles.isEmpty()) {
       environment.setActiveProfiles(profiles.split(","));
@@ -41,7 +88,7 @@ class LoggingConfigurationTest {
     boolean jsonOutput = profiles.isEmpty() || profiles.contains("default");
     LoggerContext context = new LoggerContext();
     Map<String, String> previousMdc = MDC.getCopyOfContextMap();
-    try {
+    try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
       configure(context, environment);
       assertTrue(
           context.getStatusManager().getCopyOfStatusList().stream()
@@ -52,54 +99,22 @@ class LoggingConfigurationTest {
           (OutputStreamAppender<?>) root.getAppender(jsonOutput ? "ECS_JSON_CONSOLE" : "stdout");
       assertNotNull(appender);
       assertNull(root.getAppender(jsonOutput ? "stdout" : "ECS_JSON_CONSOLE"));
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
       appender.setOutputStream(output);
-      context.getLogger("test.logger").info("Legacy operation completed");
-      String legacy = output.toString(StandardCharsets.UTF_8);
-      assertTrue(legacy.contains("Legacy operation completed"));
-      assertFalse(legacy.contains("event.duration"));
-      assertFalse(legacy.contains("args="));
-      output.reset();
-      ObjectNode values = new ObjectMapper().createObjectNode();
-      values.put("event.duration", 123L);
-      values.put("http.response.status_code", 200);
-      values.putObject("args").put("pageNum", 1);
-      MDC.put("correlation_id", "request-1");
-      MDC.put("method", "testOperation");
-      MDC.put("status", "OK");
-      context.getLogger("test.logger").info(
-          "Operation completed", new StructuredLogFields(values),
-          new IllegalStateException("technical failure"));
-
-      String text = output.toString(StandardCharsets.UTF_8);
-      if (jsonOutput) {
-        JsonNode record = new ObjectMapper().readTree(text);
-        assertEquals(1, text.lines().count());
-        assertEquals("pagopa-gpd-payments", record.path("service.name").asText());
-        assertEquals("test-version", record.path("service.version").asText());
-        assertEquals("dev", record.path("service.environment").asText());
-        assertEquals("Operation completed", record.path("message").asText());
-        assertEquals("request-1", record.path("correlation_id").asText());
-        assertEquals("testOperation", record.path("method").asText());
-        assertEquals("OK", record.path("status").asText());
-        assertFalse(record.has("event_action"));
-        assertFalse(record.has("event_outcome"));
-        assertTrue(record.path("event.duration").isIntegralNumber());
-        assertTrue(record.path("http.response.status_code").isIntegralNumber());
-        assertTrue(record.path("args").isObject());
-        assertEquals(IllegalStateException.class.getName(), record.path("error.type").asText());
+      if (structured) {
+        ObjectNode values = new ObjectMapper().createObjectNode();
+        values.put("event.duration", 123L);
+        values.put("http.response.status_code", 200);
+        values.putObject("args").put("pageNum", 1);
+        MDC.put("correlation_id", "request-1");
+        MDC.put("method", "testOperation");
+        MDC.put("status", "OK");
+        context.getLogger("test.logger").info(
+            "Operation completed", new StructuredLogFields(values),
+            new IllegalStateException("technical failure"));
       } else {
-        assertFalse(text.stripLeading().startsWith("{"));
-        assertTrue(text.contains("INFO"));
-        assertTrue(text.contains("Operation completed"));
-        assertTrue(text.contains("correlation_id=request-1"));
-        assertTrue(text.contains("method=testOperation"));
-        assertTrue(text.contains("status=OK"));
-        assertTrue(text.contains("event.duration=123"));
-        assertTrue(text.contains("http.response.status_code=200"));
-        assertTrue(text.contains("args={\"pageNum\":1}"));
-        assertTrue(text.contains("IllegalStateException: technical failure"));
+        context.getLogger("test.logger").info("Legacy operation completed");
       }
+      return output.toString(StandardCharsets.UTF_8);
     } finally {
       if (previousMdc == null) {
         MDC.clear();
