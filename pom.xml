@@ -327,7 +327,8 @@
                 <version>0.8.7</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/config/*</exclude>
+                        <!-- Logging components live in config but must remain measurable. -->
+                        <exclude>**/config/*Config*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
