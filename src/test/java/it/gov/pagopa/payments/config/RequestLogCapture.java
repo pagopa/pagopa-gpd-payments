@@ -38,9 +38,13 @@ public final class RequestLogCapture implements AutoCloseable {
       };
 
   public RequestLogCapture() {
+    this(Level.INFO);
+  }
+
+  public RequestLogCapture(Level level) {
     appender.list = new CopyOnWriteArrayList<>();
     appender.start();
-    logger.setLevel(Level.INFO);
+    logger.setLevel(level);
     logger.addAppender(appender);
   }
 

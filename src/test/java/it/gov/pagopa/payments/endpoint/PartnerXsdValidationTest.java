@@ -258,11 +258,14 @@ class PartnerXsdValidationTest {
 
   @Test
   void restUsesTheSameCompletionBoundaryAndTheMvcInterceptor() throws Exception {
+    logs.close();
+    logs = new RequestLogCapture(ch.qos.logback.classic.Level.DEBUG);
     webClient.get().uri("/info")
         .header("X-Request-Id", "rest-request")
         .exchange().expectStatus().isOk();
 
     JsonNode record = logs.singleSummary();
+    assertEquals("DEBUG", record.path("log.level").textValue());
     assertEquals("healthCheck", record.path("method").asText());
     assertEquals("rest-request", record.path("correlation_id").asText());
     assertEquals(200, record.path("http.response.status_code").intValue());

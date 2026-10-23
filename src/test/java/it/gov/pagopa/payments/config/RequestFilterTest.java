@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import it.gov.pagopa.payments.logging.HttpRequestLogContext;
@@ -92,6 +93,40 @@ class RequestFilterTest {
     assertFalse(record.has("startTime"));
     assertFalse(record.has("operationId"));
     assertFalse(record.has("httpCode"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {200, 204, 302, 400, 503})
+  void healthCheckSeverityDependsOnTheFinalOutcome(int httpStatus) throws Exception {
+    capture.close();
+    capture = new RequestLogCapture(Level.DEBUG);
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    filter.doFilter(request, response, (req, res) -> {
+      HttpRequestLogContext.from(request).setMethod("healthCheck");
+      response.setStatus(httpStatus);
+    });
+    filter.logCompletedRequest(request);
+
+    JsonNode record = capture.singleSummary();
+    assertEquals(httpStatus < 400 ? "DEBUG" : "WARN", record.path("log.level").textValue());
+    assertEquals(httpStatus < 400 ? "OK" : "KO", record.path("status").textValue());
+    assertEquals(httpStatus, record.path("http.response.status_code").intValue());
+  }
+
+  @Test
+  void failedHealthCheckIsVisibleEvenIfTheResponseStatusIs200() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    filter.doFilter(request, response, (req, res) -> {
+      HttpRequestLogContext.from(request).setMethod("healthCheck");
+      HttpRequestLogContext.from(request).markFailure();
+    });
+    filter.logCompletedRequest(request);
+
+    JsonNode record = capture.singleSummary();
+    assertEquals("WARN", record.path("log.level").textValue());
+    assertEquals("KO", record.path("status").textValue());
   }
 
   @ParameterizedTest

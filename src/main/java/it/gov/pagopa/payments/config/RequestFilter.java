@@ -101,6 +101,12 @@ public class RequestFilter implements Filter {
       StructuredLogFields structured = new StructuredLogFields(fields);
       if (context.hasSoapSystemErrorForLogging()) {
         log.error("HTTP request completed", structured);
+      } else if ("healthCheck".equals(MDC.get(HttpRequestLogContext.METHOD))) {
+        if (HttpRequestLogContext.STATUS_OK.equals(status)) {
+          log.debug("HTTP request completed", structured);
+        } else {
+          log.warn("HTTP request completed", structured);
+        }
       } else {
         log.info("HTTP request completed", structured);
       }

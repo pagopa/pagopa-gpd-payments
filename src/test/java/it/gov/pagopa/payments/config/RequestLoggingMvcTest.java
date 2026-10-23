@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -11,7 +12,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.JsonNode;
+import it.gov.pagopa.payments.controller.BaseController;
 import it.gov.pagopa.payments.controller.DeadLetterController;
 import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
@@ -47,7 +50,7 @@ class RequestLoggingMvcTest {
     DeadLetterService deadLetters = mock(DeadLetterService.class);
     when(deadLetters.getDeadLetters(anyInt())).thenReturn(List.of());
     mvc = MockMvcBuilders
-        .standaloneSetup(controller, new DeadLetterController(deadLetters))
+        .standaloneSetup(controller, new DeadLetterController(deadLetters), new BaseController())
         .setControllerAdvice(new ErrorHandler())
         .addInterceptors(new RequestLoggingInterceptor())
         .addFilters(filter)
@@ -57,6 +60,36 @@ class RequestLoggingMvcTest {
   @AfterEach
   void tearDown() {
     capture.close();
+  }
+
+  @Test
+  void repeatedSuccessfulHealthChecksProduceNoInfoSummaries() throws Exception {
+    for (int index = 0; index < 3; index++) {
+      MvcResult result = mvc.perform(get("/info")).andExpect(status().isOk()).andReturn();
+      filter.logCompletedRequest(result.getRequest());
+    }
+
+    assertTrue(capture.summaries().isEmpty());
+  }
+
+  @Test
+  void healthChecksRemainAvailableAtDebugWithTheSameStructuredFields() throws Exception {
+    capture.close();
+    capture = new RequestLogCapture(Level.DEBUG);
+    MvcResult result = mvc.perform(get("/info")
+        .header("X-Request-Id", "health-request")
+        .header(CommonUtil.SERVICE_TYPE_HEADER, "ACA"))
+        .andExpect(status().isOk()).andReturn();
+    filter.logCompletedRequest(result.getRequest());
+    filter.logCompletedRequest(result.getRequest());
+
+    JsonNode record = capture.singleSummary();
+    assertEquals("DEBUG", record.path("log.level").textValue());
+    assertEquals("healthCheck", record.path("method").textValue());
+    assertEquals("health-request", record.path("correlation_id").textValue());
+    assertEquals("ACA", record.path("args").path("serviceType").textValue());
+    assertEquals(200, record.path("http.response.status_code").intValue());
+    assertEquals("OK", record.path("status").textValue());
   }
 
   @Test
