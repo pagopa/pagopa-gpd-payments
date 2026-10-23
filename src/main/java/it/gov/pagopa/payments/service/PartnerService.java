@@ -10,6 +10,7 @@ import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
 import feign.RetryableException;
 import it.gov.pagopa.payments.client.GpdClient;
+import it.gov.pagopa.payments.config.LogContext;
 import it.gov.pagopa.payments.config.VerticalServicesConfig;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
@@ -47,6 +48,7 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
@@ -142,16 +144,8 @@ public class PartnerService {
               request.getQrCode().getNoticeNumber(),
               serviceType);
     } catch (FeignException.NotFound e) {
-      log.error(
-          "[paVerifyPaymentNotice] GPD Error not found [noticeNumber={}]",
-          request.getQrCode().getNoticeNumber(),
-          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (PartnerValidationException e) {
-      log.error(
-          "[paVerifyPaymentNotice] GPD PartnerValidation Error [noticeNumber={}]",
-          request.getQrCode().getNoticeNumber(),
-          e);
       throw e;
     } catch (Exception e) {
       log.error(
@@ -163,17 +157,10 @@ public class PartnerService {
 
     checkDebtPositionStatus(paymentOption);
 
-    PaVerifyPaymentNoticeRes result;
     log.debug(
         "[paVerifyPaymentNotice] Response OK generation [noticeNumber={}]",
         request.getQrCode().getNoticeNumber());
-    try {
-      result = this.generatePaVerifyPaymentNoticeResponse(paymentOption);
-    } catch (Exception e) {
-      log.error("[paVerifyPaymentNotice] paymentOption {}", paymentOption, e);
-      throw e;
-    }
-    return result;
+    return this.generatePaVerifyPaymentNoticeResponse(paymentOption);
   }
 
   @Transactional(readOnly = true)
@@ -211,10 +198,6 @@ public class PartnerService {
     PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
 
     if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-      log.error(
-          "[paSendRT] Payment Option [statusError: {}] [noticeNumber={}]",
-          paymentOption.getStatus(),
-          request.getReceipt().getNoticeNumber());
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     }
 
@@ -232,10 +215,6 @@ public class PartnerService {
       PaymentOptionModelResponse paymentOption = managePaSendRtRequest(request);
 
       if (!PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus())) {
-          log.error(
-                  "[paSendRTV2] Payment Option [statusError: {}] [noticeNumber={}]",
-                  paymentOption.getStatus(),
-                  noticeNumber);
           throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
       }
     } catch (PartnerValidationException e) {
@@ -261,21 +240,18 @@ public class PartnerService {
     try {
       String urlTarget = verticalServicesConfig.getUrlByServiceId(request.getIdServizio());
       String subscriptionKey = verticalServicesConfig.getSubscriptionKeyByServiceId(request.getIdServizio());
-      log.debug("[paDemandPaymentNotice] Call vertical service mapped on idServizio {}: {} {}", request.getIdServizio(), urlTarget, request);
 
       HttpHeaders headers = new HttpHeaders();
-      if (subscriptionKey != null) {
-        headers.set("Ocp-Apim-Subscription-Key", subscriptionKey);
+      String correlationId = MDC.get(LogContext.CORRELATION_ID);
+      if (correlationId != null) {
+        headers.set(LogContext.HEADER_REQUEST_ID, correlationId);
       }
-      headers.set("Content-Type", MediaType.APPLICATION_XML_VALUE);
+      if (subscriptionKey != null) {
+        headers.set(CommonUtil.SUBSCRIPTION_KEY_HEADER, subscriptionKey);
+      }
+      headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML_VALUE);
       HttpEntity<JAXBElement<PaDemandPaymentNoticeRequest>> httpEntity =
           new HttpEntity<>(factory.createPaDemandPaymentNoticeRequest(request), headers);
-
-      log.debug(
-          "[paDemandPaymentNotice] vertical services request: url=[{}], headers=[{}], body=[{}]",
-          urlTarget,
-          httpEntity.getHeaders(),
-          httpEntity.getBody());
 
       // The vertical service returns the paForNode element paDemandPaymentNoticeResponse, which is
       // not annotated with @XmlRootElement, so JAXB unmarshals it into a JAXBElement wrapper.
@@ -286,17 +262,9 @@ public class PartnerService {
                   restTemplate.exchange(
                       urlTarget, HttpMethod.POST, httpEntity, JAXBElement.class);
 
-      log.debug(
-          "[paDemandPaymentNotice] vertical services response: status=[{}], headers=[{}], body=[{}]",
-          response.getStatusCode(),
-          response.getHeaders(),
-          response.getBody());
-
       PaDemandPaymentNoticeResponse responseBody = response.getBody().getValue();
-      log.debug("[paDemandPaymentNotice] Vertical Service response: {}", responseBody);
       return responseBody;
     } catch (FeignException.NotFound e) {
-      log.error("[paDemandPaymentNotice] Vertical Service not found", e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (Exception e) {
       log.error("[paDemandPaymentNotice] Vertical Service Generic Error", e);
@@ -312,19 +280,15 @@ public class PartnerService {
   private void checkDebtPositionStatus(PaymentsModelResponse paymentOption) {
     String iuvLog = " [iuv=" + paymentOption.getIuv() + ", nav=" + paymentOption.getNav() + "]";
     if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.EXPIRED)) {
-      log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCADUTO);
     } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.INVALID)) {
-      log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_ANNULLATO);
     } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.DRAFT)
         || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PUBLISHED)) {
-      log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.PAID)
         || paymentOption.getStatus().equals(PaymentOptionStatus.PO_PAID)
         || paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.REPORTED)) {
-      log.error(DEBT_POSITION_STATUS_ERROR + paymentOption.getDebtPositionStatus() + iuvLog);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_DUPLICATO);
     }
   }
@@ -672,10 +636,10 @@ public class PartnerService {
       TableEntity tableEntity = getTableEntity(receiptEntity);
       tableClient.createEntity(tableEntity);
     } catch (TableServiceException e) {
-      log.error(DBERROR, e);
       if (e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
         throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
       }
+      log.error(DBERROR, e);
       throw new AppException(AppError.DB_ERROR);
     }
   }
@@ -698,9 +662,9 @@ public class PartnerService {
       TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
-      log.error(DBERROR, e);
       if (e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) return null;
-      else throw new AppException(AppError.DB_ERROR);
+      log.error(DBERROR, e);
+      throw new AppException(AppError.DB_ERROR);
     }
   }
 
@@ -760,16 +724,8 @@ public class PartnerService {
       paymentOption =
           getAndValidatePaymentOption(idPa, station, qrCode.getNoticeNumber(), serviceType);
     } catch (FeignException.NotFound e) {
-      log.error(
-          "[manageGetPaymentRequest] GPD Error not found [noticeNumber={}]",
-          qrCode.getNoticeNumber(),
-          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (PartnerValidationException e) {
-      log.error(
-          "[manageGetPaymentRequest] GPD PartnerValidation Error [noticeNumber={}]",
-          qrCode.getNoticeNumber(),
-          e);
       throw e;
     } catch (Exception e) {
       log.error(
@@ -993,10 +949,9 @@ public class PartnerService {
     } catch (FeignException.Conflict e) {
       // if PO is already paid on GPD --> checks and in case creates the receipt in PAID status.
       try {
-        log.error(
+        log.debug(
             "[getReceiptPaymentOption] PAA_RECEIPT_DUPLICATA: GPD Conflict Error Response [noticeNumber={}]",
-            noticeNumber,
-            e);
+            noticeNumber);
         boolean receiptNotFoundInStorage = this.getReceipt(organizationFiscalCode, creditorReferenceId) == null;
 
         boolean isNotACA = true; // default GPD -> it isn't ACA
@@ -1014,14 +969,10 @@ public class PartnerService {
             "[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}] during receipt status"
                 + " save",
             noticeNumber,
-            e);
+            ex);
       }
       throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
     } catch (FeignException.NotFound e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_PAGAMENTO_SCONOSCIUTO: GPD Not Found Error Response [noticeNumber={}]",
-          noticeNumber,
-          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (PartnerValidationException e) {
       throw e;
@@ -1067,9 +1018,6 @@ public class PartnerService {
 
         // check if station maintenance is in progress, ie started
         if(Instant.now().toEpochMilli() > startDatetime.toInstant().toEpochMilli()) {
-          log.error(
-                  "[getAndValidatePaymentOption] Station under maintenance but Stand-In mode not enabled [station={}]",
-                  stationId);
           throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
         }
       }
@@ -1079,10 +1027,6 @@ public class PartnerService {
       ConfigCacheData.StationCI creditorInstitutionStation =
           ConfigCacheData.getCreditorInstitutionStation(idPa, stationId);
       if (creditorInstitutionStation == null || !creditorInstitutionStation.isAca()) {
-        log.error(
-            "[getAndValidatePaymentOption] Station not enabled for ACA payments for this creditor institution [station={}, creditorInstitution={}]",
-            stationId,
-            idPa);
         throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
       }
 
@@ -1093,7 +1037,7 @@ public class PartnerService {
       // check if the retrieved payment option is related to a debt position generated by ACA
       if (paymentOption == null
           || !SERVICE_TYPE_ACA.equalsIgnoreCase(paymentOption.getServiceType())) {
-        log.error(
+        log.debug(
             "[getAndValidatePaymentOption] Payment not generated by ACA service [noticeNumber={}]",
             noticeNumber);
         throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
@@ -1102,18 +1046,11 @@ public class PartnerService {
       // check if relation between station and creditor institution permits StandIn payments,
       // otherwise throw exception
       if (!creditorInstitutionStation.isStandin()) {
-        log.error(
-            "[getAndValidatePaymentOption] Station not enabled for Stand-In mode for this creditor institution [station={}, creditorInstitution={}]",
-            stationId,
-            idPa);
         throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
       }
 
       // check if payment was flagged to be paid in StandIn mode, otherwise throw exception
       if (Boolean.FALSE.equals(paymentOption.getPayStandIn())) {
-        log.error(
-            "[getAndValidatePaymentOption] Debt position cannot be paid in Stand-In mode [noticeNumber={}]",
-            noticeNumber);
         throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
       }
 
