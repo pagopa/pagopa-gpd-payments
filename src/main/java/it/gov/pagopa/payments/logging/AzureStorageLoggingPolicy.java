@@ -24,6 +24,7 @@ public final class AzureStorageLoggingPolicy implements HttpPipelinePolicy {
   private static final String AZURE_QUEUE = "azure-queue";
   private static final String AZURE_BLOB = "azure-blob";
   private static final String DELETE = "DELETE";
+  private static final String DEFAULT_OPERATION = "request";
   private final String dependency;
 
   public AzureStorageLoggingPolicy(String dependency) {
@@ -108,7 +109,7 @@ public final class AzureStorageLoggingPolicy implements HttpPipelinePolicy {
       case "POST" -> "createEntity";
       case "PUT", "MERGE", "PATCH" -> "updateEntity";
       case DELETE -> "deleteEntity";
-      default -> "request";
+      default -> DEFAULT_OPERATION;
     };
   }
 
@@ -118,7 +119,7 @@ public final class AzureStorageLoggingPolicy implements HttpPipelinePolicy {
       case "GET" -> "receiveMessage";
       case "PUT" -> "updateMessage";
       case DELETE -> "deleteMessage";
-      default -> "request";
+      default -> DEFAULT_OPERATION;
     };
   }
 
@@ -130,7 +131,7 @@ public final class AzureStorageLoggingPolicy implements HttpPipelinePolicy {
       }
       case "PUT", "POST" -> "upload";
       case DELETE -> "delete";
-      default -> "request";
+      default -> DEFAULT_OPERATION;
     };
   }
 

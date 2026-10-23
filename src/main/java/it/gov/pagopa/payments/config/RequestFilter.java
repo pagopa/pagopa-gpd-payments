@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class RequestFilter implements Filter {
 
   private static final Pattern SAFE_REQUEST_ID = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
+  private static final String HTTP_REQUEST_COMPLETED = "HTTP request completed";
 
   /**
    * Scopes correlation to each servlet dispatch and restores the exact previous MDC. The final
@@ -101,15 +102,15 @@ public class RequestFilter implements Filter {
       fields.with("args").put("serviceType", CommonUtil.getServiceType(request));
       StructuredLogFields structured = new StructuredLogFields(fields);
       if (context.hasSoapSystemErrorForLogging()) {
-        log.error("HTTP request completed", structured);
+        log.error(HTTP_REQUEST_COMPLETED, structured);
       } else if ("healthCheck".equals(MDC.get(HttpRequestLogContext.METHOD))) {
         if (HttpRequestLogContext.STATUS_OK.equals(status)) {
-          log.debug("HTTP request completed", structured);
+          log.debug(HTTP_REQUEST_COMPLETED, structured);
         } else {
-          log.warn("HTTP request completed", structured);
+          log.warn(HTTP_REQUEST_COMPLETED, structured);
         }
       } else {
-        log.info("HTTP request completed", structured);
+        log.info(HTTP_REQUEST_COMPLETED, structured);
       }
     } finally {
       restoreMdc(previousMdc);
