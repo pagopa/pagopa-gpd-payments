@@ -1,6 +1,8 @@
 package it.gov.pagopa.payments.consumers.cache;
 
 import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
+import it.gov.pagopa.payments.logging.BackgroundExecutionLogging;
+import it.gov.pagopa.payments.logging.TechnicalFailureLogging;
 import it.gov.pagopa.payments.service.ConfigCacheService;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +30,18 @@ public class CacheConsumerConfig {
         return this::handleCacheEvent;
     }
 
+    // Log fatal failures at the consumer boundary, then propagate the original Error unchanged.
+    @SuppressWarnings("java:S1181")
     public void handleCacheEvent(Message<CacheUpdateEvent> cacheEventMessage) {
-        try {
-            log.info("[ConfigCacheEventConsumer] Consume new cache event {}", cacheEventMessage);
-            configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload());
-        } catch (Exception e) {
-            log.error("[ConfigCacheEventConsumer] Exception while handleCacheEvent: ", e);
-            throw e;
-        }
+        BackgroundExecutionLogging.runWithLogging("handleCacheEvent", execution -> {
+            try {
+                if (!configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload())) {
+                    execution.markFailureForLogging();
+                }
+            } catch (RuntimeException | Error failure) {
+                TechnicalFailureLogging.logTechnicalFailure(log, "Cache event processing failed", failure);
+                throw failure;
+            }
+        });
     }
 }

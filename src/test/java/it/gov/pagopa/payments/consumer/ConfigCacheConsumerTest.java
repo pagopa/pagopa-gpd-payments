@@ -53,6 +53,7 @@ class ConfigCacheConsumerTest {
     void testHandleCacheEvent_Success() {
         // Arrange
         when(mockCacheEventMessage.getPayload()).thenReturn(cacheUpdateEvent);
+        when(configCacheService.checkAndUpdateCache(cacheUpdateEvent)).thenReturn(true);
 
         // Act
         cacheConsumerConfig.handleCacheEvent(mockCacheEventMessage);
@@ -65,7 +66,8 @@ class ConfigCacheConsumerTest {
     void testHandleCacheEvent_ExceptionHandling() {
         // Arrange
         when(mockCacheEventMessage.getPayload()).thenReturn(cacheUpdateEvent);
-        doThrow(new RuntimeException("Error updating cache")).when(configCacheService).checkAndUpdateCache(any());
+        when(configCacheService.checkAndUpdateCache(any()))
+                .thenThrow(new RuntimeException("Error updating cache"));
 
         // Act & Assert
         try {
@@ -82,6 +84,7 @@ class ConfigCacheConsumerTest {
         // Arrange
         Consumer<Message<CacheUpdateEvent>> consumer = cacheConsumerConfig.consumerCacheEvent();
         when(mockCacheEventMessage.getPayload()).thenReturn(cacheUpdateEvent);
+        when(configCacheService.checkAndUpdateCache(cacheUpdateEvent)).thenReturn(true);
 
         // Act
         consumer.accept(mockCacheEventMessage);

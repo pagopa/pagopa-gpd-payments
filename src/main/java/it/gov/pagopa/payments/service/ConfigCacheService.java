@@ -2,6 +2,8 @@ package it.gov.pagopa.payments.service;
 
 import feign.FeignException;
 import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
+import it.gov.pagopa.payments.logging.BackgroundExecutionLogging;
+import it.gov.pagopa.payments.logging.TechnicalFailureLogging;
 import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.ConfigDataV1;
 import it.gov.pagopa.payments.client.ApiConfigCacheClient;
@@ -28,22 +30,29 @@ public class ConfigCacheService {
 
     @PostConstruct
     public void setConfigCacheData() {
-        try {
-            getConfigCacheData();
-            log.info("[PostConstruct] Successful getConfigCacheData, version: {}", ConfigCacheData.getVersion());
-        } catch (Exception e) {
-            log.error("[PostConstruct] Exception while setConfigCacheData: ", e);
-        }
+        BackgroundExecutionLogging.runWithLogging("initializeConfigCache", execution -> {
+            try {
+                if (!getConfigCacheData()) {
+                    execution.markFailureForLogging();
+                }
+            } catch (Exception e) {
+                execution.markFailureForLogging();
+                TechnicalFailureLogging.logTechnicalFailure(log, "Config cache initialization failed", e);
+            }
+        });
     }
 
     /**
      * Provides instance of the local cache data, if not yet provided,
      * it will call the checkAndUpdate method
+     *
+     * @return false if the required refresh absorbed a failure; true if successful or already populated
      */
-    public void getConfigCacheData() {
+    public boolean getConfigCacheData() {
         if (ConfigCacheData.isConfigDataNull()) {
-            checkAndUpdateCache(null);
+            return checkAndUpdateCache(null);
         }
+        return true;
     }
 
     /**
@@ -54,9 +63,10 @@ public class ConfigCacheService {
      * the update only when a new cache version is passed through the update event
      *
      * @param cacheUpdateEvent contains version of the update event
+     * @return false if a download or rebuild failure was absorbed; true for a successful update or skip
      */
     @SneakyThrows
-    public void checkAndUpdateCache(CacheUpdateEvent cacheUpdateEvent) {
+    public boolean checkAndUpdateCache(CacheUpdateEvent cacheUpdateEvent) {
 
         if (ConfigCacheData.isConfigDataNull() || cacheUpdateEvent == null ||
                 ConfigCacheData.getVersion() == null ||
@@ -73,17 +83,19 @@ public class ConfigCacheService {
             try {
                 configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
             } catch (FeignException feignException) {
-                log.error("[apiconfig-cache-update] Feign Exception while download cache {}: {}", feignException.getClass(), feignException.getMessage());
-                return;
+                TechnicalFailureLogging.logTechnicalFailure(log, "Config cache download failed", feignException);
+                return false;
             }
 
             if (configDataV1 != null && (configDataV1.getVersion() == null || ConfigCacheData.getVersion() == null ||
                     configDataV1.getVersion().compareTo(ConfigCacheData.getVersion()) >= 0)) {
 
-                ConfigCacheData.setConfigData(configDataV1);
+                boolean updated = ConfigCacheData.setConfigData(configDataV1);
 
-                log.info("[apiconfig-cache-update] Cache version: {}", ConfigCacheData.getVersion());
+                log.info("[apiconfig-cache-update] Config cache update attempt completed");
+                return updated;
             }
         }
+        return true;
     }
 }

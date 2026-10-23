@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.config;
 
 import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.QueueClientBuilder;
+import it.gov.pagopa.payments.logging.AzureStorageLoggingPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,7 @@ public class QueueClientConfiguration {
         return new QueueClientBuilder()
                 .queueName(QUEUE_NAME)
                 .connectionString(CONNECTION_STRING)
+                .addPolicy(new AzureStorageLoggingPolicy("azure-queue"))
                 .buildClient();
     }
 }

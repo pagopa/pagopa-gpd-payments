@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.config;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
+import it.gov.pagopa.payments.logging.AzureStorageLoggingPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ public class TableServiceConfiguration {
         return new TableClientBuilder()
                 .connectionString(CONNECTION_STRING)
                 .tableName(TABLE_NAME)
+                .addPolicy(new AzureStorageLoggingPolicy("azure-tables"))
                 .buildClient();
     }
 }

@@ -9,6 +9,10 @@ import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationE
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
+import it.gov.pagopa.payments.logging.BackgroundExecutionLogging;
+import it.gov.pagopa.payments.logging.TechnicalFailureLogging;
+import it.gov.pagopa.payments.logging.StructuredLogFields;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import it.gov.pagopa.payments.model.DeadLetterMessage;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
 import it.gov.pagopa.payments.model.enumeration.DeadLetterReason;
@@ -20,6 +24,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -76,25 +82,52 @@ public class SchedulerService {
         XPathFactory xPathfactory = XPathFactory.newInstance();
         XPath xpath = xPathfactory.newXPath();
         // The message is dequeued and locked for a timeout equal to <queueReceiveInvisibilityTime> seconds
-        List<QueueMessageItem> queueList = queueClient.receiveMessages(
+        List<QueueMessageItem> queueList = receiveRetryMessages();
+        for (QueueMessageItem message : queueList) {
+            BackgroundExecutionLogging.runWithLogging("retryPaSendRT.message",
+                    execution -> retryMessage(message, xpath, execution));
+        }
+    }
+
+    // Queue boundary logging must include fatal failures without swallowing or wrapping Errors.
+    @SuppressWarnings("java:S1181")
+    private List<QueueMessageItem> receiveRetryMessages() {
+        try {
+            return queueClient.receiveMessages(
                 10,
                 Duration.ofSeconds(queueReceiveInvisibilityTime),
                 null,
                 Context.NONE)
                 .stream().toList();
-        for(QueueMessageItem message: queueList) {
-        	if (checkQueueCountValidity(message)) {
-        	    try {
-        	        handlingXml(getMessageContent(message), xpath, message);
-        	    } catch (XPathExpressionException e) {
-        	        log.error(
-        	                "[paSendRT] XML error during retry process [messageId={},popReceipt={}]",
-        	                message.getMessageId(),
-        	                message.getPopReceipt());
-        	    }
-        	} else {
-        	    moveToDeadLetter(message);
-        	}
+        } catch (RuntimeException | Error failure) {
+            TechnicalFailureLogging.logTechnicalFailure(log, "Retry queue receive failed", failure);
+            throw failure;
+        }
+    }
+
+    // Keep fatal failures observable within the per-message logging context and rethrow unchanged.
+    @SuppressWarnings("java:S1181")
+    private void retryMessage(
+            QueueMessageItem message, XPath xpath, BackgroundExecutionLogging execution) {
+        try {
+            if (checkQueueCountValidity(message)) {
+                retryReceiptXml(message, xpath, execution);
+            } else {
+                moveToDeadLetter(message, execution);
+            }
+        } catch (RuntimeException | Error failure) {
+            TechnicalFailureLogging.logTechnicalFailure(log, "Receipt retry processing failed", failure);
+            throw failure;
+        }
+    }
+
+    private void retryReceiptXml(
+            QueueMessageItem message, XPath xpath, BackgroundExecutionLogging execution) {
+        try {
+            handlingXml(getMessageContent(message), xpath, message, execution);
+        } catch (XPathExpressionException e) {
+            execution.markFailureForLogging();
+            TechnicalFailureLogging.logTechnicalFailure(log, "Receipt retry XML evaluation failed", e);
         }
     }
 
@@ -103,6 +136,12 @@ public class SchedulerService {
     After this, the payment process is triggered with the newly created body.
      */
     public void handlingXml (String failureBody, XPath xpath, QueueMessageItem queueMessageItem) throws XPathExpressionException {
+        handlingXml(failureBody, xpath, queueMessageItem, null);
+    }
+
+    private void handlingXml(
+            String failureBody, XPath xpath, QueueMessageItem queueMessageItem,
+            BackgroundExecutionLogging execution) throws XPathExpressionException {
         Document xmlDoc = getXMLDocument(failureBody);
         XPathExpression xPathExpr = xpath.compile('/' + xmlDoc.getFirstChild().getNodeName());
         NodeList nodes = (NodeList) xPathExpr.evaluate(xmlDoc, XPathConstants.NODESET);
@@ -112,6 +151,9 @@ public class SchedulerService {
         String receiptFiscalCode = node.getElementsByTagName("fiscalCode").item(0).getTextContent();
         String creditorReferenceId = node.getElementsByTagName("creditorReferenceId").item(0).getTextContent();
         String noticeNumber = node.getElementsByTagName("noticeNumber").item(0).getTextContent();
+        if (execution != null) {
+            execution.recordPaymentLogContext(receiptFiscalCode, noticeNumber, creditorReferenceId);
+        }
         String paymentDateTime = node.getElementsByTagName("paymentDateTime").item(0).getTextContent();
         String receiptId = node.getElementsByTagName("receiptId").item(0).getTextContent();
         String PSPCompanyName = node.getElementsByTagName("PSPCompanyName").item(0).getTextContent();
@@ -151,18 +193,14 @@ public class SchedulerService {
                     receiptEntity);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
+            if (execution != null) {
+                execution.markFailureForLogging();
+            }
+            TechnicalFailureLogging.logTechnicalFailure(log, "Receipt retry failed", e);
 
             long retryDelay =
                     calculateRetryVisibilityTimeout(
                             queueMessageItem.getDequeueCount());
-
-            log.debug(
-                    "[paSendRT] Retry failed. Next retry scheduled "
-                            + "[fiscalCode={},noticeNumber={},dequeueCount={},retryDelaySeconds={}]",
-                    receiptFiscalCode,
-                    noticeNumber,
-                    queueMessageItem.getDequeueCount(),
-                    retryDelay);
 
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
@@ -171,9 +209,17 @@ public class SchedulerService {
                     Duration.ofSeconds(retryDelay),
                     null,
                     Context.NONE);
+            var details = JsonNodeFactory.instance.objectNode();
+            details.putObject("ctx_details")
+                    .put("dequeue_count", queueMessageItem.getDequeueCount())
+                    .put("retry_delay_seconds", retryDelay);
+            log.info("Receipt retry scheduled", new StructuredLogFields(details));
         } catch (PartnerValidationException e) {
             // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
-            log.warn("[paSendRT] Retry failed {} [fiscalCode={},noticeNumber={}]\",\n", e.getMessage(), receiptFiscalCode, noticeNumber);
+            if (execution != null) {
+                execution.markFailureForLogging();
+            }
+            TechnicalFailureLogging.logPartnerFailureIfTechnical(log, "Receipt retry rejected", e);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
         }
     }
@@ -222,14 +268,26 @@ public class SchedulerService {
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
             DocumentBuilder builder = factory.newDocumentBuilder();
+            builder.setErrorHandler(new DefaultHandler() {
+                @Override
+                public void error(SAXParseException failure) throws SAXException {
+                    throw failure;
+                }
+
+                @Override
+                public void fatalError(SAXParseException failure) throws SAXException {
+                    throw failure;
+                }
+            });
             InputSource is = new InputSource(new StringReader(xmlString));
             return builder.parse(is);
         } catch (ParserConfigurationException | SAXException | IOException e) {
-            throw new AppException(AppError.UNKNOWN);
+            throw new AppException(AppError.UNKNOWN, e);
         }
     }
     
-    private void moveToDeadLetter(QueueMessageItem message) {
+    private void moveToDeadLetter(
+            QueueMessageItem message, BackgroundExecutionLogging execution) {
 
         DeadLetterMessage deadLetterMessage =
                 DeadLetterMessage.builder()
@@ -252,24 +310,15 @@ public class SchedulerService {
                     message.getMessageId(),
                     message.getPopReceipt());
 
-            log.warn(
-                    "[paSendRT] Maximum retry attempts reached. Message moved to dead-letter storage "
-                            + "[messageId={},dequeueCount={}]",
-                    message.getMessageId(),
-                    message.getDequeueCount());
+            log.warn("Maximum retry attempts reached: message moved to dead-letter storage");
 
         } catch (RuntimeException e) {
             /*
              * Keep the message in the retry queue if dead-letter persistence fails.
              * It will become visible again after the queue visibility timeout.
              */
-            log.error(
-                    "[paSendRT] Unable to move message to dead-letter storage. "
-                            + "The message will remain in the retry queue "
-                            + "[messageId={},dequeueCount={}]",
-                    message.getMessageId(),
-                    message.getDequeueCount(),
-                    e);
+            execution.markFailureForLogging();
+            TechnicalFailureLogging.logTechnicalFailure(log, "Dead-letter persistence failed; message retained in retry queue", e);
         }
     }
 }

@@ -1,6 +1,7 @@
 package it.gov.pagopa.payments.exception;
 
 import it.gov.pagopa.payments.model.ProblemJson;
+import it.gov.pagopa.payments.logging.TechnicalFailureLogging;
 import java.util.ArrayList;
 import java.util.List;
 import javax.validation.ConstraintViolationException;
@@ -44,7 +45,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatus status,
       WebRequest request) {
-    log.warn("Input not readable: ", ex);
+    log.warn("HTTP request rejected: unreadable input");
     return generateErrorResponse(ex.getMessage());
   }
 
@@ -63,7 +64,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatus status,
       WebRequest request) {
-    log.warn("Missing request parameter: ", ex);
+    log.warn("HTTP request rejected: missing parameter");
     return generateErrorResponse(ex.getMessage());
   }
 
@@ -79,7 +80,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   @Override
   protected ResponseEntity<Object> handleTypeMismatch(
       TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-    log.warn("Type mismatch: ", ex);
+    log.warn("HTTP request rejected: parameter type mismatch");
     return generateErrorResponse(
         String.format(
             "Invalid value %s for property %s",
@@ -106,7 +107,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
       details.add(error.getField() + ": " + error.getDefaultMessage());
     }
     var detailsMessage = String.join(", ", details);
-    log.warn("Input not valid: " + detailsMessage);
+    log.warn("HTTP request rejected: invalid input");
     return generateErrorResponse(detailsMessage);
   }
 
@@ -122,7 +123,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
     ProblemJson errorResponse = null;
 
     if (ex.getCause() instanceof ConstraintViolationException) {
-      log.warn("Constraint violation from Database", ex);
+      log.warn("HTTP request rejected: conflicting resource");
       errorResponse =
           ProblemJson.builder()
               .status(HttpStatus.CONFLICT.value())
@@ -133,7 +134,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
 
     // default response
     if (errorResponse == null) {
-      log.warn("Data Integrity Violation", ex);
+      TechnicalFailureLogging.logTechnicalFailure(log, "Persistence operation failed", ex);
       errorResponse =
           ProblemJson.builder()
               .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -156,13 +157,8 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<ProblemJson> handleAppException(
       final AppException ex, final WebRequest request) {
 
-    if (ex.getCause() != null) {
-      log.warn(
-            "App Exception raised: " + ex.getMessage() + "\nCause of the App Exception: ",
-            ex.getCause());
-    } else {
-      if (ex.getHttpStatus() != HttpStatus.NOT_FOUND)
-        log.warn("App Exception raised: " + ex.getMessage());
+    if (ex.getHttpStatus().is5xxServerError()) {
+      TechnicalFailureLogging.logTechnicalFailure(log, "HTTP request failed", ex);
     }
 
     var errorResponse =
@@ -184,7 +180,7 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler({Exception.class})
   public ResponseEntity<ProblemJson> handleGenericException(
       final Exception ex, final WebRequest request) {
-    log.error("Generic Exception raised:", ex);
+    TechnicalFailureLogging.logTechnicalFailure(log, "HTTP request failed", ex);
     var errorResponse =
         ProblemJson.builder()
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
