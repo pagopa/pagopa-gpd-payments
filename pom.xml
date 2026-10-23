@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.10-PAGOPA-3774-log-oer</version>
+    <version>0.13.10-1-PAGOPA-3774-log-oer</version>
     <name>Payments</name>
     <description>Payments</description>
 
