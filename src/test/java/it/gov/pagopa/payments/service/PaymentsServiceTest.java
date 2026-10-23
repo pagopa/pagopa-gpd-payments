@@ -717,7 +717,7 @@ class PaymentsServiceTest {
   void getOrganizationReceipts_onlyFromDateTimeProvided() {
     PaymentsService paymentsService = buildPaymentsService();
 
-    String from = LocalDateTime.now().minusDays(10).withHour(8).withMinute(20).withSecond(0).withNano(0).toString();
+    String from = LocalDateTime.now().minusDays(11).withHour(8).withMinute(20).withSecond(0).withNano(0).toString();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
