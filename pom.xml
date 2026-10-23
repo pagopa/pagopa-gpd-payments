@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.9</version>
+    <version>0.13.9-1-logging-oer-aspect-based</version>
     <name>Payments</name>
     <description>Payments</description>
 
