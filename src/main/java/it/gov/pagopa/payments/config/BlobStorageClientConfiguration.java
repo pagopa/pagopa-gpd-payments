@@ -16,6 +16,8 @@ public class BlobStorageClientConfiguration {
 
         return new BlobServiceClientBuilder()
                 .connectionString(connectionString)
+                .addPolicy(AzureLoggingPolicy.correlationPolicy())
+                .addPolicy(new AzureLoggingPolicy(AzureLoggingPolicy.BLOB))
                 .buildClient()
                 .getBlobContainerClient(containerName);
     }
