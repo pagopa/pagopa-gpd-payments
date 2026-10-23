@@ -7,6 +7,7 @@ import it.gov.pagopa.payments.logging.StructuredLogFields;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import javax.servlet.Filter;
@@ -26,6 +27,8 @@ public class RequestFilter implements Filter {
 
   private static final Pattern SAFE_REQUEST_ID = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
   private static final String HTTP_REQUEST_COMPLETED = "HTTP request completed";
+  private static final Set<String> HEALTH_CHECK_METHODS =
+      Set.of("healthCheck", "liveness", "readiness");
 
   /**
    * Scopes correlation to each servlet dispatch and restores the exact previous MDC. The final
@@ -101,9 +104,10 @@ public class RequestFilter implements Filter {
       context.addRequestLogFields(fields);
       fields.with("args").put("serviceType", CommonUtil.getServiceType(request));
       StructuredLogFields structured = new StructuredLogFields(fields);
+      String method = MDC.get(HttpRequestLogContext.METHOD);
       if (context.hasSoapSystemErrorForLogging()) {
         log.error(HTTP_REQUEST_COMPLETED, structured);
-      } else if ("healthCheck".equals(MDC.get(HttpRequestLogContext.METHOD))) {
+      } else if (method != null && HEALTH_CHECK_METHODS.contains(method)) {
         if (HttpRequestLogContext.STATUS_OK.equals(status)) {
           log.debug(HTTP_REQUEST_COMPLETED, structured);
         } else {

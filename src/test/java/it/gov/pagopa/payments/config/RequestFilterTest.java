@@ -115,12 +115,13 @@ class RequestFilterTest {
     assertEquals(httpStatus, logEntry.path("http.response.status_code").intValue());
   }
 
-  @Test
-  void failedHealthCheckIsVisibleEvenIfTheResponseStatusIs200() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"healthCheck", "liveness", "readiness"})
+  void failedHealthCheckIsVisibleEvenIfTheResponseStatusIs200(String method) throws Exception {
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
     filter.doFilter(request, response, (req, res) -> {
-      HttpRequestLogContext.from(request).setMethod("healthCheck");
+      HttpRequestLogContext.from(request).setMethod(method);
       HttpRequestLogContext.from(request).markFailure();
     });
     filter.logCompletedRequest(request);
@@ -128,6 +129,24 @@ class RequestFilterTest {
     JsonNode logEntry = capture.singleSummary();
     assertEquals("WARN", logEntry.path("log.level").textValue());
     assertEquals("KO", logEntry.path("status").textValue());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"healthCheck", "liveness", "readiness"})
+  void indeterminateHealthChecksRemainVisibleWithoutInventingAnOutcome(String method)
+      throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    filter.doFilter(request, response, (req, res) -> {
+      HttpRequestLogContext.from(request).setMethod(method);
+      response.setStatus(100);
+    });
+    filter.logCompletedRequest(request);
+
+    JsonNode logEntry = capture.singleSummary();
+    assertEquals("WARN", logEntry.path("log.level").textValue());
+    assertEquals(method, logEntry.path("method").textValue());
+    assertFalse(logEntry.has("status"));
   }
 
   @ParameterizedTest
