@@ -7,12 +7,7 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
-import feign.Request;
-import feign.Response;
-import it.gov.pagopa.payments.client.GpdClient;
 import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
-import it.gov.pagopa.payments.model.PaymentsModelResponse;
 import it.gov.pagopa.payments.model.ProblemJson;
 import it.gov.pagopa.payments.model.partner.CtFaultBean;
 import it.gov.pagopa.payments.model.partner.CtQrCode;
@@ -22,7 +17,6 @@ import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.service.PaymentsService;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +33,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.stereotype.Repository;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -215,48 +210,30 @@ class RequestLoggingTest {
     }
   }
 
-  @ParameterizedTest
-  @CsvSource({"0,INFO,OK", "404,INFO,KO", "500,WARN,KO"})
-  void feignEventsUseOnlyNestedDependencyAndPreserveResults(
-      int code, String level, String status) {
-    GpdClient target = mock(GpdClient.class);
-    PaymentsModelResponse result = new PaymentsModelResponse();
-    FeignException failure = code == 0 ? null : FeignException.errorStatus("getPaymentOption",
-        Response.builder().status(code).reason("Failure").headers(Map.of())
-            .request(Request.create(Request.HttpMethod.GET, "https://gpd.invalid/private",
-                Map.of(), null, StandardCharsets.UTF_8)).build());
-    if (failure == null) {
-      when(target.getPaymentOption(anyString(), anyString())).thenReturn(result);
-    } else {
-      when(target.getPaymentOption(anyString(), anyString())).thenThrow(failure);
-    }
-    AspectJProxyFactory factory = new AspectJProxyFactory(target);
-    factory.setInterfaces(GpdClient.class);
-    factory.addAspect(aspect);
-    GpdClient client = factory.getProxy();
+  @Test
+  void repositoryEventsKeepNestedDependencyWithoutAnHttpCode() {
+    SampleRepository repository = proxy(new SampleRepository());
     MDC.put(METHOD, "enclosingApi");
     try (LogCapture logs = new LogCapture(LoggingAspect.class)) {
-      if (failure == null) {
-        assertSame(result, client.getPaymentOption("creditor", "nav"));
-      } else {
-        assertSame(failure, assertThrows(FeignException.class,
-            () -> client.getPaymentOption("creditor", "nav")));
-      }
+      assertEquals("result", repository.find());
       assertEquals(1, logs.events().size());
       JsonNode event = logs.events().get(0);
-      assertEquals("gpd.getPaymentOption", event.path(CTX_DETAILS).path(DEPENDENCY).asText());
-      assertEquals("/organizations/{organizationfiscalcode}/paymentoptions/{nav}",
-          event.path(CTX_DETAILS).path(PATH).asText());
+      JsonNode dependency = event.path(CTX_DETAILS).path(DEPENDENCY);
+      assertEquals("SampleRepository.find", dependency.path(NAME).asText());
       assertFalse(event.has(DEPENDENCY));
       assertFalse(event.has(METHOD));
       assertEquals("enclosingApi", MDC.get(METHOD));
-      assertEquals(level, event.path(LOG_LEVEL).asText());
-      assertEquals(status, event.path(STATUS).asText());
-      assertEquals(code != 0, event.has(HTTP_CODE));
-      if (code != 0) {
-        assertEquals(code, event.path(HTTP_CODE).intValue());
-      }
+      assertEquals(STATUS_OK, event.path(STATUS).asText());
+      assertFalse(event.has(HTTP_CODE));
+      assertFalse(dependency.has(HTTP_CODE));
       assertTiming(event);
+    }
+  }
+
+  @Repository
+  public static class SampleRepository {
+    public String find() {
+      return "result";
     }
   }
 

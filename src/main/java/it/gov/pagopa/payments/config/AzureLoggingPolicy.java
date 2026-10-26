@@ -8,6 +8,7 @@ import static it.gov.pagopa.payments.config.LogContext.CTX_NOTICE_NUMBER;
 import static it.gov.pagopa.payments.config.LogContext.DEPENDENCY;
 import static it.gov.pagopa.payments.config.LogContext.ERROR_TYPE;
 import static it.gov.pagopa.payments.config.LogContext.HTTP_CODE;
+import static it.gov.pagopa.payments.config.LogContext.NAME;
 import static it.gov.pagopa.payments.config.LogContext.RESPONSE_TIME;
 import static it.gov.pagopa.payments.config.LogContext.STATUS;
 import static it.gov.pagopa.payments.config.LogContext.STATUS_KO;
@@ -113,8 +114,9 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     context.getData(CAPTURED_FIELDS).filter(ObjectNode.class::isInstance)
         .map(ObjectNode.class::cast).ifPresent(fields::setAll);
     ObjectNode details = fields.putObject(CTX_DETAILS)
-        .put(DEPENDENCY, dependency + "." + context.getHttpRequest().getHttpMethod().name())
         .put(HOST, context.getHttpRequest().getUrl().getHost());
+    details.putObject(DEPENDENCY)
+        .put(NAME, dependency + "." + context.getHttpRequest().getHttpMethod().name());
     context.getData(HttpLoggingPolicy.RETRY_COUNT_CONTEXT)
         .filter(Number.class::isInstance).map(Number.class::cast)
         .ifPresent(attempt -> details.put(ATTEMPT, attempt.intValue()));
@@ -126,7 +128,7 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     fields.put(RESPONSE_TIME, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
     int code = response == null ? 0 : response.getStatusCode();
     if (response != null) {
-      fields.put(HTTP_CODE, code);
+      fields.with(CTX_DETAILS).with(DEPENDENCY).put(HTTP_CODE, code);
     }
     fields.put(STATUS, failure != null || code >= 400 ? STATUS_KO : STATUS_OK);
     if (failure != null) {

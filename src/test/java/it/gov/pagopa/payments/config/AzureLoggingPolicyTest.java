@@ -54,7 +54,7 @@ class AzureLoggingPolicyTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"200, INFO, OK", "404, INFO, KO", "429, WARN, KO", "503, WARN, KO"})
+  @CsvSource({"200, INFO, OK", "204, INFO, OK", "404, INFO, KO", "429, WARN, KO", "503, WARN, KO"})
   void syncResponsesPreserveResultAndLogSafeTypedFields(int status, String level, String outcome) {
     HttpClient client = mock(HttpClient.class);
     HttpResponse response = response(status);
@@ -179,8 +179,9 @@ class AzureLoggingPolicyTest {
 
   private static void assertResponse(JsonNode event, int status, String level, String outcome) {
     assertCommon(event);
-    assertTrue(event.path("http_code").isIntegralNumber());
-    assertEquals(status, event.path("http_code").intValue());
+    JsonNode dependency = event.path("ctx_details").path("dependency");
+    assertTrue(dependency.path("http_code").isIntegralNumber());
+    assertEquals(status, dependency.path("http_code").intValue());
     assertEquals(level, event.path("log.level").asText());
     assertEquals(outcome, event.path("status").asText());
     assertFalse(event.has("error.type"));
@@ -194,6 +195,7 @@ class AzureLoggingPolicyTest {
     assertEquals("KO", event.path("status").asText());
     assertEquals(failure.getClass().getName(), event.path("error.type").asText());
     assertFalse(event.has("http_code"));
+    assertFalse(event.path("ctx_details").path("dependency").has("http_code"));
     assertFalse(event.has("error.message"));
     assertFalse(event.has("error.stack_trace"));
     assertSafeOutput(capture);
@@ -205,12 +207,13 @@ class AzureLoggingPolicyTest {
     assertEquals("creditor", event.path("ctx_creditor_id").asText());
     assertEquals("notice", event.path("ctx_notice_number").asText());
     assertEquals("iuv", event.path("ctx_iuv").asText());
-    assertEquals("azure-tables.GET", event.path("ctx_details").path("dependency").asText());
+    assertEquals("azure-tables.GET",
+        event.path("ctx_details").path("dependency").path("name").asText());
     assertEquals("storage.example.test", event.path("ctx_details").path("host").asText());
     assertTrue(event.path("response_time").isIntegralNumber());
     assertTrue(event.path("response_time").longValue() >= 0);
     for (String forbidden : new String[] {
-        "method", "dependency", "path", "url", "query", "body", "headers", "unrelated", "worker"}) {
+        "method", "dependency", "http_code", "path", "url", "query", "body", "headers", "unrelated", "worker"}) {
       assertFalse(event.has(forbidden), forbidden);
     }
   }

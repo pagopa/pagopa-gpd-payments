@@ -10,8 +10,8 @@ import static it.gov.pagopa.payments.config.LogContext.DEPENDENCY;
 import static it.gov.pagopa.payments.config.LogContext.ERROR_TYPE;
 import static it.gov.pagopa.payments.config.LogContext.FAULT_CODE;
 import static it.gov.pagopa.payments.config.LogContext.FAULT_DETAIL;
-import static it.gov.pagopa.payments.config.LogContext.HTTP_CODE;
 import static it.gov.pagopa.payments.config.LogContext.METHOD;
+import static it.gov.pagopa.payments.config.LogContext.NAME;
 import static it.gov.pagopa.payments.config.LogContext.PATH;
 import static it.gov.pagopa.payments.config.LogContext.RESPONSE_TIME;
 import static it.gov.pagopa.payments.config.LogContext.STATUS;
@@ -19,7 +19,6 @@ import static it.gov.pagopa.payments.config.LogContext.STATUS_KO;
 import static it.gov.pagopa.payments.config.LogContext.STATUS_OK;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import feign.FeignException;
 import it.gov.pagopa.payments.model.ProblemJson;
 import it.gov.pagopa.payments.model.partner.CtQrCode;
 import it.gov.pagopa.payments.model.partner.CtResponse;
@@ -46,16 +45,12 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
 import org.springframework.aop.support.AopUtils;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-/** The aspect collects approved API metadata and emits completed logical client invocations. */
+/** Collects approved API metadata and emits completed repository invocations. */
 @Aspect
 @Component
 @Slf4j
@@ -63,7 +58,6 @@ public class LoggingAspect {
   private static final String ID_BROKER_PA = "idBrokerPA";
   private static final String ID_STATION = "idStation";
   private static final String ID_SERVIZIO = "idServizio";
-  private static final String SEND_PAYMENT_OPTION_RECEIPT = "sendPaymentOptionReceipt";
   private static final String IO_OPERATION_COMPLETED = "Completed I/O operation";
 
   @PostConstruct
@@ -153,21 +147,15 @@ public class LoggingAspect {
     }
   }
 
-  @Around("execution(* it.gov.pagopa.payments.client.GpdClient.*(..))"
-      + " || execution(* it.gov.pagopa.payments.client.ApiConfigCacheClient.*(..))"
-      + " || @within(org.springframework.stereotype.Repository)")
+  @Around("@within(org.springframework.stereotype.Repository)")
   public Object logIoInvocation(ProceedingJoinPoint joinPoint) throws Throwable {
     long started = System.nanoTime();
     Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
-    FeignClient client = AnnotationUtils.findAnnotation(method.getDeclaringClass(), FeignClient.class);
-    RequestMapping mapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
-    String dependency = client == null
-        ? method.getDeclaringClass().getSimpleName() : client.value();
     ObjectNode fields = LogContext.event();
     fields.putObject(CTX_DETAILS)
-        .put(DEPENDENCY, dependency + "." + method.getName())
-        .put(PATH, mapping != null && mapping.path().length > 0
-            ? mapping.path()[0] : method.getName());
+        .put(PATH, method.getName())
+        .putObject(DEPENDENCY)
+        .put(NAME, method.getDeclaringClass().getSimpleName() + "." + method.getName());
     Level level = Level.INFO;
     try {
       Object result = joinPoint.proceed();
@@ -175,15 +163,7 @@ public class LoggingAspect {
       return result;
     } catch (Throwable failure) {
       fields.put(STATUS, STATUS_KO).put(ERROR_TYPE, failure.getClass().getName());
-      boolean business = false;
-      if (failure instanceof FeignException feign) {
-        if (feign.status() >= 100 && feign.status() <= 599) {
-          fields.put(HTTP_CODE, feign.status());
-        }
-        business = feign.status() == 404
-            || (feign.status() == 409 && SEND_PAYMENT_OPTION_RECEIPT.equals(method.getName()));
-      }
-      level = business ? Level.INFO : Level.WARN;
+      level = Level.WARN;
       throw failure;
     } finally {
       fields.put(RESPONSE_TIME, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));

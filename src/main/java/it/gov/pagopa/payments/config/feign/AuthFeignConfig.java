@@ -24,6 +24,11 @@ public abstract class AuthFeignConfig {
   }
 
   @Bean
+  public FeignLoggingCapability feignLoggingCapability() {
+    return new FeignLoggingCapability();
+  }
+
+  @Bean
   public Logger feignLogger() {
     return new Logger.NoOpLogger();
   }

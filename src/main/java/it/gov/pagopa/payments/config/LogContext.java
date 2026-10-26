@@ -39,6 +39,7 @@ public final class LogContext {
   public static final String CTX_IUV = "ctx_iuv";
   public static final String CTX_DETAILS = "ctx_details";
   public static final String DEPENDENCY = "dependency";
+  public static final String NAME = "name";
   public static final String PATH = "path";
   public static final String TIMESTAMP = "@timestamp";
   public static final String MESSAGE = "message";
