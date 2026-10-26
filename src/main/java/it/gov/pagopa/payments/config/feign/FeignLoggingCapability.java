@@ -5,6 +5,7 @@ import feign.Capability;
 import feign.Client;
 import feign.RequestTemplate;
 import feign.Response;
+import it.gov.pagopa.payments.client.GpdClient;
 import it.gov.pagopa.payments.config.LogContext;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -17,6 +18,7 @@ public final class FeignLoggingCapability implements Capability {
   private static final Logger LOG = LoggerFactory.getLogger(FeignLoggingCapability.class);
   private static final String COMPLETED = "Completed Feign HTTP attempt";
   private static final String SEND_PAYMENT_OPTION_RECEIPT = "sendPaymentOptionReceipt";
+  private static final String GET_PAYMENT_OPTION = "getPaymentOption";
 
   @Override
   public Client enrich(Client client) {
@@ -44,11 +46,24 @@ public final class FeignLoggingCapability implements Capability {
       int code = response.status();
       dependency.put(LogContext.HTTP_CODE, code);
       fields.put(LogContext.STATUS, code >= 400 ? LogContext.STATUS_KO : LogContext.STATUS_OK);
-      boolean expected = code == 404
-          || (code == 409 && SEND_PAYMENT_OPTION_RECEIPT.equals(operation));
-      completed(fields, started, code >= 400 && !expected ? Level.WARN : Level.INFO);
+      completed(fields, started, responseLevel(template, operation, code));
       return response;
     };
+  }
+
+  private static Level responseLevel(RequestTemplate template, String operation, int code) {
+    if (code >= 500) {
+      return Level.ERROR;
+    }
+    if (GpdClient.class.equals(template.feignTarget().type())) {
+      if (code == 409 && SEND_PAYMENT_OPTION_RECEIPT.equals(operation)) {
+        return Level.INFO;
+      }
+      if (GET_PAYMENT_OPTION.equals(operation) || SEND_PAYMENT_OPTION_RECEIPT.equals(operation)) {
+        return code == 200 ? Level.DEBUG : Level.WARN;
+      }
+    }
+    return code >= 200 && code < 300 ? Level.INFO : Level.WARN;
   }
 
   private static void completed(ObjectNode fields, long started, Level level) {

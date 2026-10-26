@@ -19,8 +19,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 /** Shared JSON emission and request metadata; business projections stay in the aspect. */
 public final class LogContext {
   public static final String CORRELATION_ID = "correlation_id";
+  public static final String REQUEST_ID = "requestId";
   public static final String HEADER_REQUEST_ID = "X-Request-Id";
   public static final String METHOD = "method";
+  public static final String OPERATION_ID = "operationId";
   public static final String STATUS = "status";
   public static final String STATUS_OK = "OK";
   public static final String STATUS_KO = "KO";

@@ -18,8 +18,8 @@ import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpPipelineNextSyncPolicy;
 import com.azure.core.http.HttpPipelinePosition;
+import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
-import com.azure.core.http.policy.HttpLoggingPolicy;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Map;
@@ -37,7 +37,6 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
   public static final String BLOB = "azure-blob";
   private static final String CAPTURED_FIELDS = AzureLoggingPolicy.class.getName();
   private static final String HOST = "host";
-  private static final String ATTEMPT = "attempt";
   private static final String COMPLETED = "Completed Azure HTTP attempt";
   private static final Logger LOG = LoggerFactory.getLogger(AzureLoggingPolicy.class);
   private final String dependency;
@@ -72,8 +71,8 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
       ObjectNode fields = fields(context);
       long started = System.nanoTime();
       return Mono.defer(() -> next.clone().process())
-          .doOnNext(response -> completed(fields, started, response, null))
-          .doOnError(failure -> completed(fields, started, null, failure));
+          .doOnNext(response -> completed(context, fields, started, response, null))
+          .doOnError(failure -> completed(context, fields, started, null, failure));
     });
   }
 
@@ -90,10 +89,10 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     try {
       response = next.processSync();
     } catch (RuntimeException failure) {
-      completed(fields, started, null, failure);
+      completed(context, fields, started, null, failure);
       throw failure;
     }
-    completed(fields, started, response, null);
+    completed(context, fields, started, response, null);
     return response;
   }
 
@@ -117,14 +116,38 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
         .put(HOST, context.getHttpRequest().getUrl().getHost());
     details.putObject(DEPENDENCY)
         .put(NAME, dependency + "." + context.getHttpRequest().getHttpMethod().name());
-    context.getData(HttpLoggingPolicy.RETRY_COUNT_CONTEXT)
-        .filter(Number.class::isInstance).map(Number.class::cast)
-        .ifPresent(attempt -> details.put(ATTEMPT, attempt.intValue()));
     return fields;
   }
 
-  private static void completed(
-      ObjectNode fields, long started, HttpResponse response, Throwable failure) {
+  private int expectedStatus(HttpRequest request) {
+    return switch (dependency) {
+      case TABLES -> switch (request.getHttpMethod()) {
+        case GET -> 200;
+        case POST -> "return-no-content".equalsIgnoreCase(request.getHeaders().getValue("Prefer"))
+            ? 204 : 201;
+        case PUT, PATCH -> 204;
+        default -> -1;
+      };
+      case QUEUE -> switch (request.getHttpMethod()) {
+        case GET -> 200;
+        case POST -> 201;
+        case PUT, DELETE -> 204;
+        default -> -1;
+      };
+      case BLOB -> switch (request.getHttpMethod()) {
+        case GET -> request.getHeaders().getValue("Range") != null
+            || request.getHeaders().getValue("x-ms-range") != null ? 206 : 200;
+        case HEAD -> 200;
+        case PUT -> 201;
+        default -> -1;
+      };
+      default -> -1;
+    };
+  }
+
+  private void completed(
+      HttpPipelineCallContext context, ObjectNode fields, long started,
+      HttpResponse response, Throwable failure) {
     fields.put(RESPONSE_TIME, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
     int code = response == null ? 0 : response.getStatusCode();
     if (response != null) {
@@ -134,7 +157,9 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     if (failure != null) {
       fields.put(ERROR_TYPE, failure.getClass().getName());
     }
-    Level level = failure != null || code == 429 || code >= 500 ? Level.WARN : Level.INFO;
+    Level level = failure != null ? Level.WARN
+        : code >= 500 ? Level.ERROR
+        : code == expectedStatus(context.getHttpRequest()) ? Level.DEBUG : Level.WARN;
     Map<String, String> previous = MDC.getCopyOfContextMap();
     try {
       MDC.clear();

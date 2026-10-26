@@ -54,7 +54,9 @@ class AzureLoggingPolicyTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"200, INFO, OK", "204, INFO, OK", "404, INFO, KO", "429, WARN, KO", "503, WARN, KO"})
+  @CsvSource({"200, DEBUG, OK", "204, WARN, OK", "302, WARN, OK", "400, WARN, KO",
+      "401, WARN, KO", "403, WARN, KO", "404, WARN, KO", "409, WARN, KO",
+      "429, WARN, KO", "500, ERROR, KO", "503, ERROR, KO"})
   void syncResponsesPreserveResultAndLogSafeTypedFields(int status, String level, String outcome) {
     HttpClient client = mock(HttpClient.class);
     HttpResponse response = response(status);
@@ -116,12 +118,8 @@ class AzureLoggingPolicyTest {
       assertEquals(2, capture.events().size());
       JsonNode first = capture.events().get(0);
       JsonNode second = capture.events().get(1);
-      assertResponse(first, 503, "WARN", "KO");
-      assertResponse(second, 200, "INFO", "OK");
-      assertTrue(first.path("ctx_details").path("attempt").isIntegralNumber());
-      assertEquals(1, first.path("ctx_details").path("attempt").intValue());
-      assertTrue(second.path("ctx_details").path("attempt").isIntegralNumber());
-      assertEquals(2, second.path("ctx_details").path("attempt").intValue());
+      assertResponse(first, 503, "ERROR", "KO");
+      assertResponse(second, 200, "DEBUG", "OK");
       assertNotEquals(Thread.currentThread().getName(), first.path("process.thread.name").asText());
       assertEquals(workerMdc, Mono.fromCallable(MDC::getCopyOfContextMap)
           .subscribeOn(worker).block(TIMEOUT));
@@ -161,6 +159,57 @@ class AzureLoggingPolicyTest {
         .policies(AzureLoggingPolicy.correlationPolicy(),
             new AzureLoggingPolicy(AzureLoggingPolicy.TABLES))
         .build();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "azure-tables, GET, -, -, 200, DEBUG",
+      "azure-tables, POST, -, -, 201, DEBUG",
+      "azure-tables, POST, Prefer, return-no-content, 204, DEBUG",
+      "azure-tables, POST, Prefer, return-no-content, 201, WARN",
+      "azure-tables, POST, Prefer, return-content, 201, DEBUG",
+      "azure-tables, POST, -, -, 204, WARN",
+      "azure-tables, PATCH, -, -, 204, DEBUG",
+      "azure-tables, PUT, -, -, 204, DEBUG",
+      "azure-tables, PATCH, -, -, 200, WARN",
+      "azure-queue, GET, -, -, 200, DEBUG",
+      "azure-queue, POST, -, -, 201, DEBUG",
+      "azure-queue, PUT, -, -, 204, DEBUG",
+      "azure-queue, DELETE, -, -, 204, DEBUG",
+      "azure-queue, POST, -, -, 200, WARN",
+      "azure-blob, GET, -, -, 200, DEBUG",
+      "azure-blob, GET, Range, bytes=0-99, 206, DEBUG",
+      "azure-blob, GET, x-ms-range, bytes=0-99, 206, DEBUG",
+      "azure-blob, GET, -, -, 206, WARN",
+      "azure-blob, GET, Range, bytes=0-99, 200, WARN",
+      "azure-blob, HEAD, -, -, 200, DEBUG",
+      "azure-blob, PUT, -, -, 201, DEBUG",
+      "azure-blob, PUT, -, -, 200, WARN",
+      "azure-blob, OPTIONS, -, -, 200, WARN"
+  })
+  void responseLevelMatchesTheSpecificHttpExchange(
+      String dependency, HttpMethod method, String header, String value, int code, String level) {
+    HttpClient client = mock(HttpClient.class);
+    HttpResponse response = response(code);
+    when(client.sendSync(any(HttpRequest.class), any(Context.class))).thenReturn(response);
+    HttpRequest request = request().setHttpMethod(method);
+    if (!"-".equals(header)) {
+      request.setHeader(header, value);
+    }
+    HttpPipeline pipeline = new HttpPipelineBuilder().httpClient(client)
+        .policies(AzureLoggingPolicy.correlationPolicy(), new AzureLoggingPolicy(dependency))
+        .build();
+    try (LogCapture logs = new LogCapture(AzureLoggingPolicy.class)) {
+      assertSame(response, pipeline.sendSync(request, Context.NONE));
+      assertEquals(1, logs.events().size());
+      JsonNode event = logs.events().get(0);
+      assertEquals(level, event.path("log.level").asText());
+      assertEquals(code, LogCapture.dependency(event).path("http_code").intValue());
+      assertEquals(dependency + "." + method, LogCapture.dependency(event).path("name").asText());
+      assertFalse(event.path("ctx_details").has("attempt"));
+      assertSafeOutput(logs);
+    }
+    verifyNoBodyReads(response);
   }
 
   private static HttpRequest request() {
@@ -204,6 +253,9 @@ class AzureLoggingPolicyTest {
   private static void assertCommon(JsonNode event) {
     assertEquals("Completed Azure HTTP attempt", event.path("message").asText());
     assertEquals("request-correlation", event.path("correlation_id").asText());
+    assertEquals("request-correlation", event.path("requestId").asText());
+    assertFalse(event.has("operationId"));
+    assertFalse(event.path("ctx_details").has("attempt"));
     assertEquals("creditor", event.path("ctx_creditor_id").asText());
     assertEquals("notice", event.path("ctx_notice_number").asText());
     assertEquals("iuv", event.path("ctx_iuv").asText());

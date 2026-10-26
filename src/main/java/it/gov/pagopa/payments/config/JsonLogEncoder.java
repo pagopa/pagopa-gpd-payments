@@ -24,9 +24,6 @@ public final class JsonLogEncoder extends EcsEncoder {
     boolean explicit = event.getMarker() != null && event.getMarker().contains(LogContext.FIELDS);
     boolean diagnostic = event.getLoggerName().startsWith(APPLICATION_LOGGER_PREFIX)
         && event.getThrowableProxy() instanceof ThrowableProxy;
-    if (!explicit && !diagnostic) {
-      return encoded;
-    }
     ObjectNode fields = LogContext.event();
     if (explicit) {
       Object[] arguments = event.getArgumentArray();
@@ -50,9 +47,18 @@ public final class JsonLogEncoder extends EcsEncoder {
         }
         json.set(field.getKey(), field.getValue());
       });
+      alias(json, LogContext.REQUEST_ID, LogContext.CORRELATION_ID);
+      alias(json, LogContext.OPERATION_ID, LogContext.METHOD);
       return (JSON.writeValueAsString(json) + "\n").getBytes(StandardCharsets.UTF_8);
     } catch (IOException exception) {
       throw new IllegalStateException("Cannot encode application log fields", exception);
+    }
+  }
+
+  private static void alias(ObjectNode json, String alias, String source) {
+    json.remove(alias);
+    if (json.hasNonNull(source)) {
+      json.set(alias, json.get(source));
     }
   }
 }

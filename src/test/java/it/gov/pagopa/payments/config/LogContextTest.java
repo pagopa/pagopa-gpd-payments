@@ -68,7 +68,7 @@ class LogContextTest {
         .put(PATH, "/example/{id}/\"quoted\"")
         .put(NAME, "example.get")
         .put(HTTP_CODE, 204);
-    ObjectNode details = fields.putObject(CTX_DETAILS).put("attempt", 1);
+    ObjectNode details = fields.putObject(CTX_DETAILS).put("host", "example.test");
     if (alreadySerialized) {
       details.put(DEPENDENCY, dependency.toString());
     } else {
@@ -81,12 +81,48 @@ class LogContextTest {
       LogContext.log(LoggerFactory.getLogger(LogContextTest.class), Level.INFO, "Completed", fields);
       JsonNode event = logs.events().get(0);
       assertEquals(dependency, LogCapture.dependency(event));
-      assertEquals(1, event.path(CTX_DETAILS).path("attempt").intValue());
+      assertEquals("example.test", event.path(CTX_DETAILS).path("host").asText());
       assertEquals(original, fields);
       assertFalse(event.has(METHOD));
+      assertFalse(event.has(OPERATION_ID));
       assertEquals("enclosingApi", MDC.get(METHOD));
       String line = logs.lines().get(0);
       assertFalse(line.substring(0, line.length() - 1).contains("\n"));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void aliasesMatchFinalCanonicalFieldsForStructuredAndOrdinaryEvents(boolean structured) {
+    MDC.put(CORRELATION_ID, "mdc-correlation");
+    MDC.put(METHOD, "scheduledJob");
+    MDC.put(REQUEST_ID, "stale-request");
+    MDC.put(OPERATION_ID, "stale-operation");
+    try (LogCapture logs = new LogCapture(LogContextTest.class)) {
+      if (structured) {
+        LogContext.log(LoggerFactory.getLogger(LogContextTest.class), Level.INFO, "Completed",
+            LogContext.event().put(CORRELATION_ID, "explicit-correlation").put(METHOD, "apiMethod"));
+      } else {
+        LoggerFactory.getLogger(LogContextTest.class).info("Ordinary diagnostic");
+      }
+      JsonNode event = logs.events().get(0);
+      assertEquals(event.get(CORRELATION_ID), event.get(REQUEST_ID));
+      assertEquals(event.get(METHOD), event.get(OPERATION_ID));
+      assertEquals(structured ? "explicit-correlation" : "mdc-correlation",
+          event.path(REQUEST_ID).asText());
+      assertEquals(structured ? "apiMethod" : "scheduledJob", event.path(OPERATION_ID).asText());
+    }
+  }
+
+  @Test
+  void aliasesAreOmittedWithoutCanonicalFields() {
+    MDC.put(REQUEST_ID, "stale-request");
+    MDC.put(OPERATION_ID, "stale-operation");
+    try (LogCapture logs = new LogCapture(LogContextTest.class)) {
+      LoggerFactory.getLogger(LogContextTest.class).info("Startup diagnostic");
+      JsonNode event = logs.events().get(0);
+      assertFalse(event.has(REQUEST_ID));
+      assertFalse(event.has(OPERATION_ID));
     }
   }
 

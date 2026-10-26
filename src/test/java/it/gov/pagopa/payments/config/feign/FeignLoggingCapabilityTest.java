@@ -61,7 +61,8 @@ class FeignLoggingCapabilityTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"200,INFO,OK", "204,INFO,OK", "404,INFO,KO", "409,WARN,KO", "500,WARN,KO"})
+  @CsvSource({"200,DEBUG,OK", "201,WARN,OK", "204,WARN,OK", "404,WARN,KO",
+      "409,WARN,KO", "429,WARN,KO", "500,ERROR,KO", "503,ERROR,KO"})
   void actualFeignResponseProducesExactlyOneHttpEvent(int code, String level, String outcome)
       throws IOException {
     when(transport.execute(any(), any())).thenAnswer(invocation ->
@@ -89,6 +90,8 @@ class FeignLoggingCapabilityTest {
       assertEquals(level, event.path(LOG_LEVEL).asText());
       assertEquals(outcome, event.path(STATUS).asText());
       assertEquals("request-123", event.path(CORRELATION_ID).asText());
+      assertEquals("request-123", event.path(REQUEST_ID).asText());
+      assertFalse(event.has(OPERATION_ID));
       assertTrue(event.path(RESPONSE_TIME).isIntegralNumber());
       assertTrue(event.path(RESPONSE_TIME).longValue() >= 0);
       assertFalse(event.has(HTTP_CODE));
@@ -155,6 +158,41 @@ class FeignLoggingCapabilityTest {
       assertEquals(1, logs.events().size());
       assertEquals(STATUS_OK, logs.events().get(0).path(STATUS).asText());
       assertTrue(aspectLogs.events().isEmpty());
+    }
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "getPaymentOption, 200, DEBUG", "getPaymentOption, 204, WARN",
+      "getPaymentOption, 302, WARN", "getPaymentOption, 404, WARN",
+      "getPaymentOption, 409, WARN", "getPaymentOption, 500, ERROR",
+      "sendPaymentOptionReceipt, 200, DEBUG", "sendPaymentOptionReceipt, 201, WARN",
+      "sendPaymentOptionReceipt, 302, WARN", "sendPaymentOptionReceipt, 400, WARN",
+      "sendPaymentOptionReceipt, 401, WARN", "sendPaymentOptionReceipt, 403, WARN",
+      "sendPaymentOptionReceipt, 404, WARN", "sendPaymentOptionReceipt, 409, INFO",
+      "sendPaymentOptionReceipt, 429, WARN", "sendPaymentOptionReceipt, 503, ERROR",
+      "getCacheByKeys, 200, INFO", "getCacheByKeys, 204, INFO",
+      "getCacheByKeys, 302, WARN", "getCacheByKeys, 404, WARN",
+      "getCacheByKeys, 409, WARN", "getCacheByKeys, 429, WARN",
+      "getCacheByKeys, 500, ERROR", "getCacheByKeys, 503, ERROR"
+  })
+  void responseLevelsAreScopedToTheClientAndOperation(String operation, int code, String level)
+      throws IOException {
+    Class<?> type = operation.equals("getCacheByKeys") ? ApiConfigCacheClient.class : GpdClient.class;
+    MethodMetadata metadata = new SpringMvcContract().parseAndValidateMetadata(type).stream()
+        .filter(method -> method.method().getName().equals(operation)).findFirst().orElseThrow();
+    RequestTemplate template = new RequestTemplate().methodMetadata(metadata)
+        .feignTarget(new Target.HardCodedTarget<>(type, "test-target", "http://localhost"));
+    Request request = Request.create(Request.HttpMethod.GET, "http://localhost", Map.of(),
+        null, StandardCharsets.UTF_8, template);
+    Response response = Response.builder().request(request).status(code).headers(Map.of()).build();
+    when(transport.execute(any(), any())).thenReturn(response);
+    try (LogCapture logs = new LogCapture(FeignLoggingCapability.class)) {
+      assertSame(response, new FeignLoggingCapability().enrich(transport).execute(request, options));
+      assertEquals(1, logs.events().size());
+      JsonNode event = logs.events().get(0);
+      assertEquals(level, event.path(LOG_LEVEL).asText());
+      assertEquals(code, LogCapture.dependency(event).path(HTTP_CODE).intValue());
     }
   }
 
