@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.10-logging-oer-aspect-based"
+    tag: "0.13.10-1-logging-oer-aspect-based"
     pullPolicy: Always
   livenessProbe:
     httpGet:
