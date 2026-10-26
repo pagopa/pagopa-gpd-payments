@@ -114,7 +114,8 @@ class FeignLoggingCapabilityTest {
     Client decorated = new FeignLoggingCapability().enrich(transport);
     try (LogCapture logs = new LogCapture(FeignLoggingCapability.class)) {
       assertSame(response, decorated.execute(request, options));
-      verifyNoInteractions(body);
+      verify(body).length();
+      verifyNoMoreInteractions(body);
       assertSame(failure, assertThrows(IOException.class, () -> decorated.execute(request, options)));
       assertEquals(2, logs.events().size());
       JsonNode event = logs.events().get(1);
@@ -185,7 +186,8 @@ class FeignLoggingCapabilityTest {
         .feignTarget(new Target.HardCodedTarget<>(type, "test-target", "http://localhost"));
     Request request = Request.create(Request.HttpMethod.GET, "http://localhost", Map.of(),
         null, StandardCharsets.UTF_8, template);
-    Response response = Response.builder().request(request).status(code).headers(Map.of()).build();
+    Response response = Response.builder().request(request).status(code).headers(Map.of())
+        .body("{}", StandardCharsets.UTF_8).build();
     when(transport.execute(any(), any())).thenReturn(response);
     try (LogCapture logs = new LogCapture(FeignLoggingCapability.class)) {
       assertSame(response, new FeignLoggingCapability().enrich(transport).execute(request, options));
@@ -252,12 +254,85 @@ class FeignLoggingCapabilityTest {
     return factory.getProxy();
   }
 
+  @ParameterizedTest
+  @CsvSource({
+      "getPaymentOption,absent,WARN", "getPaymentOption,0,WARN",
+      "getPaymentOption,unknown,DEBUG", "getPaymentOption,2,DEBUG",
+      "sendPaymentOptionReceipt,absent,WARN", "sendPaymentOptionReceipt,0,WARN",
+      "sendPaymentOptionReceipt,unknown,DEBUG", "sendPaymentOptionReceipt,2,DEBUG",
+      "getCacheByKeys,absent,INFO", "getCacheByKeys,0,INFO",
+      "getCacheByKeys,unknown,INFO", "getCacheByKeys,2,INFO"
+  })
+  void emptyBodyWarningUsesOnlyGpd200BodyMetadata(String operation, String length, String level)
+      throws IOException {
+    Class<?> type = operation.equals("getCacheByKeys") ? ApiConfigCacheClient.class : GpdClient.class;
+    Request request = requestWithMetadata(type, operation);
+    Response.Body body = "absent".equals(length) ? null : mock(Response.Body.class);
+    if (body != null && type == GpdClient.class) {
+      when(body.length()).thenReturn("unknown".equals(length) ? null : Integer.valueOf(length));
+    }
+    Response response = Response.builder().request(request).status(200)
+        .headers(Map.of()).body(body).build();
+    when(transport.execute(any(), any())).thenReturn(response);
+    try (LogCapture logs = new LogCapture(FeignLoggingCapability.class)) {
+      assertSame(response, new FeignLoggingCapability().enrich(transport).execute(request, options));
+      assertEquals(1, logs.events().size());
+      JsonNode event = logs.events().get(0);
+      boolean warning = "WARN".equals(level);
+      assertEquals(level, event.path(LOG_LEVEL).asText());
+      assertEquals(warning ? STATUS_KO : STATUS_OK, event.path(STATUS).asText());
+      assertEquals(200, LogCapture.dependency(event).path(HTTP_CODE).intValue());
+      assertEquals(3, LogCapture.dependency(event).size());
+      assertFalse(event.has(HTTP_CODE));
+      assertFalse(event.has(ERROR_TYPE));
+      assertEquals(warning, event.has(ERROR_MESSAGE));
+      if (warning) {
+        assertEquals("GPD returned HTTP 200 with an empty response body",
+            event.path(ERROR_MESSAGE).asText());
+      }
+    }
+    if (body != null) {
+      if (type == GpdClient.class) {
+        verify(body).length();
+      }
+      verifyNoMoreInteractions(body);
+    }
+    verify(transport).execute(same(request), same(options));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+  void emptyGpd200OnlyChangesLoggingWithoutExceptionsOrExtraRetries(boolean pay, boolean absent)
+      throws IOException {
+    when(transport.execute(any(), any())).thenAnswer(invocation ->
+        Response.builder().request(invocation.getArgument(0)).status(200).headers(Map.of())
+            .body(absent ? null : "", StandardCharsets.UTF_8).build());
+    GpdClient client = client(new Retryer.Default(1, 1, 2));
+    try (LogCapture logs = new LogCapture(FeignLoggingCapability.class)) {
+      if (pay) {
+        assertNull(client.sendPaymentOptionReceipt("creditor", "nav", new PaymentOptionModel()));
+      } else {
+        assertNull(client.getPaymentOption("creditor", "nav"));
+      }
+      assertEquals(1, logs.events().size());
+      JsonNode event = logs.events().get(0);
+      assertEquals("WARN", event.path(LOG_LEVEL).asText());
+      assertEquals(STATUS_KO, event.path(STATUS).asText());
+      assertEquals(200, LogCapture.dependency(event).path(HTTP_CODE).intValue());
+    }
+    verify(transport).execute(any(), same(options));
+  }
+
   private Request requestWithMetadata() {
-    MethodMetadata metadata = new SpringMvcContract().parseAndValidateMetadata(GpdClient.class)
-        .stream().filter(method -> method.method().getName().equals("getPaymentOption"))
+    return requestWithMetadata(GpdClient.class, "getPaymentOption");
+  }
+
+  private Request requestWithMetadata(Class<?> type, String operation) {
+    MethodMetadata metadata = new SpringMvcContract().parseAndValidateMetadata(type)
+        .stream().filter(method -> method.method().getName().equals(operation))
         .findFirst().orElseThrow();
     RequestTemplate template = new RequestTemplate().methodMetadata(metadata)
-        .feignTarget(new Target.HardCodedTarget<>(GpdClient.class, "gpd", "http://localhost"));
+        .feignTarget(new Target.HardCodedTarget<>(type, "test-target", "http://localhost"));
     return Request.create(Request.HttpMethod.GET, "http://localhost/private", Map.of(),
         null, StandardCharsets.UTF_8, template);
   }

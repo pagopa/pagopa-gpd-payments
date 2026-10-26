@@ -36,6 +36,7 @@ import java.lang.reflect.Parameter;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 import javax.xml.bind.JAXBElement;
+import javax.xml.datatype.XMLGregorianCalendar;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
@@ -58,7 +59,12 @@ public class LoggingAspect {
   private static final String ID_BROKER_PA = "idBrokerPA";
   private static final String ID_STATION = "idStation";
   private static final String ID_SERVIZIO = "idServizio";
-  private static final String IO_OPERATION_COMPLETED = "Completed I/O operation";
+  private static final String RECEIPT_ID = "receiptId";
+  private static final String ID_PSP = "idPSP";
+  private static final String CREDITOR_REFERENCE_ID = "creditorReferenceId";
+  private static final String PAYMENT_DATE_TIME = "paymentDateTime";
+  private static final String STAND_IN = "standIn";
+  private static final String ID_BUNDLE = "idBundle";
 
   @PostConstruct
   public void logStartup() {
@@ -167,7 +173,7 @@ public class LoggingAspect {
       throw failure;
     } finally {
       fields.put(RESPONSE_TIME, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
-      LogContext.log(log, level, IO_OPERATION_COMPLETED, fields);
+      LogContext.log(log, level, LogMessages.IO_OPERATION_COMPLETED, fields);
     }
   }
 
@@ -188,16 +194,35 @@ public class LoggingAspect {
     } else if (request instanceof PaSendRTReq soap) {
       common(fields, args, soap.getIdPA(), soap.getIdBrokerPA(), soap.getIdStation());
       if (soap.getReceipt() != null) {
+        receiptArgs(args, soap.getReceipt().getReceiptId(), soap.getReceipt().getIdPSP(),
+            soap.getReceipt().getCreditorReferenceId(), soap.getReceipt().getPaymentDateTime(),
+            soap.getReceipt().isStandIn());
         receipt(fields, soap.getReceipt().getNoticeNumber(), soap.getReceipt().getCreditorReferenceId(),
             soap.getIdPA() == null ? soap.getReceipt().getFiscalCode() : soap.getIdPA());
       }
     } else if (request instanceof PaSendRTV2Request soap) {
       common(fields, args, soap.getIdPA(), soap.getIdBrokerPA(), soap.getIdStation());
       if (soap.getReceipt() != null) {
+        receiptArgs(args, soap.getReceipt().getReceiptId(), soap.getReceipt().getIdPSP(),
+            soap.getReceipt().getCreditorReferenceId(), soap.getReceipt().getPaymentDateTime(),
+            soap.getReceipt().isStandIn());
+        put(args, ID_BUNDLE, soap.getReceipt().getIdBundle());
         receipt(fields, soap.getReceipt().getNoticeNumber(), soap.getReceipt().getCreditorReferenceId(),
             soap.getIdPA() == null ? soap.getReceipt().getFiscalCode() : soap.getIdPA());
       }
     }
+  }
+
+  private static void receiptArgs(
+      ObjectNode args, String receiptId, String idPsp, String creditorReferenceId,
+      XMLGregorianCalendar paymentDateTime, Boolean standIn) {
+    put(args, RECEIPT_ID, receiptId);
+    put(args, ID_PSP, idPsp);
+    put(args, CREDITOR_REFERENCE_ID, creditorReferenceId);
+    if (paymentDateTime != null) {
+      put(args, PAYMENT_DATE_TIME, paymentDateTime.toXMLFormat());
+    }
+    LogContext.putScalar(args, STAND_IN, standIn);
   }
 
   private static void common(

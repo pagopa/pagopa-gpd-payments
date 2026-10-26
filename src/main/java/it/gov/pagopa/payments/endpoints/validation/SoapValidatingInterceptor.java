@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.endpoints.validation;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.LogMessages;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
@@ -27,7 +28,6 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
   private static final String SOAP_PREFIX = "soapenv";
   private static final String ORIGINAL_SOAP_PREFIX = "SOAP-ENV";
   private static final String EXCLUDED_PRIMITIVES = "paDemandPaymentNoticeResponse";
-  private static final String RESPONSE_VALIDATION_FAILED = "SOAP response XML validation failed";
   private static final String VALIDATION_ERROR_COUNT = "validation_error_count";
   private final List<String> amountNodeElements =
       List.of("paymentAmount", "amount", "transferAmount");
@@ -51,7 +51,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
           .map(SAXParseException::getMessage)
           .collect(Collectors.joining("\n")));
       fields.putObject(LogContext.CTX_DETAILS).put(VALIDATION_ERROR_COUNT, errors.length);
-      LogContext.log(log, Level.ERROR, RESPONSE_VALIDATION_FAILED, fields);
+      LogContext.log(log, Level.ERROR, LogMessages.SOAP_RESPONSE_VALIDATION_FAILED, fields);
     }
     return false;
   }

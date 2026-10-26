@@ -7,6 +7,7 @@ import feign.RequestTemplate;
 import feign.Response;
 import it.gov.pagopa.payments.client.GpdClient;
 import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.LogMessages;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -16,7 +17,7 @@ import org.slf4j.event.Level;
 /** Decorates the configured transport without reading or replacing response bodies. */
 public final class FeignLoggingCapability implements Capability {
   private static final Logger LOG = LoggerFactory.getLogger(FeignLoggingCapability.class);
-  private static final String COMPLETED = "Completed Feign HTTP attempt";
+  private static final String EMPTY_GPD_BODY = "GPD returned HTTP 200 with an empty response body";
   private static final String SEND_PAYMENT_OPTION_RECEIPT = "sendPaymentOptionReceipt";
   private static final String GET_PAYMENT_OPTION = "getPaymentOption";
 
@@ -46,7 +47,15 @@ public final class FeignLoggingCapability implements Capability {
       int code = response.status();
       dependency.put(LogContext.HTTP_CODE, code);
       fields.put(LogContext.STATUS, code >= 400 ? LogContext.STATUS_KO : LogContext.STATUS_OK);
-      completed(fields, started, responseLevel(template, operation, code));
+      boolean gpd = GpdClient.class.equals(template.feignTarget().type());
+      Level level = responseLevel(template, operation, code);
+      if (gpd && code == 200
+          && (response.body() == null || Integer.valueOf(0).equals(response.body().length()))) {
+        fields.put(LogContext.STATUS, LogContext.STATUS_KO)
+            .put(LogContext.ERROR_MESSAGE, EMPTY_GPD_BODY);
+        level = Level.WARN;
+      }
+      completed(fields, started, level);
       return response;
     };
   }
@@ -69,6 +78,6 @@ public final class FeignLoggingCapability implements Capability {
   private static void completed(ObjectNode fields, long started, Level level) {
     fields.put(LogContext.RESPONSE_TIME,
         TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
-    LogContext.log(LOG, level, COMPLETED, fields);
+    LogContext.log(LOG, level, LogMessages.FEIGN_HTTP_ATTEMPT_COMPLETED, fields);
   }
 }

@@ -11,9 +11,13 @@ import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
 import it.gov.pagopa.payments.model.ProblemJson;
 import it.gov.pagopa.payments.model.partner.CtFaultBean;
 import it.gov.pagopa.payments.model.partner.CtQrCode;
+import it.gov.pagopa.payments.model.partner.CtReceipt;
+import it.gov.pagopa.payments.model.partner.CtReceiptV2;
 import it.gov.pagopa.payments.model.partner.ObjectFactory;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentReq;
 import it.gov.pagopa.payments.model.partner.PaGetPaymentRes;
+import it.gov.pagopa.payments.model.partner.PaSendRTReq;
+import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.service.PaymentsService;
 import java.io.IOException;
@@ -22,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletRequestEvent;
 import javax.xml.bind.JAXBElement;
+import javax.xml.datatype.DatatypeFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -238,6 +243,112 @@ class RequestLoggingTest {
     }
   }
 
+  @ParameterizedTest
+  @CsvSource({
+      "false,2026-10-26T12:13:14.123,false",
+      "true,2026-10-26T12:13:14.123,false",
+      "false,2026-10-26T12:13:14.123+02:00,true",
+      "true,2026-10-26T12:13:14.123+02:00,true"
+  })
+  void sendReceiptSummaryIncludesOnlyApprovedArguments(
+      boolean v2, String date, boolean standIn) throws Exception {
+    var calendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(date);
+    SoapEndpoint endpoint = proxy(new SoapEndpoint());
+    request.addHeader("X-Client-Service-Type", "ACA");
+    try (LogCapture logs = new LogCapture(RequestFilter.class)) {
+      filter.doFilter(request, response, (req, res) -> {
+        if (v2) {
+          CtReceiptV2 receipt = new CtReceiptV2();
+          receipt.setReceiptId("");
+          receipt.setIdPSP("000123");
+          receipt.setCreditorReferenceId("000987");
+          receipt.setNoticeNumber("000456");
+          receipt.setPaymentDateTime(calendar);
+          receipt.setStandIn(standIn);
+          receipt.setIdBundle("000bundle");
+          receipt.setDescription("private-description");
+          receipt.setPaymentNote("private-note");
+          PaSendRTV2Request soap = new PaSendRTV2Request();
+          soap.setIdBrokerPA("broker");
+          soap.setIdStation("station");
+          soap.setReceipt(receipt);
+          endpoint.paSendRTV2(new ObjectFactory().createPaSendRTV2Request(soap));
+        } else {
+          CtReceipt receipt = new CtReceipt();
+          receipt.setReceiptId("");
+          receipt.setIdPSP("000123");
+          receipt.setCreditorReferenceId("000987");
+          receipt.setNoticeNumber("000456");
+          receipt.setPaymentDateTime(calendar);
+          receipt.setStandIn(standIn);
+          receipt.setDescription("private-description");
+          PaSendRTReq soap = new PaSendRTReq();
+          soap.setIdBrokerPA("broker");
+          soap.setIdStation("station");
+          soap.setReceipt(receipt);
+          endpoint.paSendRT(new ObjectFactory().createPaSendRTReq(soap));
+        }
+        assertNull(MDC.get("receiptId"));
+      });
+      complete();
+      assertEquals(1, logs.events().size());
+      JsonNode event = logs.events().get(0);
+      assertTrue(event.path(ARGS).isTextual());
+      JsonNode args = new ObjectMapper().readTree(event.path(ARGS).textValue());
+      assertEquals(v2 ? 9 : 8, args.size());
+      assertEquals("broker", args.path("idBrokerPA").asText());
+      assertEquals("station", args.path("idStation").asText());
+      assertEquals("", args.path("receiptId").textValue());
+      assertEquals("000123", args.path("idPSP").textValue());
+      assertEquals("000987", args.path("creditorReferenceId").textValue());
+      assertEquals(date, args.path("paymentDateTime").textValue());
+      assertTrue(args.path("standIn").isBoolean());
+      assertEquals(standIn, args.path("standIn").booleanValue());
+      assertEquals("ACA", args.path(SERVICE_TYPE).textValue());
+      assertEquals(v2, args.has("idBundle"));
+      if (v2) {
+        assertEquals("000bundle", args.path("idBundle").textValue());
+      }
+      assertEquals("000987", event.path(CTX_IUV).asText());
+      assertEquals("000456", event.path(CTX_NOTICE_NUMBER).asText());
+      assertFalse(event.toString().contains("private-"));
+    }
+  }
+
+  @ParameterizedTest
+  @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+  void sendReceiptOmitsNullFieldsWithoutSuppressingHeaderArguments(
+      boolean v2, boolean receiptPresent) throws Exception {
+    SoapEndpoint endpoint = proxy(new SoapEndpoint());
+    try (LogCapture logs = new LogCapture(RequestFilter.class)) {
+      filter.doFilter(request, response, (req, res) -> {
+        if (v2) {
+          PaSendRTV2Request soap = new PaSendRTV2Request();
+          soap.setIdBrokerPA("broker");
+          soap.setIdStation("station");
+          if (receiptPresent) {
+            soap.setReceipt(new CtReceiptV2());
+          }
+          endpoint.paSendRTV2(new ObjectFactory().createPaSendRTV2Request(soap));
+        } else {
+          PaSendRTReq soap = new PaSendRTReq();
+          soap.setIdBrokerPA("broker");
+          soap.setIdStation("station");
+          if (receiptPresent) {
+            soap.setReceipt(new CtReceipt());
+          }
+          endpoint.paSendRT(new ObjectFactory().createPaSendRTReq(soap));
+        }
+      });
+      complete();
+      JsonNode args = new ObjectMapper().readTree(logs.events().get(0).path(ARGS).textValue());
+      assertEquals(3, args.size());
+      assertEquals("broker", args.path("idBrokerPA").asText());
+      assertEquals("station", args.path("idStation").asText());
+      assertEquals("GPD", args.path(SERVICE_TYPE).asText());
+    }
+  }
+
   private void complete() {
     filter.requestLoggingListener().getListener().requestDestroyed(
         new ServletRequestEvent(new MockServletContext(), request));
@@ -257,6 +368,10 @@ class RequestLoggingTest {
 
   @Endpoint
   public static class SoapEndpoint {
+    public void paSendRT(JAXBElement<PaSendRTReq> request) {}
+
+    public void paSendRTV2(JAXBElement<PaSendRTV2Request> request) {}
+
     public JAXBElement<PaGetPaymentRes> paGetPayment(PaGetPaymentReq request) {
       PaGetPaymentRes result = new PaGetPaymentRes();
       result.setOutcome(StOutcome.KO);

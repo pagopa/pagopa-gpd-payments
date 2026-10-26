@@ -37,7 +37,6 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
   public static final String BLOB = "azure-blob";
   private static final String CAPTURED_FIELDS = AzureLoggingPolicy.class.getName();
   private static final String HOST = "host";
-  private static final String COMPLETED = "Completed Azure HTTP attempt";
   private static final Logger LOG = LoggerFactory.getLogger(AzureLoggingPolicy.class);
   private final String dependency;
   private final HttpPipelinePosition position;
@@ -163,7 +162,7 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     Map<String, String> previous = MDC.getCopyOfContextMap();
     try {
       MDC.clear();
-      LogContext.log(LOG, level, COMPLETED, fields);
+      LogContext.log(LOG, level, LogMessages.AZURE_HTTP_ATTEMPT_COMPLETED, fields);
     } finally {
       LogContext.restore(previous);
     }

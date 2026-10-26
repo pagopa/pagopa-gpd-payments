@@ -58,7 +58,6 @@ public class RequestFilter implements Filter {
   private static final String LIVENESS_PATH = "/actuator/health/liveness";
   private static final String READINESS_PATH = "/actuator/health/readiness";
   private static final String CONTROLLER_PACKAGE = "it.gov.pagopa.payments.controller";
-  private static final String API_OPERATION_COMPLETED = "Completed API operation";
   private static final Pattern SAFE_ID = Pattern.compile("[a-zA-Z0-9._:-]{1,128}");
   private static final Set<String> HEALTH = Set.of(HEALTH_CHECK, LIVENESS, READINESS);
 
@@ -106,7 +105,7 @@ public class RequestFilter implements Filter {
       fields.remove(FAULT_CODE);
       fields.remove(FAULT_DETAIL);
       fields.remove(CTX_SOAP_OUTCOME);
-      LogContext.diagnostic(log, Level.ERROR, "HTTP request processing failed", failure);
+      LogContext.diagnostic(log, Level.ERROR, LogMessages.HTTP_REQUEST_PROCESSING_FAILED, failure);
       throw failure;
     } finally {
       LogContext.restore(previous);
@@ -163,7 +162,7 @@ public class RequestFilter implements Filter {
       } else if (HEALTH.contains(fields.path(METHOD).asText())) {
         level = STATUS_OK.equals(fields.path(STATUS).asText()) ? Level.DEBUG : Level.WARN;
       }
-      LogContext.log(log, level, API_OPERATION_COMPLETED, fields);
+      LogContext.log(log, level, LogMessages.API_OPERATION_COMPLETED, fields);
     } finally {
       LogContext.restore(previous);
     }
