@@ -62,6 +62,36 @@ class LogContextTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
+  void dependencyIsSerializedOnceWithoutMutatingCallerFields(boolean alreadySerialized) {
+    ObjectNode fields = LogContext.event();
+    ObjectNode dependency = LogContext.event()
+        .put(PATH, "/example/{id}/\"quoted\"")
+        .put(NAME, "example.get")
+        .put(HTTP_CODE, 204);
+    ObjectNode details = fields.putObject(CTX_DETAILS).put("attempt", 1);
+    if (alreadySerialized) {
+      details.put(DEPENDENCY, dependency.toString());
+    } else {
+      details.set(DEPENDENCY, dependency);
+    }
+    ObjectNode original = fields.deepCopy();
+    MDC.put(METHOD, "enclosingApi");
+
+    try (LogCapture logs = new LogCapture(LogContextTest.class)) {
+      LogContext.log(LoggerFactory.getLogger(LogContextTest.class), Level.INFO, "Completed", fields);
+      JsonNode event = logs.events().get(0);
+      assertEquals(dependency, LogCapture.dependency(event));
+      assertEquals(1, event.path(CTX_DETAILS).path("attempt").intValue());
+      assertEquals(original, fields);
+      assertFalse(event.has(METHOD));
+      assertEquals("enclosingApi", MDC.get(METHOD));
+      String line = logs.lines().get(0);
+      assertFalse(line.substring(0, line.length() - 1).contains("\n"));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
   void diagnosticsKeepOriginalMessageAndBoundedRootOrCycle(boolean cyclic) {
     IllegalArgumentException root = new IllegalArgumentException("Root failure");
     IllegalStateException failure = new IllegalStateException("Original failure", root);

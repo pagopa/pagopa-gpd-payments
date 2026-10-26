@@ -83,6 +83,10 @@ public final class LogContext {
 
   public static void log(Logger logger, Level level, String message, ObjectNode fields) {
     ObjectNode snapshot = fields.deepCopy();
+    if (snapshot.get(CTX_DETAILS) instanceof ObjectNode details
+        && details.get(DEPENDENCY) instanceof ObjectNode dependency) {
+      details.put(DEPENDENCY, dependency.toString());
+    }
     switch (level) {
       case INFO -> logger.info(FIELDS, message, snapshot);
       case WARN -> logger.warn(FIELDS, message, snapshot);

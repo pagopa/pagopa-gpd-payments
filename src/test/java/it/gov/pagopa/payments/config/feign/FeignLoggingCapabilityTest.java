@@ -78,13 +78,14 @@ class FeignLoggingCapabilityTest {
       assertEquals(1, httpLogs.events().size());
       assertTrue(aspectLogs.events().isEmpty(), "The aspect must not log Feign calls");
       JsonNode event = httpLogs.events().get(0);
+      assertEquals("Completed Feign HTTP attempt", event.path(MESSAGE).asText());
+      JsonNode dependency = LogCapture.dependency(event);
       assertEquals("/organizations/{organizationfiscalcode}/paymentoptions/{nav}",
-          event.path(CTX_DETAILS).path(PATH).asText());
-      JsonNode dependency = event.path(CTX_DETAILS).path(DEPENDENCY);
+          dependency.path(PATH).asText());
       assertEquals("gpd.getPaymentOption", dependency.path(NAME).asText());
       assertEquals(code, dependency.path(HTTP_CODE).intValue());
       assertTrue(dependency.path(HTTP_CODE).isIntegralNumber());
-      assertEquals(code != 204, dependency.path("body_present").booleanValue());
+      assertEquals(3, dependency.size(), "Dependency must contain only path, name and http_code");
       assertEquals(level, event.path(LOG_LEVEL).asText());
       assertEquals(outcome, event.path(STATUS).asText());
       assertEquals("request-123", event.path(CORRELATION_ID).asText());
@@ -118,7 +119,7 @@ class FeignLoggingCapabilityTest {
       assertEquals("WARN", event.path(LOG_LEVEL).asText());
       assertEquals(IOException.class.getName(), event.path(ERROR_TYPE).asText());
       assertEquals("Connection refused", event.path(ERROR_MESSAGE).asText());
-      assertFalse(event.path(CTX_DETAILS).path(DEPENDENCY).has(HTTP_CODE));
+      assertFalse(LogCapture.dependency(event).has(HTTP_CODE));
       assertFalse(event.has(HTTP_CODE));
     }
     verify(transport, times(2)).execute(same(request), same(options));
@@ -137,7 +138,7 @@ class FeignLoggingCapabilityTest {
       JsonNode event = logs.events().get(0);
       assertEquals("INFO", event.path(LOG_LEVEL).asText());
       assertEquals(STATUS_KO, event.path(STATUS).asText());
-      assertEquals(409, event.path(CTX_DETAILS).path(DEPENDENCY).path(HTTP_CODE).intValue());
+      assertEquals(409, LogCapture.dependency(event).path(HTTP_CODE).intValue());
     }
   }
 
@@ -168,8 +169,7 @@ class FeignLoggingCapabilityTest {
       assertNull(client.getPaymentOption("creditor", "nav"));
       assertEquals(2, logs.events().size());
       assertEquals("KO", logs.events().get(0).path(STATUS).asText());
-      assertEquals(204, logs.events().get(1).path(CTX_DETAILS).path(DEPENDENCY)
-          .path(HTTP_CODE).intValue());
+      assertEquals(204, LogCapture.dependency(logs.events().get(1)).path(HTTP_CODE).intValue());
       assertTrue(aspectLogs.events().isEmpty());
     }
     verify(transport, times(2)).execute(any(), same(options));
@@ -190,13 +190,12 @@ class FeignLoggingCapabilityTest {
           try (LogCapture logs = new LogCapture(FeignLoggingCapability.class)) {
             assertNull(context.getBean(GpdClient.class).getPaymentOption("creditor", "nav"));
             assertEquals(1, logs.events().size());
-            assertEquals(204, logs.events().get(0).path(CTX_DETAILS).path(DEPENDENCY)
-                .path(HTTP_CODE).intValue());
+            assertEquals(204, LogCapture.dependency(logs.events().get(0)).path(HTTP_CODE).intValue());
             assertNull(context.getBean(ApiConfigCacheClient.class).getCacheByKeys("private-query"));
             assertEquals(2, logs.events().size());
             assertEquals("cache.getCacheByKeys",
-                logs.events().get(1).path(CTX_DETAILS).path(DEPENDENCY).path(NAME).asText());
-            assertEquals("/cache", logs.events().get(1).path(CTX_DETAILS).path(PATH).asText());
+                LogCapture.dependency(logs.events().get(1)).path(NAME).asText());
+            assertEquals("/cache", LogCapture.dependency(logs.events().get(1)).path(PATH).asText());
             assertFalse(logs.lines().toString().contains("private-query"));
             assertFalse(logs.lines().toString().contains("local-test"));
           }

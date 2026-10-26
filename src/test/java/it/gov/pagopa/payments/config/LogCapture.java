@@ -1,5 +1,7 @@
 package it.gov.pagopa.payments.config;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -54,6 +56,15 @@ public final class LogCapture implements AutoCloseable {
 
   public List<String> lines() {
     return List.copyOf(lines);
+  }
+
+  public static JsonNode dependency(JsonNode event) {
+    JsonNode value = event.path(LogContext.CTX_DETAILS).path(LogContext.DEPENDENCY);
+    assertTrue(value.isTextual(), "Dependency must be a JSON string");
+    JsonNode decoded = assertDoesNotThrow(() -> JSON.readTree(value.textValue()));
+    assertTrue(decoded.isObject(), "Dependency string must contain a JSON object");
+    assertFalse(event.path(LogContext.CTX_DETAILS).has(LogContext.PATH));
+    return decoded;
   }
 
   @Override

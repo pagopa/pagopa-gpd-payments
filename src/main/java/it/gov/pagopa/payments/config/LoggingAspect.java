@@ -153,8 +153,8 @@ public class LoggingAspect {
     Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
     ObjectNode fields = LogContext.event();
     fields.putObject(CTX_DETAILS)
-        .put(PATH, method.getName())
         .putObject(DEPENDENCY)
+        .put(PATH, method.getName())
         .put(NAME, method.getDeclaringClass().getSimpleName() + "." + method.getName());
     Level level = Level.INFO;
     try {

@@ -179,7 +179,7 @@ class AzureLoggingPolicyTest {
 
   private static void assertResponse(JsonNode event, int status, String level, String outcome) {
     assertCommon(event);
-    JsonNode dependency = event.path("ctx_details").path("dependency");
+    JsonNode dependency = LogCapture.dependency(event);
     assertTrue(dependency.path("http_code").isIntegralNumber());
     assertEquals(status, dependency.path("http_code").intValue());
     assertEquals(level, event.path("log.level").asText());
@@ -195,7 +195,7 @@ class AzureLoggingPolicyTest {
     assertEquals("KO", event.path("status").asText());
     assertEquals(failure.getClass().getName(), event.path("error.type").asText());
     assertFalse(event.has("http_code"));
-    assertFalse(event.path("ctx_details").path("dependency").has("http_code"));
+    assertFalse(LogCapture.dependency(event).has("http_code"));
     assertFalse(event.has("error.message"));
     assertFalse(event.has("error.stack_trace"));
     assertSafeOutput(capture);
@@ -208,7 +208,8 @@ class AzureLoggingPolicyTest {
     assertEquals("notice", event.path("ctx_notice_number").asText());
     assertEquals("iuv", event.path("ctx_iuv").asText());
     assertEquals("azure-tables.GET",
-        event.path("ctx_details").path("dependency").path("name").asText());
+        LogCapture.dependency(event).path("name").asText());
+    assertFalse(LogCapture.dependency(event).has("path"));
     assertEquals("storage.example.test", event.path("ctx_details").path("host").asText());
     assertTrue(event.path("response_time").isIntegralNumber());
     assertTrue(event.path("response_time").longValue() >= 0);

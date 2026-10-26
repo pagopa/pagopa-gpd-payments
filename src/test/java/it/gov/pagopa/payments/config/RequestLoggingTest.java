@@ -211,15 +211,16 @@ class RequestLoggingTest {
   }
 
   @Test
-  void repositoryEventsKeepNestedDependencyWithoutAnHttpCode() {
+  void repositoryEventsKeepJsonStringDependencyWithoutAnHttpCode() {
     SampleRepository repository = proxy(new SampleRepository());
     MDC.put(METHOD, "enclosingApi");
     try (LogCapture logs = new LogCapture(LoggingAspect.class)) {
       assertEquals("result", repository.find());
       assertEquals(1, logs.events().size());
       JsonNode event = logs.events().get(0);
-      JsonNode dependency = event.path(CTX_DETAILS).path(DEPENDENCY);
+      JsonNode dependency = LogCapture.dependency(event);
       assertEquals("SampleRepository.find", dependency.path(NAME).asText());
+      assertEquals("find", dependency.path(PATH).asText());
       assertFalse(event.has(DEPENDENCY));
       assertFalse(event.has(METHOD));
       assertEquals("enclosingApi", MDC.get(METHOD));

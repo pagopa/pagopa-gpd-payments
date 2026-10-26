@@ -16,7 +16,6 @@ import org.slf4j.event.Level;
 public final class FeignLoggingCapability implements Capability {
   private static final Logger LOG = LoggerFactory.getLogger(FeignLoggingCapability.class);
   private static final String COMPLETED = "Completed Feign HTTP attempt";
-  private static final String BODY_PRESENT = "body_present";
   private static final String SEND_PAYMENT_OPTION_RECEIPT = "sendPaymentOptionReceipt";
 
   @Override
@@ -26,8 +25,8 @@ public final class FeignLoggingCapability implements Capability {
       RequestTemplate template = request.requestTemplate();
       String operation = template.methodMetadata().method().getName();
       ObjectNode dependency = fields.putObject(LogContext.CTX_DETAILS)
-          .put(LogContext.PATH, template.methodMetadata().template().path())
           .putObject(LogContext.DEPENDENCY)
+          .put(LogContext.PATH, template.methodMetadata().template().path())
           .put(LogContext.NAME, template.feignTarget().name() + "." + operation);
       long started = System.nanoTime();
       Response response;
@@ -43,7 +42,7 @@ public final class FeignLoggingCapability implements Capability {
         throw failure;
       }
       int code = response.status();
-      dependency.put(LogContext.HTTP_CODE, code).put(BODY_PRESENT, response.body() != null);
+      dependency.put(LogContext.HTTP_CODE, code);
       fields.put(LogContext.STATUS, code >= 400 ? LogContext.STATUS_KO : LogContext.STATUS_OK);
       boolean expected = code == 404
           || (code == 409 && SEND_PAYMENT_OPTION_RECEIPT.equals(operation));
