@@ -1,0 +1,22 @@
+{{- if .Values.podMonitor.create -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "cron-chart.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    release: prometheus
+    {{- include "cron-chart.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "cron-chart.selectorLabels" . | nindent 6 }}
+  podMetricsEndpoints:
+    {{- range  $k, $v := .Values.podMonitor.podMetricsEndpoints }}
+    - interval: {{ $v.interval }}
+      port: {{ $v.port | quote }}
+      path: {{ $v.path }}
+    {{- end }}
+{{- end }}
+
+---
