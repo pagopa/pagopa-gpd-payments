@@ -22,7 +22,7 @@ class ReceiptBlobStoreAzuriteTest {
   @Container
   static GenericContainer<?> azurite =
       new GenericContainer<>(
-          DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
+              DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
           .withExposedPorts(10000)
           .withCommand("azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck");
 
