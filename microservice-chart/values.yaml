@@ -1,0 +1,414 @@
+# -- Namespace in which deploy the microservice
+namespace: ""
+
+# -- Helm chart name override
+nameOverride: ""
+
+# -- Helm chart fullname override
+fullnameOverride: ""
+
+# -- Termination grace period in seconds
+terminationGracePeriodSeconds: 30
+
+# -- Configure deployment
+# @default -- -
+deployment:
+  # -- (bool) Create or not the deployment manifest
+  create: true
+  # -- (int) Number of replicas (will be replaced by autoscaling if enabled)
+  replicas: 1
+  # -- (bool) Force redeploy container
+  forceRedeploy: false
+  # -- (int) Number of revision/replicaSet to have has history + 1 current revision
+  revisionHistoryLimit: 3
+  # -- Topology Spread Constraints configuration
+  # create: abilita/disabilita la feature
+  # useDefaultConfiguration: se true usa la configurazione di default (vedi _helpers.tpl), se false usa config
+  # config: array di oggetti topologySpreadConstraints custom
+  topologySpreadConstraints:
+    create: false
+    useDefaultConfiguration: false
+    config: []
+
+
+# -- strategy type for deployment: Recreate or RollingUpdate
+# @default -- {}
+strategy:
+  # -- type
+  type: RollingUpdate
+  # -- rollingUpdate
+  rollingUpdate:
+    # -- maxUnavailable
+    maxUnavailable: 0
+    # -- maxSurge
+    maxSurge: 1
+
+# -- image: configuration for the container
+# @default -- {}
+image:
+  # -- Docker reposity for the container
+  repository: ""
+  # -- Container TAG
+  tag: "v0.0.0"
+  # -- Pull policy to use
+  pullPolicy: Always
+
+# -- Sidecars, each object has exactly the same schema as a Pod, except it does not have an apiVersion or kind
+sidecars: []
+
+# -- LivenessProbe
+# @default -- {}
+livenessProbe:
+  ## -- create
+  create: true
+  # -- Choose the probe type: "httpGet" or "exec" or "tcpSocket"
+  handlerType: "httpGet"
+  # -- httpGet options
+  httpGet:
+    # -- path
+    path: /alive
+    # -- port
+    port: 9999
+  # -- exec options
+  exec:
+    # -- Command can be in yaml or array version e.g.: command: ["/bin/sh", "-c", '[ -d "/csv" ]']
+    command: []
+  # -- tcpSocket options
+  tcpSocket:
+    # -- tcpSocket.port
+    port: 9999
+  # -- initialDelaySeconds
+  initialDelaySeconds: 1
+  # -- failureThreshold
+  failureThreshold: 1
+  # -- periodSeconds
+  periodSeconds: 1
+  # -- successThreshold
+  successThreshold: 1
+  # -- timeoutSeconds
+  timeoutSeconds: 1
+  # -- terminationGracePeriodSeconds
+  terminationGracePeriodSeconds: 30
+
+# -- ReadinessProbe
+# @default -- {}
+readinessProbe:
+  ## -- create
+  create: true
+  # -- Choose the probe type: "httpGet" or "exec" or "tcpSocket"
+  handlerType: "httpGet"
+  # -- httpGet options
+  httpGet:
+    # -- path
+    path: /alive
+    # -- port
+    port: 9999
+  # -- exec options
+  exec:
+    # -- Command can be in yaml or array version e.g.: command: ["/bin/sh", "-c", '[ -d "/csv" ]']
+    command: []
+  # -- tcpSocket options
+  tcpSocket:
+    # -- tcpSocket.port
+    port: 9999
+  # -- initialDelaySeconds
+  initialDelaySeconds: 1
+  # -- failureThreshold
+  failureThreshold: 1
+  # -- periodSeconds
+  periodSeconds: 1
+  # -- successThreshold
+  successThreshold: 1
+  # -- timeoutSeconds
+  timeoutSeconds: 1
+
+# -- startupProbe
+# @default -- {}
+startupProbe:
+  ## -- create
+  create: false
+  # -- Choose the probe type: "httpGet" or "exec" or "tcpSocket"
+  handlerType: "httpGet"
+  # -- httpGet options
+  httpGet:
+    # -- path
+    path: /alive
+    # -- port
+    port: 9999
+  # -- exec options
+  exec:
+    # -- (list) Command can be in yaml or array version e.g.: command: ["/bin/sh", "-c", '[ -d "/csv" ]']
+    command: []
+  # -- tcpSocket options
+  tcpSocket:
+    # -- tcpSocket.port
+    port: 9999
+  # -- initialDelaySeconds
+  initialDelaySeconds: 1
+  # -- failureThreshold
+  failureThreshold: 1
+  # -- periodSeconds
+  periodSeconds: 1
+  # -- successThreshold
+  successThreshold: 1
+  # -- timeoutSeconds
+  timeoutSeconds: 1
+  # -- terminationGracePeriodSeconds
+  terminationGracePeriodSeconds: 30
+
+# -- Environment config to use for the container
+envConfig: {}
+
+# -- Load secrets as environment variables from kv
+envSecret: {}
+
+# -- Configure files to mount as config map. This files definition are inside the values*.yaml file
+configMapFromFile: {}
+# -- CustomPath to allow to choose where to put your files
+configMapFromFileCustomPath: "/mnt/file-config"
+
+# -- Environment config from k8s metadata
+envFieldRef: {}
+
+# -- Configure values from config maps external to chart. E.g already present into cluster, see documentation
+# @default -- {}
+externalConfigMapFiles:
+  create: false
+  # -- (list) Config maps to mount as files: e.g. [{name: "configmap", key: "user.xml", mountPath: "/config/user.xml" }]
+  configMaps: []
+# -- CustomPath to allow to choose where to put your files
+externalConfigMapFilesCustomPath: "/mnt/file-config-external"
+
+
+externalConfigMapValues:
+  # -- (list) Config maps to mount as files: e.g. [{name: "configmap", key: "mykey"}]
+  configMaps: []
+
+#
+# Volumes
+#
+
+# -- Configure how secrets taken from SecretS storage Class are mounted inside the pod
+# @default -- {}
+providedVolumeMount:
+  create: false
+  envSecret: {}
+  folders: []
+
+# -- Configure optional tmp volume to mount (Use instance storage)
+tmpVolumeMount:
+  create: true
+  # -- (list) Mounts to add to the tmp volume: (e.g. [{name: "tmp", mountPath: "/tmp"}]])
+  mounts:
+    - name: tmp
+      mountPath: /tmp
+
+# -- Configure optional volume that will be mount (using a PVC)
+persistentVolumeClaimsMounts:
+  create: false
+  # -- (list) Mounts with pvc volume: (e.g. [{name: "tmp", mountPath: "/tmp", pvcName: "xyz"}]])
+  mounts: []
+
+# -- POD resources section
+# @default -- -
+resources:
+  # -- request is mandatory
+  requests:
+    # -- memory
+    memory: "96Mi"
+    # -- cpu
+    cpu: "40m"
+  # -- limits is mandatory
+  limits:
+    # -- memory
+    memory: "128Mi"
+    # -- cpu
+    cpu: "150m"
+
+# @default -- -
+container:
+  command: []
+  args: []
+
+# -- Configure secret provider with secrets to mount as environment variables
+secretProviderClass:
+  # -- create
+  create: true
+
+# -- Configure keyvault to use inside secret prover to load secret directly
+keyvault:
+  # -- Key vault name
+  name: ""
+  # -- Tenant ID
+  tenantId: ""
+
+# -- podAnnotations
+podAnnotations: {}
+
+# -- podSecurityContext
+podSecurityContext:
+  # -- seccompProfile
+  seccompProfile:
+    # -- type
+    type: RuntimeDefault
+
+# -- securityContext
+securityContext:
+  # -- readOnlyRootFilesystem
+  readOnlyRootFilesystem: true
+  # -- allowPrivilegeEscalation
+  allowPrivilegeEscalation: false
+  # -- capabilities
+  capabilities:
+    # -- drop
+    drop:
+      - all
+
+# -- K8s node selectors
+nodeSelector: {}
+
+# -- Pod taints toleration
+tolerations: []
+
+# -- Pod labels affinity
+affinity: {}
+
+# -- Restart policy
+restartPolicy: "Always"
+
+#
+# Autoscaling
+#
+# -- Autoscaling using KEDA
+# @default -- -
+autoscaling:
+  # -- Enable Autoscaling
+  enable: false
+  # -- Autoscaling minimum replicas
+  minReplica: 1
+  # -- Autoscaling maximum replicas
+  maxReplica: 1
+  # -- Autoscaling event polling intervall
+  pollingInterval: 10 # seconds
+  # -- Autoscaling cooldown period
+  cooldownPeriod: 300 # seconds
+  # -- Autoscaling triggers as per [Keda scalers](https://keda.sh/docs/2.6/scalers/)
+  triggers: []
+  # -- Autoscaling advanced <https://keda.sh/docs/2.9/concepts/scaling-deployments/#advanced>
+  advanced: {}
+
+#
+# Pod identity and KV connection
+#
+
+# -- Service account configuration
+# @default -- -
+serviceAccount:
+  # -- (bool) Create the service account object. If true use this object, otherwise use only the name reference
+  create: false
+  # -- Service account name, this service account already exists
+  name: ""
+  annotations: {}
+  # -- (bool)
+  automount: false
+
+serviceMonitor:
+  # -- (bool) Create or not the service monitor
+  create: false
+  endpoints: []
+  # -- (bool) Enable the compatibility with Azure Prometheus Managed
+  prometheusManaged: false
+
+service:
+  # -- (bool) create the service manifest
+  create: true
+  # -- Which type of service to use
+  type: ClusterIP
+  # -- (list) Which ports use (! this port is used even inside the deployment)
+  ports:
+    - 8080
+
+# -- Ingress configuration
+# @default -- -
+ingress:
+  # -- (bool) Create or not the ingress manifest
+  create: false
+  # -- Hostname for the ingress like <https://idpay.pagopa.it>
+  host: ""
+  # -- (int) service port to reach
+  servicePort: 8080
+  # -- Path where the application can response like: `/app(/|$)(.*)`
+  path: "/please-put-a-path"
+  # -- pathType
+  pathType: ImplementationSpecific
+  # -- (bool) if force ssl redirect is enabled
+  forceSslRedirect: true
+  # -- the rewrite target for ingress
+  rewriteTarget: /$1
+  # -- the size allowed by nginx.ingress.kubernetes.io/proxy-body-size for client request body
+  proxyBodySize: 1m
+  # -- (map) custom annotations for ingress
+  annotations: {}
+
+
+# -- This section allow to configure canary deployment
+# @default -- -
+canaryDelivery:
+  # -- (bool) Beta/Enable Canary/BlueGreen Deployment
+  create: false
+  # -- This section allow to configure ingress inside canary deployment
+  # @default -- -
+  # -- Configure how ingress canary should be
+  ingress:
+    header: true
+    bluegreen: false
+      # -- the header name used to call the canary deployment
+    headerName: X-Canary
+      # -- the header values used to call the canary deployment
+    headerValue: pagopa
+
+      # -- the weight percent used into canary deployment. Can be used toghether with header
+    weightPercent: 10
+
+    image:
+      # -- Docker reposity for the container canary
+      repository: ""
+      # -- Container TAG
+      tag: ""
+
+    # -- Environment config to use for the canary container
+    envConfig: { }
+
+    # -- Load secrets as environment variables from kv for the canary container
+    envSecret: { }
+
+
+# -- generate PodDisruptionBudget
+podDisruptionBudget:
+  # -- create
+  create: false
+  # -- (mutually exclusive with maxUnavailable) Min number of pods that must be alive before destroy node
+  minAvailable: 0
+  # -- (mutually exclusive with minAvailable) Max number of pods unavailable before destroy node
+  maxUnavailable: ""
+
+# -- Azure configuration (e.g. Workload identities)
+azure:
+  # -- (bool) Enable workload identity
+  workloadIdentityEnabled: true
+  # -- Azure Workload Identity Client ID (e.g. qwerty123-a1aa-1234-xyza-qwerty123)
+  workloadIdentityClientId: ""
+
+# -- Postman meta tags
+# @default -- -
+postman-test:
+  # -- (bool) Run or not the tests
+  run: true
+  # -- repoName: github repo name (e.g. `devops-java-springboot-color`)
+  repoName: ""
+  # -- directory where the postman file are saved (e.g. `src/test/postman``)
+  dir: ""
+  # -- collection name path (e.g. `mil-papos.postman_collection.json``)
+  collectionName: ""
+  # -- env variable name path (e.g `dev.postman_environment.json``)
+  envVariablesFile: ""
