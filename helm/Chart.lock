@@ -1,0 +1,9 @@
+dependencies:
+- name: microservice-chart
+  repository: https://pagopa.github.io/aks-microservice-chart-blueprint
+  version: 8.0.2
+- name: cron-chart
+  repository: https://pagopa.github.io/aks-cron-chart-blueprint
+  version: 3.0.0
+digest: sha256:e6851bdbf9a82697fdd05ca2fd4d950d081f6d6fbb1ccd7949b3c4eb1498ed75
+generated: "2026-11-02T16:37:46.588797+01:00"
