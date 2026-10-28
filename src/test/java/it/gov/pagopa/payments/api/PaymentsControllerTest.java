@@ -14,11 +14,10 @@ import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
-
+import it.gov.pagopa.payments.service.PaymentsService;
+import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import it.gov.pagopa.payments.service.PaymentsService;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +40,7 @@ class PaymentsControllerTest {
   @InjectMocks private PaymentsController paymentsController;
 
   @Mock private PaymentsService paymentsService;
+  @Mock private ReceiptPayloadReader payloadReader;
 
   @ClassRule @Container
   public static GenericContainer<?> azurite =
@@ -64,11 +64,15 @@ class PaymentsControllerTest {
     // precondition
     ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
     receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
+    when(paymentsService.getReceiptByOrganizationFCAndIUV(
+            anyString(), anyString(), any(ArrayList.class)))
         .thenReturn(receipt);
+    when(payloadReader.readDocument(receipt)).thenReturn("<xml/>");
 
-    ResponseEntity<String> res = paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
+    ResponseEntity<String> res =
+        paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
     assertEquals(HttpStatus.OK, res.getStatusCode());
+    assertEquals("<xml/>", res.getBody());
   }
 
   /** GET RECEIPT BY IUV with segregation codes */
@@ -77,21 +81,22 @@ class PaymentsControllerTest {
     // precondition
     ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
     receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(anyString(), anyString(), any(ArrayList.class)))
-            .thenReturn(receipt);
+    when(paymentsService.getReceiptByOrganizationFCAndIUV(
+            anyString(), anyString(), any(ArrayList.class)))
+        .thenReturn(receipt);
+    when(payloadReader.readDocument(receipt)).thenReturn("<xml/>");
 
-    ResponseEntity<String> res = paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
+    ResponseEntity<String> res =
+        paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
     assertEquals(HttpStatus.OK, res.getStatusCode());
+    assertEquals("<xml/>", res.getBody());
   }
 
   @Test
   void getReceiptByIUV_404() {
     doThrow(new AppException(AppError.RECEIPT_NOT_FOUND, "111", "222"))
         .when(paymentsService)
-        .getReceiptByOrganizationFCAndIUV(
-            eq("77777777777"),
-            eq("123456789012345"),
-            isNull());
+        .getReceiptByOrganizationFCAndIUV(eq("77777777777"), eq("123456789012345"), isNull());
 
     try {
       paymentsController.getReceiptByIUV("77777777777", "123456789012345", null);
@@ -170,7 +175,7 @@ class PaymentsControllerTest {
       assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
     }
   }
-  
+
   @Test
   void getOrganizationReceipts_200_allParameters() {
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
@@ -190,30 +195,23 @@ class PaymentsControllerTest {
 
     ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
         paymentsController.getOrganizationReceipts(
+            "77777777777", 1, 20, "debtor1", "05", "2026-01-01", "2026-03-01", "01,02", "deb");
+
+    assertEquals(HttpStatus.OK, res.getStatusCode());
+
+    verify(paymentsService, times(1))
+        .getOrganizationReceipts(
             "77777777777",
-            1,
-            20,
             "debtor1",
             "05",
             "2026-01-01",
             "2026-03-01",
-            "01,02",
+            1,
+            20,
+            new ArrayList<>(Arrays.asList("01", "02")),
             "deb");
-
-    assertEquals(HttpStatus.OK, res.getStatusCode());
-
-    verify(paymentsService, times(1)).getOrganizationReceipts(
-        "77777777777",
-        "debtor1",
-        "05",
-        "2026-01-01",
-        "2026-03-01",
-        1,
-        20,
-        new ArrayList<>(Arrays.asList("01", "02")),
-        "deb");
   }
-  
+
   @Test
   void getOrganizationReceipts_200_withoutSegregationCodes() {
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
@@ -233,30 +231,23 @@ class PaymentsControllerTest {
 
     ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
         paymentsController.getOrganizationReceipts(
-            "77777777777",
-            0,
-            20,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
+            "77777777777", 0, 20, null, null, null, null, null, null);
 
     assertEquals(HttpStatus.OK, res.getStatusCode());
 
-    verify(paymentsService, times(1)).getOrganizationReceipts(
-        eq("77777777777"),
-        isNull(),
-        isNull(),
-        isNull(),
-        isNull(),
-        eq(0),
-        eq(20),
-        isNull(),
-        isNull());
+    verify(paymentsService, times(1))
+        .getOrganizationReceipts(
+            eq("77777777777"),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            eq(0),
+            eq(20),
+            isNull(),
+            isNull());
   }
-  
+
   @Test
   void getOrganizationReceipts_200_withExplicitWideDateRange() {
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
@@ -276,30 +267,23 @@ class PaymentsControllerTest {
 
     ResponseEntity<PaymentsResult<ReceiptModelResponse>> res =
         paymentsController.getOrganizationReceipts(
-            "77777777777",
-            0,
-            20,
-            null,
-            null,
-            "2022-01-01",
-            "2022-10-01",
-            null,
-            null);
+            "77777777777", 0, 20, null, null, "2022-01-01", "2022-10-01", null, null);
 
     assertEquals(HttpStatus.OK, res.getStatusCode());
 
-    verify(paymentsService, times(1)).getOrganizationReceipts(
-        eq("77777777777"),
-        isNull(),
-        isNull(),
-        eq("2022-01-01"),
-        eq("2022-10-01"),
-        eq(0),
-        eq(20),
-        isNull(),
-        isNull());
+    verify(paymentsService, times(1))
+        .getOrganizationReceipts(
+            eq("77777777777"),
+            isNull(),
+            isNull(),
+            eq("2022-01-01"),
+            eq("2022-10-01"),
+            eq(0),
+            eq(20),
+            isNull(),
+            isNull());
   }
-  
+
   @Test
   void getOrganizationReceipts_200_withDateTimeParameters() {
     PaymentsResult<ReceiptModelResponse> receipts = new PaymentsResult<>();
@@ -331,15 +315,16 @@ class PaymentsControllerTest {
 
     assertEquals(HttpStatus.OK, res.getStatusCode());
 
-    verify(paymentsService, times(1)).getOrganizationReceipts(
-        eq("77777777777"),
-        isNull(),
-        isNull(),
-        eq("2026-03-30T08:20:00"),
-        eq("2026-03-31T18:45:10"),
-        eq(0),
-        eq(20),
-        isNull(),
-        isNull());
+    verify(paymentsService, times(1))
+        .getOrganizationReceipts(
+            eq("77777777777"),
+            isNull(),
+            isNull(),
+            eq("2026-03-30T08:20:00"),
+            eq("2026-03-31T18:45:10"),
+            eq(0),
+            eq(20),
+            isNull(),
+            isNull());
   }
 }
