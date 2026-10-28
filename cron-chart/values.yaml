@@ -1,0 +1,167 @@
+# -- Namespace in which deploy the cron
+namespace: ""
+
+# -- Helm chart name override
+nameOverride: ""
+
+# -- Helm chart fullname override
+fullnameOverride: ""
+
+#
+# CronJob
+#
+
+# -- Configure deployment
+# @default -- -
+cronjob:
+  # -- (bool) create the deployment manifest
+  create: true
+
+# -- (string) "Europe/Rome"
+timeZone: ""
+# -- schedule "0 0 * * *"
+schedule: ""
+# -- cronjob.concurrencyPolicy
+concurrencyPolicy: "Allow"
+# -- cronjob.successfulJobsHistoryLimit (number)
+successfulJobsHistoryLimit: 3
+# -- cronjob.failedJobsHistoryLimit (number)
+failedJobsHistoryLimit: 1
+# -- cronjob.parallelism (number)
+parallelism: 1
+# -- cronjob.terminationGracePeriodSeconds (number)
+terminationGracePeriodSeconds: 30
+
+# -- Configure values from config maps external to chart. E.g already present into cluster, see documentation
+# @default -- {}
+envConfigMapExternals: {}
+
+# jobTemplate.spec.container --
+image:
+  # -- Docker reposity for the container
+  repository: ""
+  # -- Container TAG
+  tag: "v0.0.0"
+  # -- Pull policy to use
+  pullPolicy: Always
+
+# -- args
+args: []
+
+## -- command
+command: []
+
+# -- Sidecars, each object has exactly the same schema as a Pod, except it does not have an apiVersion or kind
+sidecars: []
+
+# -- POD resources section
+# @default -- -
+resources:
+  # -- request is mandatory
+  requests:
+    memory: "96Mi"
+    cpu: "40m"
+  # -- limits is mandatory
+  limits:
+    memory: "128Mi"
+    cpu: "150m"
+
+# -- Environment config to use for the canary container
+envConfig: {}
+
+# -- Configure secret provider with secrets to mount as environment variables
+envSecrets: {}
+
+# -- Configure keyvault to use inside secret prover to load secret directly
+keyvault:
+  # -- Key vault name
+  name: ""
+  # -- Tenant ID
+  tenantId: ""
+
+# -- Configure secret provider with secrets to mount as environment variables
+secretProviderClass:
+  # -- create
+  create: true
+
+# -- Environment config from k8s metadata
+envFieldRef: {}
+
+# -- Configure files to mount as config maps
+configMapFromFile: {}
+# -- configMapFileMode
+configMapFileMode : 420
+
+# -- podAnnotations
+podAnnotations: {}
+
+# -- podSecurityContext
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- securityContext
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - all
+
+# -- K8s node selectors
+nodeSelector: {}
+
+# -- Pod taints toleration
+tolerations: []
+
+# -- Pod labels affinity
+affinity: {}
+
+# -- Configure mounted volumes with secrets needed to mount them
+# @default -- {}
+providedVolumeMount:
+  create: false
+  envSecrets: {}
+  folders: []
+# -- Configure optional tmp volume to mount
+tmpVolumeMount:
+  create: false
+  name: tmp
+  mountPath: /tmp
+
+# -- externalConfigMap
+externalConfigMap:
+  create: false
+  configMaps: []
+
+# -- pod
+pod:
+  # -- (list) Which ports use (! this port is used even inside the deployment)
+  ports: []
+
+# -- Service account configuration
+# @default -- -
+serviceAccount:
+  # -- (bool) Create the service account object. If true use this object, otherwise use only the name reference
+  create: false
+  # -- Service account name, this service account already exists
+  name: ""
+  annotations: {}
+  # -- (bool)
+  automount: false
+
+# -- podMonitor
+podMonitor:
+  # -- (bool) Create or not the ingress manifest
+  create: false
+  # -- (list) Which fileshare use (! this name is used even inside the deployment)
+  podMetricsEndpoints: []
+
+# -- (bool)
+suspend: false
+
+azure:
+  # -- (bool) Enable workload identity
+  workloadIdentityEnabled: true
+  # -- Azure Workload Identity Client ID (e.g. qwerty123-a1aa-1234-xyza-qwerty123)
+  workloadIdentityClientId: ""
