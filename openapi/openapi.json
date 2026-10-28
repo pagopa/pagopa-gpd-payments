@@ -1,5 +1,6 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
   "openapi": "3.0.1",
   "info": {
     "title": "PagoPA API Payments",
@@ -7,12 +8,17 @@
     "termsOfService": "https://www.pagopa.gov.it/",
     "version": "0.13.11"
 =======
+=======
+>>>>>>> 65e35bc (feat: google-java-format)
   "openapi" : "3.0.1",
   "info" : {
     "title" : "PagoPA API Payments",
     "description" : "Payments",
     "termsOfService" : "https://www.pagopa.gov.it/",
     "version" : "0.13.9-1"
+<<<<<<< HEAD
+>>>>>>> 65e35bc (feat: google-java-format)
+=======
 >>>>>>> 65e35bc (feat: google-java-format)
   },
   "servers" : [ {
