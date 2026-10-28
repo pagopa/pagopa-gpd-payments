@@ -9,6 +9,7 @@ import it.gov.pagopa.payments.client.BlobStorageClient;
 import it.gov.pagopa.payments.exception.DeadLetterAccessException;
 import it.gov.pagopa.payments.exception.DeadLetterNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -20,12 +21,16 @@ import java.util.Comparator;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class BlobStorageClientImpl implements BlobStorageClient {
 
 	private static final String FILE_EXTENSION = ".json";
 	private final BlobContainerClient blobContainerClient;
 	private static final int HTTP_NOT_FOUND = 404;
+
+	public BlobStorageClientImpl(
+			@Qualifier("deadLetterBlobContainerClient") BlobContainerClient blobContainerClient) {
+		this.blobContainerClient = blobContainerClient;
+	}
 
 	@Override
 	public void saveStringJsonToBlobStorage(String json, String fileName) {
