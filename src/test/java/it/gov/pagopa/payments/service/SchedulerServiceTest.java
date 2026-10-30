@@ -76,7 +76,12 @@ class SchedulerServiceTest {
   @Mock private RestTemplate restTemplate;
 
   @Mock private DeadLetterService deadLetterService;
-  
+
+  @Mock private ReceiptBlobStore receiptBlobStore;
+
+  @Value(value = "${receipts.blob.write-enabled:false}")
+  private Boolean blobWriteEnabled;
+
   @Value(value = "${azure.queue.send.invisibilityTime}")
   private Long queueSendInvisibilityTime;
   private final ObjectFactory factoryUtil = new ObjectFactory();
@@ -122,7 +127,9 @@ class SchedulerServiceTest {
                             queueClientConfiguration(),
                             customizedModelMapper,
                             verticalServicesConfig,
-                            restTemplate));
+                            restTemplate,
+                            receiptBlobStore,
+                            blobWriteEnabled));
 
     var schedService =
     		spy(new SchedulerService(
@@ -255,7 +262,9 @@ class SchedulerServiceTest {
                             queueClientConfiguration(),
                             customizedModelMapper,
                             verticalServicesConfig,
-                            restTemplate));
+                            restTemplate,
+                            receiptBlobStore,
+                            blobWriteEnabled));
 
     var schedService =
     		spy(new SchedulerService(
@@ -387,7 +396,9 @@ class SchedulerServiceTest {
                             queueClientConfiguration(),
                             customizedModelMapper,
                             verticalServicesConfig,
-                            restTemplate));
+                            restTemplate,
+                            receiptBlobStore,
+                            blobWriteEnabled));
 
     var schedService =
     		spy(new SchedulerService(
@@ -547,7 +558,9 @@ class SchedulerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     var schedService =
     		spy(new SchedulerService(

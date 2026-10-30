@@ -115,12 +115,17 @@ class PartnerServiceTest {
 
   @Mock private RestTemplate restTemplate;
 
+  @Mock private ReceiptBlobStore receiptBlobStore;
+
   private String genericService = "/xsd/general-service.xsd";
   ResourceLoader resourceLoader = new DefaultResourceLoader();
   Resource resource = resourceLoader.getResource(genericService);
 
   @Value(value = "${azure.queue.send.invisibilityTime}")
   private Long queueSendInvisibilityTime;
+
+  @Value(value = "${receipts.blob.write-enabled:false}")
+  private Boolean blobWriteEnabled;
 
   private final ObjectFactory factoryUtil = new ObjectFactory();
 
@@ -156,7 +161,9 @@ class PartnerServiceTest {
             null,
             customizedModelMapper,
             verticalServicesConfig,
-            restTemplate);
+            restTemplate,
+            receiptBlobStore,
+            blobWriteEnabled);
   }
 
   @Test
@@ -482,7 +489,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("34");
@@ -532,7 +541,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
@@ -582,7 +593,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222222");
@@ -638,7 +651,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock(iuv);
@@ -690,7 +705,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222224");
@@ -740,7 +757,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
@@ -789,7 +808,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222226");
@@ -846,7 +867,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
@@ -910,7 +933,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     var requestBody = PaDemandNoticePaymentReqMock.getMock();
@@ -952,7 +977,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -1020,7 +1047,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -1068,7 +1097,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockTransferTypePAGOPA();
@@ -1159,7 +1190,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaGetPaymentV2Request requestBody = PaGetPaymentReqMock.getMockV2();
@@ -1275,7 +1308,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222231");
@@ -1325,7 +1360,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
@@ -1375,7 +1412,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222232");
@@ -1431,7 +1470,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2(iuv);
@@ -1483,7 +1524,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222234");
@@ -1533,7 +1576,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222235");
 
@@ -1582,7 +1627,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222236");
@@ -1632,7 +1679,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTV2Request requestBody = PaSendRTReqMock.getMockV2("11111111112222239");
@@ -1685,7 +1734,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
 
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222240");
@@ -1738,7 +1789,9 @@ class PartnerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore,
+                blobWriteEnabled));
     // Test preconditions
     PaSendRTReq requestBody = PaSendRTReqMock.getMock("11111111112222225");
 
