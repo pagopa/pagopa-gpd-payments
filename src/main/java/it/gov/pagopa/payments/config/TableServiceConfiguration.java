@@ -27,6 +27,8 @@ public class TableServiceConfiguration {
         return new TableClientBuilder()
                 .connectionString(CONNECTION_STRING)
                 .tableName(TABLE_NAME)
+                .addPolicy(AzureLoggingPolicy.correlationPolicy())
+                .addPolicy(new AzureLoggingPolicy(AzureLoggingPolicy.TABLES))
                 .buildClient();
     }
 }

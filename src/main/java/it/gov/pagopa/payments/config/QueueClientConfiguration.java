@@ -28,6 +28,8 @@ public class QueueClientConfiguration {
         return new QueueClientBuilder()
                 .queueName(QUEUE_NAME)
                 .connectionString(CONNECTION_STRING)
+                .addPolicy(AzureLoggingPolicy.correlationPolicy())
+                .addPolicy(new AzureLoggingPolicy(AzureLoggingPolicy.QUEUE))
                 .buildClient();
     }
 }

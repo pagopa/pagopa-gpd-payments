@@ -12,6 +12,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.servers.ServerVariable;
 import io.swagger.v3.oas.models.servers.ServerVariables;
+import it.gov.pagopa.payments.utils.CommonUtil;
 import java.util.List;
 import java.util.Map;
 import org.springdoc.core.GroupedOpenApi;
@@ -24,7 +25,7 @@ import org.springframework.lang.NonNull;
 @Configuration
 public class SwaggerConfig {
 
-  public static final String HEADER_REQUEST_ID = "X-Request-Id";
+  public static final String HEADER_REQUEST_ID = LogContext.HEADER_REQUEST_ID;
 
   @Bean
   public OpenAPI customOpenAPI(
@@ -38,7 +39,7 @@ public class SwaggerConfig {
                     new SecurityScheme()
                         .type(SecurityScheme.Type.APIKEY)
                         .description("The API key to access this function app.")
-                        .name("Ocp-Apim-Subscription-Key")
+                        .name(CommonUtil.SUBSCRIPTION_KEY_HEADER)
                         .in(SecurityScheme.In.HEADER)))
         .info(
             new Info()

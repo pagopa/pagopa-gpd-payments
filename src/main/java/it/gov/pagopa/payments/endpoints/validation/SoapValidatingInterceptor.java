@@ -1,5 +1,8 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.LogMessages;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
@@ -12,6 +15,7 @@ import java.util.stream.Collectors;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.event.Level;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
 import org.springframework.ws.soap.server.endpoint.interceptor.PayloadValidatingInterceptor;
@@ -22,7 +26,9 @@ import org.xml.sax.SAXParseException;
 public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
 
   private static final String SOAP_PREFIX = "soapenv";
+  private static final String ORIGINAL_SOAP_PREFIX = "SOAP-ENV";
   private static final String EXCLUDED_PRIMITIVES = "paDemandPaymentNoticeResponse";
+  private static final String VALIDATION_ERROR_COUNT = "validation_error_count";
   private final List<String> amountNodeElements =
       List.of("paymentAmount", "amount", "transferAmount");
 
@@ -31,21 +37,23 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       MessageContext messageContext, SAXParseException[] errors) {
 
     if (errors.length > 0) {
-      String validationErrorsString =
-          Arrays.stream(errors)
-              .map(
-                  error ->
-                      "["
-                          + error.getLineNumber()
-                          + ","
-                          + error.getColumnNumber()
-                          + "]: "
-                          + error.getMessage())
-              .collect(Collectors.joining(" -- "));
-      log.error(validationErrorsString);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SINTASSI_XSD);
     }
     return true;
+  }
+
+  @Override
+  protected boolean handleResponseValidationErrors(
+      MessageContext messageContext, SAXParseException[] errors) {
+    if (errors.length > 0) {
+      ObjectNode fields = LogContext.event().put(LogContext.STATUS, LogContext.STATUS_KO);
+      fields.put(LogContext.ERROR_MESSAGE, Arrays.stream(errors)
+          .map(SAXParseException::getMessage)
+          .collect(Collectors.joining("\n")));
+      fields.putObject(LogContext.CTX_DETAILS).put(VALIDATION_ERROR_COUNT, errors.length);
+      LogContext.log(log, Level.ERROR, LogMessages.SOAP_RESPONSE_VALIDATION_FAILED, fields);
+    }
+    return false;
   }
 
   @Override
@@ -61,7 +69,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
 
     try {
       SOAPMessage soapMessage = soapResponse.getSaajMessage();
-      soapMessage.getSOAPPart().getEnvelope().removeNamespaceDeclaration("SOAP-ENV");
+      soapMessage.getSOAPPart().getEnvelope().removeNamespaceDeclaration(ORIGINAL_SOAP_PREFIX);
       soapMessage.getSOAPPart().getEnvelope().setPrefix(SOAP_PREFIX);
       soapMessage.getSOAPHeader().setPrefix(SOAP_PREFIX);
       soapMessage.getSOAPBody().setPrefix(SOAP_PREFIX);
@@ -71,7 +79,7 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
       soapMessage.saveChanges();
     } catch (SOAPException e) {
 
-      log.error("Processing resulted in exception: " + e.getMessage());
+      log.warn("SOAP response normalization failed", e);
     }
   }
 

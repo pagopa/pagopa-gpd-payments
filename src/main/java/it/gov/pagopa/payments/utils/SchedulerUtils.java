@@ -1,36 +1,21 @@
 package it.gov.pagopa.payments.utils;
 
-import static it.gov.pagopa.payments.config.LoggingAspect.*;
-
-import java.util.Calendar;
-import java.util.UUID;
+import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.LogMessages;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
+import org.slf4j.event.Level;
 
 @Slf4j
-public class SchedulerUtils {
+public final class SchedulerUtils {
+  private SchedulerUtils() {}
 
-  public static void updateMDCForStartExecution(String method, String args) {
-    MDC.put(METHOD, method);
-    MDC.put(START_TIME, String.valueOf(Calendar.getInstance().getTimeInMillis()));
-    MDC.put(REQUEST_ID, UUID.randomUUID().toString());
-    MDC.put(OPERATION_ID, UUID.randomUUID().toString());
-    MDC.put(ARGS, args);
-  }
-
-  public static void updateMDCForEndExecution() {
-    MDC.put(STATUS, "OK");
-    MDC.put(CODE, "201");
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    log.info("Scheduled job finished successfully");
-  }
-
-  public static void updateMDCError(Exception e, String method) {
-    MDC.put(STATUS, "KO");
-    MDC.put(CODE, "500");
-    MDC.put(RESPONSE_TIME, getExecutionTime());
-    MDC.put(FAULT_CODE, method);
-    MDC.put(FAULT_DETAIL, e.getMessage());
-    log.info("An error occurring during a scheduled job");
+  public static void logCompletion(long started, Exception failure) {
+    if (failure != null) {
+      LogContext.diagnostic(log, Level.ERROR, LogMessages.BACKGROUND_OPERATION_FAILED, failure);
+    }
+    LogContext.log(log, Level.INFO, LogMessages.BACKGROUND_OPERATION_COMPLETED, LogContext.event()
+        .put(LogContext.STATUS, failure == null ? LogContext.STATUS_OK : LogContext.STATUS_KO)
+        .put(LogContext.RESPONSE_TIME, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)));
   }
 }

@@ -4,22 +4,24 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.9-1"
+    tag: "0.13.10-4-logging-oer-aspect-based"
     pullPolicy: Always
   livenessProbe:
     httpGet:
       path: /actuator/health/liveness
       port: 8080
     initialDelaySeconds: 60
-    failureThreshold: 6
+    failureThreshold: 10
     periodSeconds: 10
+    timeoutSeconds: 5
   readinessProbe:
     httpGet:
       path: /actuator/health/readiness
       port: 8080
     initialDelaySeconds: 60
-    failureThreshold: 6
+    failureThreshold: 10
     periodSeconds: 10
+    timeoutSeconds: 5
   deployment:
     create: true
     replicas: 1 # (default) same as HPA minReplica

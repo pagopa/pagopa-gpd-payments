@@ -17,20 +17,21 @@
             <appender-ref ref="stdout"/>
         </root>
     </springProfile>
-
     <springProfile name="default">
+        <springProperty name="APPLICATION_NAME" source="info.application.name" defaultValue="pagopa-gpd-payments"/>
+        <springProperty name="APPLICATION_ENVIRONMENT" source="info.properties.environment"/>
+        <springProperty name="ECS_SERVICE_NAME" source="SERVICE_NAME" defaultValue="${APPLICATION_NAME}"/>
         <springProperty name="ECS_SERVICE_VERSION" source="info.application.version"/>
+        <springProperty name="ECS_SERVICE_ENVIRONMENT" source="ENV" defaultValue="${APPLICATION_ENVIRONMENT}"/>
         <appender name="ECS_JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="co.elastic.logging.logback.EcsEncoder">
-                <serviceName>${SERVICE_NAME}</serviceName>
+            <encoder class="it.gov.pagopa.payments.config.JsonLogEncoder">
+                <serviceName>${ECS_SERVICE_NAME}</serviceName>
                 <serviceVersion>${ECS_SERVICE_VERSION}</serviceVersion>
-                <serviceEnvironment>${ENV}</serviceEnvironment>
+                <serviceEnvironment>${ECS_SERVICE_ENVIRONMENT}</serviceEnvironment>
             </encoder>
         </appender>
-
         <root level="INFO">
             <appender-ref ref="ECS_JSON_CONSOLE"/>
         </root>
     </springProfile>
-
 </configuration>

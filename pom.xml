@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.9-1</version>
+    <version>0.13.10-4-logging-oer-aspect-based</version>
     <name>Payments</name>
     <description>Payments</description>
 
@@ -327,7 +327,8 @@
                 <version>0.8.7</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/config/*</exclude>
+                        <!-- Logging components live in config but must remain measurable. -->
+                        <exclude>**/config/*Config*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

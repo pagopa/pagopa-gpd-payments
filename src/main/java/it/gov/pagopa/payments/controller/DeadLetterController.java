@@ -1,5 +1,6 @@
 package it.gov.pagopa.payments.controller;
 
+import it.gov.pagopa.payments.config.LogField;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -36,6 +37,7 @@ public class DeadLetterController {
 
 	static final int DEFAULT_MAX_MESSAGES = 50;
 	static final int MAX_MESSAGES = 100;
+    private static final String ARG_MAX_MESSAGES = "maxMessages";
 	private static final Pattern DEAD_LETTER_FILE_PATTERN =
 		    Pattern.compile(
 		        "^\\d{4}/(?:0[1-9]|1[0-2])/(?:0[1-9]|[12]\\d|3[01])/"
@@ -54,8 +56,9 @@ public class DeadLetterController {
 	public ResponseEntity<List<DeadLetterMessageSummary>> getDeadLetters(
 			@Parameter(description = "Maximum number of dead-letter messages to return.", schema = @Schema(type = "integer", format = "int32", defaultValue = ""
 					+ DEFAULT_MAX_MESSAGES, minimum = "1", maximum = ""
-							+ MAX_MESSAGES)) @RequestParam(name = "maxMessages", defaultValue = ""
-									+ DEFAULT_MAX_MESSAGES) int maxMessages) {
+							+ MAX_MESSAGES)) @RequestParam(name = ARG_MAX_MESSAGES, defaultValue = ""
+									+ DEFAULT_MAX_MESSAGES)
+            @LogField(value = ARG_MAX_MESSAGES, argument = true) int maxMessages) {
 
 		validateMaxMessages(maxMessages);
 
