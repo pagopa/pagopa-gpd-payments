@@ -9,8 +9,6 @@ import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpMethod;
 import com.azure.core.http.HttpPipeline;
 import com.azure.core.http.HttpPipelineBuilder;
-import com.azure.core.http.HttpPipelineCallContext;
-import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.http.policy.FixedDelay;
@@ -78,10 +76,12 @@ class AzureLoggingPolicyTest {
     HttpClient client = mock(HttpClient.class);
     RuntimeException failure = new IllegalStateException("private-exception-message");
     when(client.sendSync(any(HttpRequest.class), any(Context.class))).thenThrow(failure);
+    HttpPipeline pipeline = pipeline(client);
+    HttpRequest request = request();
 
     try (LogCapture capture = new LogCapture(AzureLoggingPolicy.class)) {
       assertSame(failure, assertThrows(IllegalStateException.class,
-          () -> pipeline(client).sendSync(request(), Context.NONE)));
+          () -> pipeline.sendSync(request, Context.NONE)));
 
       assertFailure(capture, failure);
       assertEquals(callerMdc, MDC.getCopyOfContextMap());
@@ -98,12 +98,8 @@ class AzureLoggingPolicyTest {
     Scheduler worker = Schedulers.newSingle("azure-policy-test");
     Map<String, String> workerMdc = Map.of(
         "correlation_id", "worker-correlation", "method", "worker-method", "worker", "kept");
-    HttpPipelinePolicy switchThread = new HttpPipelinePolicy() {
-      @Override
-      public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-        return Mono.defer(next::process).subscribeOn(worker);
-      }
-    };
+    HttpPipelinePolicy switchThread =
+        (context, next) -> Mono.defer(next::process).subscribeOn(worker);
     HttpPipeline pipeline = new HttpPipelineBuilder().httpClient(client)
         .policies(AzureLoggingPolicy.correlationPolicy(), switchThread,
             new RetryPolicy(new FixedDelay(1, Duration.ZERO)),
@@ -144,10 +140,11 @@ class AzureLoggingPolicyTest {
     HttpClient client = mock(HttpClient.class);
     RuntimeException failure = new IllegalArgumentException("private-exception-message");
     when(client.send(any(HttpRequest.class), any(Context.class))).thenReturn(Mono.error(failure));
+    Mono<HttpResponse> response = pipeline(client).send(request());
 
     try (LogCapture capture = new LogCapture(AzureLoggingPolicy.class)) {
       assertSame(failure, assertThrows(IllegalArgumentException.class,
-          () -> pipeline(client).send(request()).block(TIMEOUT)));
+          () -> response.block(TIMEOUT)));
 
       assertFailure(capture, failure);
       assertEquals(callerMdc, MDC.getCopyOfContextMap());

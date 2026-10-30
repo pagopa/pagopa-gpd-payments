@@ -46,7 +46,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 
 class RequestLoggingTest {
-  private final RequestFilter filter = new RequestFilter();
+  private final RequestFilter filter = new RequestFilter("/actuator");
   private final LoggingAspect aspect = new LoggingAspect();
   private final MockHttpServletRequest request = new MockHttpServletRequest();
   private final MockHttpServletResponse response = new MockHttpServletResponse();
@@ -187,6 +187,30 @@ class RequestLoggingTest {
       assertEquals(level, event.path(LOG_LEVEL).asText());
       assertEquals(method == null ? "" : method, event.path(METHOD).asText());
       assertEquals(status >= 400 ? STATUS_KO : STATUS_OK, event.path(STATUS).asText());
+    }
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "/management,/management/health/liveness,liveness",
+      "/management,/management/health/readiness,readiness",
+      "/,/health/liveness,liveness",
+      "/,/actuator/health/liveness,"
+  })
+  void probePathsFollowConfiguredManagementBasePath(
+      String managementBasePath, String path, String method) throws Exception {
+    RequestFilter configuredFilter = new RequestFilter(managementBasePath);
+    request.setContextPath("/payments");
+    request.setRequestURI("/payments" + path);
+    try (LogCapture logs = new LogCapture(RequestFilter.class)) {
+      configuredFilter.doFilter(request, response, (req, res) -> {});
+      configuredFilter.requestLoggingListener().getListener().requestDestroyed(
+          new ServletRequestEvent(new MockServletContext(), request));
+
+      JsonNode event = logs.events().get(0);
+      assertEquals(method == null ? "" : method, event.path(METHOD).asText());
+      assertEquals(method == null ? "INFO" : "DEBUG", event.path(LOG_LEVEL).asText());
+      assertEquals(STATUS_OK, event.path(STATUS).asText());
     }
   }
 
@@ -373,6 +397,7 @@ class RequestLoggingTest {
     public void paSendRTV2(JAXBElement<PaSendRTV2Request> request) {}
 
     public JAXBElement<PaGetPaymentRes> paGetPayment(PaGetPaymentReq request) {
+      assertNotNull(request.getQrCode(), "The test endpoint expects a payment notice");
       PaGetPaymentRes result = new PaGetPaymentRes();
       result.setOutcome(StOutcome.KO);
       CtFaultBean fault = new CtFaultBean();

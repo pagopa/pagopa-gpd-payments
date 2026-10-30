@@ -27,6 +27,8 @@ public class CacheConsumerConfig {
     }
 
     @Bean(CACHE_EVENT_CONSUMER)
+    // This name is the existing Spring Cloud Function and Stream binding contract.
+    @SuppressWarnings("java:S6830")
     @NonNull
     public Consumer<Message<CacheUpdateEvent>> consumerCacheEvent() {
         return this::handleCacheEvent;

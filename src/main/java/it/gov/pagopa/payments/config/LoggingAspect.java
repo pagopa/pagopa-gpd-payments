@@ -121,35 +121,42 @@ public class LoggingAspect {
       return;
     }
     if (response instanceof ResponseEntity<?> entity && entity.getStatusCodeValue() >= 400) {
-      fields.put(STATUS, STATUS_KO);
-      fields.remove(FAULT_CODE);
-      fields.remove(FAULT_DETAIL);
-      if (entity.getBody() instanceof ProblemJson problem) {
-        put(fields, FAULT_CODE, problem.getTitle());
-        put(fields, FAULT_DETAIL, problem.getDetail());
-      }
-      if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes request) {
-        request.getRequest().setAttribute(RequestFilter.FAULT_STATUS, entity.getStatusCodeValue());
-      }
+      recordRestFault(entity, fields);
     } else if (response instanceof JAXBElement<?> element
         && element.getValue() instanceof CtResponse soap) {
-      if (soap.getOutcome() != null) {
-        fields.put(CTX_SOAP_OUTCOME, soap.getOutcome().name());
-      }
-      if (soap.getOutcome() == StOutcome.KO || soap.getFault() != null) {
-        fields.put(STATUS, STATUS_KO);
-      }
-      if (soap.getFault() != null) {
-        put(fields, FAULT_CODE, soap.getFault().getFaultCode());
-        put(fields, FAULT_DETAIL, soap.getFault().getDescription() == null
-            ? soap.getFault().getFaultString() : soap.getFault().getDescription());
-      }
-      if (element.getValue() instanceof PaGetPaymentRes payment && payment.getData() != null) {
-        put(fields, CTX_IUV, payment.getData().getCreditorReferenceId());
-      } else if (element.getValue() instanceof PaGetPaymentV2Response payment
-          && payment.getData() != null) {
-        put(fields, CTX_IUV, payment.getData().getCreditorReferenceId());
-      }
+      recordSoapResponse(soap, fields);
+    }
+  }
+
+  private static void recordRestFault(ResponseEntity<?> entity, ObjectNode fields) {
+    fields.put(STATUS, STATUS_KO);
+    fields.remove(FAULT_CODE);
+    fields.remove(FAULT_DETAIL);
+    if (entity.getBody() instanceof ProblemJson problem) {
+      put(fields, FAULT_CODE, problem.getTitle());
+      put(fields, FAULT_DETAIL, problem.getDetail());
+    }
+    if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes request) {
+      request.getRequest().setAttribute(RequestFilter.FAULT_STATUS, entity.getStatusCodeValue());
+    }
+  }
+
+  private static void recordSoapResponse(CtResponse soap, ObjectNode fields) {
+    if (soap.getOutcome() != null) {
+      fields.put(CTX_SOAP_OUTCOME, soap.getOutcome().name());
+    }
+    if (soap.getOutcome() == StOutcome.KO || soap.getFault() != null) {
+      fields.put(STATUS, STATUS_KO);
+    }
+    if (soap.getFault() != null) {
+      put(fields, FAULT_CODE, soap.getFault().getFaultCode());
+      put(fields, FAULT_DETAIL, soap.getFault().getDescription() == null
+          ? soap.getFault().getFaultString() : soap.getFault().getDescription());
+    }
+    if (soap instanceof PaGetPaymentRes payment && payment.getData() != null) {
+      put(fields, CTX_IUV, payment.getData().getCreditorReferenceId());
+    } else if (soap instanceof PaGetPaymentV2Response payment && payment.getData() != null) {
+      put(fields, CTX_IUV, payment.getData().getCreditorReferenceId());
     }
   }
 
@@ -193,23 +200,31 @@ public class LoggingAspect {
       put(args, ID_SERVIZIO, soap.getIdServizio());
     } else if (request instanceof PaSendRTReq soap) {
       common(fields, args, soap.getIdPA(), soap.getIdBrokerPA(), soap.getIdStation());
-      if (soap.getReceipt() != null) {
-        receiptArgs(args, soap.getReceipt().getReceiptId(), soap.getReceipt().getIdPSP(),
-            soap.getReceipt().getCreditorReferenceId(), soap.getReceipt().getPaymentDateTime(),
-            soap.getReceipt().isStandIn());
-        receipt(fields, soap.getReceipt().getNoticeNumber(), soap.getReceipt().getCreditorReferenceId(),
-            soap.getIdPA() == null ? soap.getReceipt().getFiscalCode() : soap.getIdPA());
-      }
+      receiptIdentifiers(soap, fields, args);
     } else if (request instanceof PaSendRTV2Request soap) {
       common(fields, args, soap.getIdPA(), soap.getIdBrokerPA(), soap.getIdStation());
-      if (soap.getReceipt() != null) {
-        receiptArgs(args, soap.getReceipt().getReceiptId(), soap.getReceipt().getIdPSP(),
-            soap.getReceipt().getCreditorReferenceId(), soap.getReceipt().getPaymentDateTime(),
-            soap.getReceipt().isStandIn());
-        put(args, ID_BUNDLE, soap.getReceipt().getIdBundle());
-        receipt(fields, soap.getReceipt().getNoticeNumber(), soap.getReceipt().getCreditorReferenceId(),
-            soap.getIdPA() == null ? soap.getReceipt().getFiscalCode() : soap.getIdPA());
-      }
+      receiptIdentifiers(soap, fields, args);
+    }
+  }
+
+  private static void receiptIdentifiers(PaSendRTReq soap, ObjectNode fields, ObjectNode args) {
+    if (soap.getReceipt() != null) {
+      receiptArgs(args, soap.getReceipt().getReceiptId(), soap.getReceipt().getIdPSP(),
+          soap.getReceipt().getCreditorReferenceId(), soap.getReceipt().getPaymentDateTime(),
+          soap.getReceipt().isStandIn());
+      receipt(fields, soap.getReceipt().getNoticeNumber(), soap.getReceipt().getCreditorReferenceId(),
+          soap.getIdPA() == null ? soap.getReceipt().getFiscalCode() : soap.getIdPA());
+    }
+  }
+
+  private static void receiptIdentifiers(PaSendRTV2Request soap, ObjectNode fields, ObjectNode args) {
+    if (soap.getReceipt() != null) {
+      receiptArgs(args, soap.getReceipt().getReceiptId(), soap.getReceipt().getIdPSP(),
+          soap.getReceipt().getCreditorReferenceId(), soap.getReceipt().getPaymentDateTime(),
+          soap.getReceipt().isStandIn());
+      put(args, ID_BUNDLE, soap.getReceipt().getIdBundle());
+      receipt(fields, soap.getReceipt().getNoticeNumber(), soap.getReceipt().getCreditorReferenceId(),
+          soap.getIdPA() == null ? soap.getReceipt().getFiscalCode() : soap.getIdPA());
     }
   }
 

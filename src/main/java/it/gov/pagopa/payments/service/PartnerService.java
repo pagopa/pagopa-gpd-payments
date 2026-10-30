@@ -36,7 +36,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -63,8 +62,6 @@ import org.springframework.web.client.RestTemplate;
 @Service
 @Slf4j
 public class PartnerService {
-
-  private static final String DEBT_POSITION_STATUS_ERROR = "[Check DP] Debt position status error: ";
 
   public static final String TEXT_XML_NODE = "#text";
 
@@ -262,8 +259,7 @@ public class PartnerService {
                   restTemplate.exchange(
                       urlTarget, HttpMethod.POST, httpEntity, JAXBElement.class);
 
-      PaDemandPaymentNoticeResponse responseBody = response.getBody().getValue();
-      return responseBody;
+      return response.getBody().getValue();
     } catch (FeignException.NotFound e) {
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (Exception e) {
@@ -278,7 +274,6 @@ public class PartnerService {
    * @param paymentOption {@link PaymentsModelResponse} response from GPD
    */
   private void checkDebtPositionStatus(PaymentsModelResponse paymentOption) {
-    String iuvLog = " [iuv=" + paymentOption.getIuv() + ", nav=" + paymentOption.getNav() + "]";
     if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.EXPIRED)) {
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCADUTO);
     } else if (paymentOption.getDebtPositionStatus().equals(DebtPositionStatus.INVALID)) {
@@ -355,7 +350,7 @@ public class PartnerService {
                     paymentsTransferModelResponse ->
                         getTransferResponse(
                             paymentsTransferModelResponse, request.getTransferType()))
-                .collect(Collectors.toList()));
+                .toList());
 
     responseData.setTransferList(transferList);
     response.setData(responseData);

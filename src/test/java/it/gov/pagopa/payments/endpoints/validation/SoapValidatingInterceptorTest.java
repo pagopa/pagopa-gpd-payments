@@ -2,17 +2,56 @@ package it.gov.pagopa.payments.endpoints.validation;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import it.gov.pagopa.payments.config.LogCapture;
 import it.gov.pagopa.payments.config.LogContext;
 import java.util.Map;
+import javax.xml.soap.SOAPException;
+import javax.xml.soap.SOAPMessage;
+import javax.xml.soap.SOAPPart;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.ws.context.MessageContext;
+import org.springframework.ws.soap.saaj.SaajSoapMessage;
 import org.xml.sax.SAXParseException;
 
 class SoapValidatingInterceptorTest {
+  @Test
+  void emptyResponseValidationErrorsStopChainWithoutLoggingAnError() {
+    try (LogCapture logs = new LogCapture(SoapValidatingInterceptor.class)) {
+      assertFalse(new SoapValidatingInterceptor().handleResponseValidationErrors(
+          mock(MessageContext.class), new SAXParseException[0]));
+      assertTrue(logs.events().isEmpty());
+    }
+  }
+
+  @Test
+  void normalizationFailureIsLoggedWithoutPreventingResponseHandling() throws Exception {
+    SOAPException failure = new SOAPException("Envelope unavailable");
+    SOAPPart part = mock(SOAPPart.class);
+    SOAPMessage message = mock(SOAPMessage.class);
+    SaajSoapMessage response = mock(SaajSoapMessage.class);
+    MessageContext context = mock(MessageContext.class);
+    when(message.getSOAPPart()).thenReturn(part);
+    when(part.getEnvelope()).thenThrow(failure);
+    when(response.getSaajMessage()).thenReturn(message);
+    when(context.getResponse()).thenReturn(response);
+    SoapValidatingInterceptor interceptor = new SoapValidatingInterceptor();
+    interceptor.setValidateResponse(false);
+
+    try (LogCapture logs = new LogCapture(SoapValidatingInterceptor.class)) {
+      assertTrue(interceptor.handleResponse(context, new Object()));
+      assertEquals(1, logs.events().size());
+      JsonNode event = logs.events().get(0);
+      assertEquals("WARN", event.path(LogContext.LOG_LEVEL).asText());
+      assertEquals("SOAP response normalization failed", event.path(LogContext.MESSAGE).asText());
+      assertEquals(SOAPException.class.getName(), event.path(LogContext.ERROR_TYPE).asText());
+      assertEquals("Envelope unavailable", event.path(LogContext.ERROR_MESSAGE).asText());
+    }
+  }
+
   @Test
   void responseValidationEmitsOneErrorWithAllOriginalMessagesAndStopsChain() {
     Map<String, String> previous = MDC.getCopyOfContextMap();

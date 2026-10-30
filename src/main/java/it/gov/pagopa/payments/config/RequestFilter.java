@@ -37,6 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
@@ -55,11 +56,18 @@ public class RequestFilter implements Filter {
   private static final String HEALTH_CHECK = "healthCheck";
   private static final String LIVENESS = "liveness";
   private static final String READINESS = "readiness";
-  private static final String LIVENESS_PATH = "/actuator/health/liveness";
-  private static final String READINESS_PATH = "/actuator/health/readiness";
   private static final String CONTROLLER_PACKAGE = "it.gov.pagopa.payments.controller";
   private static final Pattern SAFE_ID = Pattern.compile("[a-zA-Z0-9._:-]{1,128}");
   private static final Set<String> HEALTH = Set.of(HEALTH_CHECK, LIVENESS, READINESS);
+  private final String livenessPath;
+  private final String readinessPath;
+
+  public RequestFilter(
+      @Value("${management.endpoints.web.base-path:/actuator}") String managementBasePath) {
+    String basePath = "/".equals(managementBasePath) ? "" : managementBasePath;
+    livenessPath = String.join("/", basePath, "health", LIVENESS);
+    readinessPath = String.join("/", basePath, "health", READINESS);
+  }
 
   @Bean
   public ServletListenerRegistrationBean<ServletRequestListener> requestLoggingListener() {
@@ -123,10 +131,28 @@ public class RequestFilter implements Filter {
       return;
     }
     ObjectNode fields = collected.deepCopy();
+    populateMethod(request, fields);
+    populateOutcome(request, response.getStatus(), fields);
+    fields.put(RESPONSE_TIME, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
+    ObjectNode args = fields.with(ARGS);
+    String serviceType = request.getHeader(CommonUtil.SERVICE_TYPE_HEADER);
+    args.put(SERVICE_TYPE, serviceType == null ? CommonUtil.DEFAULT_SERVICE_TYPE : serviceType);
+    fields.put(ARGS, args.toString());
+    Map<String, String> previous = MDC.getCopyOfContextMap();
+    try {
+      MDC.clear();
+      populateMdc(fields);
+      LogContext.log(log, completionLevel(fields), LogMessages.API_OPERATION_COMPLETED, fields);
+    } finally {
+      LogContext.restore(previous);
+    }
+  }
+
+  private void populateMethod(HttpServletRequest request, ObjectNode fields) {
     String path = request.getRequestURI().substring(request.getContextPath().length());
-    if (LIVENESS_PATH.equals(path)) {
+    if (livenessPath.equals(path)) {
       fields.put(METHOD, LIVENESS);
-    } else if (READINESS_PATH.equals(path)) {
+    } else if (readinessPath.equals(path)) {
       fields.put(METHOD, READINESS);
     } else if (!fields.has(METHOD)
         && request.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE)
@@ -134,7 +160,9 @@ public class RequestFilter implements Filter {
         && handler.getBeanType().getPackageName().startsWith(CONTROLLER_PACKAGE)) {
       fields.put(METHOD, handler.getMethod().getName());
     }
-    int code = response.getStatus();
+  }
+
+  private static void populateOutcome(HttpServletRequest request, int code, ObjectNode fields) {
     if (code >= 100 && code <= 599) {
       fields.put(HTTP_CODE, code);
     }
@@ -147,25 +175,16 @@ public class RequestFilter implements Filter {
       fields.remove(FAULT_CODE);
       fields.remove(FAULT_DETAIL);
     }
-    fields.put(RESPONSE_TIME, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
-    ObjectNode args = fields.with(ARGS);
-    String serviceType = request.getHeader(CommonUtil.SERVICE_TYPE_HEADER);
-    args.put(SERVICE_TYPE, serviceType == null ? CommonUtil.DEFAULT_SERVICE_TYPE : serviceType);
-    fields.put(ARGS, args.toString());
-    Map<String, String> previous = MDC.getCopyOfContextMap();
-    try {
-      MDC.clear();
-      populateMdc(fields);
-      Level level = Level.INFO;
-      if (PaaErrorEnum.PAA_SYSTEM_ERROR.getFaultCode().equals(fields.path(FAULT_CODE).asText())) {
-        level = Level.ERROR;
-      } else if (HEALTH.contains(fields.path(METHOD).asText())) {
-        level = STATUS_OK.equals(fields.path(STATUS).asText()) ? Level.DEBUG : Level.WARN;
-      }
-      LogContext.log(log, level, LogMessages.API_OPERATION_COMPLETED, fields);
-    } finally {
-      LogContext.restore(previous);
+  }
+
+  private static Level completionLevel(ObjectNode fields) {
+    if (PaaErrorEnum.PAA_SYSTEM_ERROR.getFaultCode().equals(fields.path(FAULT_CODE).asText())) {
+      return Level.ERROR;
     }
+    if (HEALTH.contains(fields.path(METHOD).asText())) {
+      return STATUS_OK.equals(fields.path(STATUS).asText()) ? Level.DEBUG : Level.WARN;
+    }
+    return Level.INFO;
   }
 
   private static void populateMdc(ObjectNode fields) {
