@@ -69,7 +69,7 @@ public final class FeignLoggingCapability implements Capability {
         return Level.INFO;
       }
       if (GET_PAYMENT_OPTION.equals(operation) || SEND_PAYMENT_OPTION_RECEIPT.equals(operation)) {
-        return code == 200 ? Level.DEBUG : Level.WARN;
+        return code == 200 ? Level.INFO : Level.WARN;
       }
     }
     return code >= 200 && code < 300 ? Level.INFO : Level.WARN;
