@@ -5,6 +5,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableErrorCode;
 import com.azure.data.tables.models.TableServiceException;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.queue.QueueClient;
 import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
@@ -27,6 +28,7 @@ import it.gov.pagopa.payments.utils.Validator;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.time.Instant;
@@ -69,6 +71,8 @@ public class PartnerService {
 
   public static final String STATUS_PROPERTY = "status";
 
+  public static final String CONTENT_HASH_PROPERTY = "contentHash";
+
   public static final String PAYMENT_DATE_PROPERTY = "paymentDate";
 
   public static final String IBAN_APPOGGIO_KEY = "IBANAPPOGGIO";
@@ -98,6 +102,11 @@ public class PartnerService {
   // PaaErrorEnum.java fault codes subset
   private final List<String> suppressedErrorsValues;
 
+  private final ReceiptBlobStore receiptBlobStore;
+
+  private final Boolean blobWriteEnabled;
+
+
   public PartnerService(
       @Value(value = "${azure.queue.send.invisibilityTime}") Long queueSendInvisibilityTime,
       @Value(value = "${suppressedErrors.stations}") List<String> stationsWithSuppressedErrors,
@@ -108,7 +117,9 @@ public class PartnerService {
       QueueClient queueClient,
       CustomizedMapper customizedModelMapper,
       VerticalServicesConfig verticalServicesConfig,
-      RestTemplate restTemplate) {
+      RestTemplate restTemplate,
+      ReceiptBlobStore receiptBlobStore,
+      @Value(value = "${receipts.blob.write-enabled:false}") Boolean blobWriteEnabled) {
     this.queueSendInvisibilityTime = queueSendInvisibilityTime;
     this.factory = factory;
     this.gpdClient = gpdClient;
@@ -119,6 +130,8 @@ public class PartnerService {
     this.customizedModelMapper = customizedModelMapper;
     this.stationsWithSuppressedErrors = stationsWithSuppressedErrors;
     this.suppressedErrorsValues = suppressedErrorsValues;
+    this.receiptBlobStore = receiptBlobStore;
+    this.blobWriteEnabled = blobWriteEnabled;
   }
 
   @Transactional(readOnly = true)
@@ -626,8 +639,13 @@ public class PartnerService {
   private void saveReceipt(ReceiptEntity receiptEntity)
       throws InvalidKeyException, URISyntaxException, StorageException {
     try {
-      TableEntity tableEntity = getTableEntity(receiptEntity);
-      tableClient.createEntity(tableEntity);
+      if (blobWriteEnabled) {
+        saveReceiptWithBlob(receiptEntity);
+      } else {
+        TableEntity tableEntity = getTableEntity(receiptEntity);
+        tableClient.createEntity(tableEntity);
+      }
+
     } catch (TableServiceException e) {
       if (e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
         throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
@@ -646,6 +664,46 @@ public class PartnerService {
     properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
     properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
     tableEntity.setProperties(properties);
+    return tableEntity;
+  }
+
+  private void saveReceiptWithBlob(ReceiptEntity receiptEntity) {
+
+    byte[] document =
+        receiptEntity.getDocument().getBytes(StandardCharsets.UTF_8);
+
+    String contentHash =
+        ReceiptPayloadReader.sha256Hex(document);
+
+    receiptBlobStore.upload(
+        receiptEntity.getOrganizationFiscalCode(),
+        receiptEntity.getIuv(),
+        document);
+
+    TableEntity tableEntity =
+        getBlobTableEntity(receiptEntity, contentHash);
+
+    tableClient.createEntity(tableEntity);
+  }
+
+  private static TableEntity getBlobTableEntity(
+      ReceiptEntity receiptEntity,
+      String contentHash) {
+
+    TableEntity tableEntity =
+        new TableEntity(
+            receiptEntity.getOrganizationFiscalCode(),
+            receiptEntity.getIuv());
+
+    Map<String, Object> properties = new HashMap<>();
+
+    properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
+    properties.put(CONTENT_HASH_PROPERTY, contentHash);
+    properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
+    properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
+
+    tableEntity.setProperties(properties);
+
     return tableEntity;
   }
 
@@ -881,7 +939,22 @@ public class PartnerService {
           null,
           Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
-    } catch (StorageException e) {
+    } catch (BlobStorageException e) {
+      log.error(
+          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Blob Storage exception [noticeNumber={}]",
+          noticeNumber,
+          e);
+
+      queueClient.sendMessageWithResponse(
+          receiptEntity.getDocument(),
+          Duration.ofSeconds(queueSendInvisibilityTime),
+          null,
+          null,
+          Context.NONE);
+
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+
+    }  catch (StorageException e) {
       log.error(
           "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Storage exception [noticeNumber={}]",
           noticeNumber,
