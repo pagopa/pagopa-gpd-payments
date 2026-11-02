@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import it.gov.pagopa.payments.config.logging.JsonLogEncoder;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import org.slf4j.LoggerFactory;
 
 /** Captures the actual encoded output without changing the root logger. */

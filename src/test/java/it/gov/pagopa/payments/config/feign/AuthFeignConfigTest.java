@@ -6,11 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import feign.Logger;
 import feign.RequestTemplate;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.FeignLoggingCapability;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class AuthFeignConfigTest {
   @Test
@@ -53,9 +55,11 @@ class AuthFeignConfigTest {
 
   @Test
   void configurationUsesStructuredObserverInsteadOfWireLogger() {
-    GPDFeignConfig config = new GPDFeignConfig("test-key");
-
-    assertInstanceOf(FeignLoggingCapability.class, config.feignLoggingCapability());
-    assertInstanceOf(Logger.NoOpLogger.class, config.feignLogger());
+    new ApplicationContextRunner().withUserConfiguration(GPDFeignConfig.class)
+        .withPropertyValues("gpd.subscription-key=test-key")
+        .run(context -> {
+          assertEquals(1, context.getBeansOfType(FeignLoggingCapability.class).size());
+          assertInstanceOf(Logger.NoOpLogger.class, context.getBean(Logger.class));
+        });
   }
 }

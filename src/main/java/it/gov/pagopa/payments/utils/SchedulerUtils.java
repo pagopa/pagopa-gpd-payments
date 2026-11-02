@@ -1,7 +1,7 @@
 package it.gov.pagopa.payments.utils;
 
-import it.gov.pagopa.payments.config.LogContext;
-import it.gov.pagopa.payments.config.LogMessages;
+import it.gov.pagopa.payments.config.logging.LogContext;
+import it.gov.pagopa.payments.config.logging.LogMessages;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;

@@ -1,18 +1,18 @@
-package it.gov.pagopa.payments.config;
+package it.gov.pagopa.payments.config.logging;
 
-import static it.gov.pagopa.payments.config.LogContext.CORRELATION_ID;
-import static it.gov.pagopa.payments.config.LogContext.CTX_CREDITOR_ID;
-import static it.gov.pagopa.payments.config.LogContext.CTX_DETAILS;
-import static it.gov.pagopa.payments.config.LogContext.CTX_IUV;
-import static it.gov.pagopa.payments.config.LogContext.CTX_NOTICE_NUMBER;
-import static it.gov.pagopa.payments.config.LogContext.DEPENDENCY;
-import static it.gov.pagopa.payments.config.LogContext.ERROR_TYPE;
-import static it.gov.pagopa.payments.config.LogContext.HTTP_CODE;
-import static it.gov.pagopa.payments.config.LogContext.NAME;
-import static it.gov.pagopa.payments.config.LogContext.RESPONSE_TIME;
-import static it.gov.pagopa.payments.config.LogContext.STATUS;
-import static it.gov.pagopa.payments.config.LogContext.STATUS_KO;
-import static it.gov.pagopa.payments.config.LogContext.STATUS_OK;
+import static it.gov.pagopa.payments.config.logging.LogContext.CORRELATION_ID;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_CREDITOR_ID;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_DETAILS;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_IUV;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_NOTICE_NUMBER;
+import static it.gov.pagopa.payments.config.logging.LogContext.DEPENDENCY;
+import static it.gov.pagopa.payments.config.logging.LogContext.ERROR_TYPE;
+import static it.gov.pagopa.payments.config.logging.LogContext.HTTP_CODE;
+import static it.gov.pagopa.payments.config.logging.LogContext.NAME;
+import static it.gov.pagopa.payments.config.logging.LogContext.RESPONSE_TIME;
+import static it.gov.pagopa.payments.config.logging.LogContext.STATUS;
+import static it.gov.pagopa.payments.config.logging.LogContext.STATUS_KO;
+import static it.gov.pagopa.payments.config.logging.LogContext.STATUS_OK;
 
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
@@ -23,36 +23,60 @@ import com.azure.core.http.HttpResponse;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 /** Observes HTTP attempts without consuming bodies or changing SDK retry decisions. */
 public final class AzureLoggingPolicy implements HttpPipelinePolicy {
-  public static final String TABLES = "azure-tables";
-  public static final String QUEUE = "azure-queue";
-  public static final String BLOB = "azure-blob";
+  public static final String TABLES = LogDependencies.AZURE_TABLES;
+  public static final String QUEUE = LogDependencies.AZURE_QUEUE;
+  public static final String BLOB = LogDependencies.AZURE_BLOB;
   private static final String CAPTURED_FIELDS = AzureLoggingPolicy.class.getName();
   private static final String HOST = "host";
   private static final Logger LOG = LoggerFactory.getLogger(AzureLoggingPolicy.class);
   private final String dependency;
   private final HttpPipelinePosition position;
+  private final Level expectedLogLevel;
 
-  public AzureLoggingPolicy(String dependency) {
-    this(dependency, HttpPipelinePosition.PER_RETRY);
+  @Component
+  public static final class Factory {
+    private final Level expectedLogLevel;
+
+    public Factory(@Value("${logging.http.expected-level:INFO}") Level expectedLogLevel) {
+      this.expectedLogLevel = Objects.requireNonNull(expectedLogLevel, "expectedLogLevel");
+    }
+
+    public AzureLoggingPolicy create(String dependency) {
+      return new AzureLoggingPolicy(dependency, expectedLogLevel);
+    }
   }
 
-  private AzureLoggingPolicy(String dependency, HttpPipelinePosition position) {
+  public AzureLoggingPolicy(String dependency) {
+    this(dependency, Level.INFO);
+  }
+
+  public AzureLoggingPolicy(String dependency, Level expectedLogLevel) {
+    this(dependency, HttpPipelinePosition.PER_RETRY, expectedLogLevel);
+  }
+
+  private AzureLoggingPolicy(
+      String dependency, HttpPipelinePosition position, Level expectedLogLevel) {
     this.dependency = dependency;
     this.position = position;
+    this.expectedLogLevel = Objects.requireNonNull(expectedLogLevel, "expectedLogLevel");
   }
 
   // Capture before retries or request buffering can move execution onto an SDK worker.
   public static AzureLoggingPolicy correlationPolicy() {
-    return new AzureLoggingPolicy(null, HttpPipelinePosition.PER_CALL);
+    return new AzureLoggingPolicy(null, HttpPipelinePosition.PER_CALL, Level.INFO);
   }
 
   @Override
@@ -111,6 +135,7 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     ObjectNode fields = LogContext.event();
     context.getData(CAPTURED_FIELDS).filter(ObjectNode.class::isInstance)
         .map(ObjectNode.class::cast).ifPresent(fields::setAll);
+    fields.put(DEPENDENCY, dependency);
     ObjectNode details = fields.putObject(CTX_DETAILS)
         .put(HOST, context.getHttpRequest().getUrl().getHost());
     details.putObject(DEPENDENCY)
@@ -158,7 +183,7 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     }
     Level level = failure != null ? Level.WARN
         : code >= 500 ? Level.ERROR
-        : code == expectedStatus(context.getHttpRequest()) ? Level.INFO : Level.WARN;
+        : code == expectedStatus(context.getHttpRequest()) ? expectedLogLevel : Level.WARN;
     Map<String, String> previous = MDC.getCopyOfContextMap();
     try {
       MDC.clear();

@@ -6,18 +6,64 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import it.gov.pagopa.payments.config.LogCapture;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.RequestFilter;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import java.util.Map;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
 import javax.xml.soap.SOAPPart;
+import javax.servlet.ServletRequestEvent;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.MDC;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockServletContext;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.xml.sax.SAXParseException;
 
 class SoapValidatingInterceptorTest {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void finalHttp200SummaryReflectsResponseValidationFailure(boolean invalidXml) throws Exception {
+    RequestAttributes previous = RequestContextHolder.getRequestAttributes();
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    RequestFilter filter = new RequestFilter("/actuator");
+    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request, response));
+    try (LogCapture summaries = new LogCapture(RequestFilter.class);
+        LogCapture diagnostics = new LogCapture(SoapValidatingInterceptor.class)) {
+      filter.doFilter(request, response, (req, res) -> {
+        LogContext.fields().put(LogContext.STATUS, LogContext.STATUS_OK)
+            .put(LogContext.CTX_SOAP_OUTCOME, "OK")
+            .put(LogContext.METHOD, "paGetPaymentV2");
+        SAXParseException[] errors = invalidXml
+            ? new SAXParseException[] {new SAXParseException("Invalid response XML", null)}
+            : new SAXParseException[0];
+        assertFalse(new SoapValidatingInterceptor()
+            .handleResponseValidationErrors(mock(MessageContext.class), errors));
+      });
+      filter.requestLoggingListener().getListener().requestDestroyed(
+          new ServletRequestEvent(new MockServletContext(), request));
+
+      assertEquals(1, summaries.events().size());
+      JsonNode summary = summaries.events().get(0);
+      assertEquals(200, summary.path(LogContext.HTTP_CODE).intValue());
+      assertEquals(invalidXml ? "KO" : "OK", summary.path(LogContext.STATUS).asText());
+      assertEquals("OK", summary.path(LogContext.CTX_SOAP_OUTCOME).asText());
+      assertEquals("Completed API operation", summary.path(LogContext.MESSAGE).asText());
+      assertFalse(summary.has(LogContext.FAULT_CODE));
+      assertEquals(invalidXml ? 1 : 0, diagnostics.events().size());
+    } finally {
+      RequestContextHolder.setRequestAttributes(previous);
+    }
+  }
+
   @Test
   void emptyResponseValidationErrorsStopChainWithoutLoggingAnError() {
     try (LogCapture logs = new LogCapture(SoapValidatingInterceptor.class)) {

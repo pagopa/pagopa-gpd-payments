@@ -7,7 +7,7 @@ import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT;
 import static it.gov.pagopa.payments.utils.SoapActions.PA_SEND_RT_V2;
 import static it.gov.pagopa.payments.utils.SoapActions.PA_VERIFY_PAYMENT_NOTICE;
 
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;

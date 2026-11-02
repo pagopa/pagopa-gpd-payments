@@ -1,11 +1,13 @@
 package it.gov.pagopa.payments.config;
 
-import static it.gov.pagopa.payments.config.LogContext.*;
+import static it.gov.pagopa.payments.config.logging.LogContext.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Map;
+
+import it.gov.pagopa.payments.config.logging.LogContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

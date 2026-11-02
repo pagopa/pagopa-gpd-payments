@@ -21,7 +21,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import it.gov.pagopa.payments.model.partner.CtResponse;

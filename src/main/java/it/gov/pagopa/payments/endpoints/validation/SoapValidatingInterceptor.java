@@ -1,8 +1,8 @@
 package it.gov.pagopa.payments.endpoints.validation;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import it.gov.pagopa.payments.config.LogContext;
-import it.gov.pagopa.payments.config.LogMessages;
+import it.gov.pagopa.payments.config.logging.LogContext;
+import it.gov.pagopa.payments.config.logging.LogMessages;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import java.io.IOException;
@@ -46,6 +46,10 @@ public class SoapValidatingInterceptor extends PayloadValidatingInterceptor {
   protected boolean handleResponseValidationErrors(
       MessageContext messageContext, SAXParseException[] errors) {
     if (errors.length > 0) {
+      ObjectNode requestFields = LogContext.fields();
+      if (requestFields != null) {
+        requestFields.put(LogContext.STATUS, LogContext.STATUS_KO);
+      }
       ObjectNode fields = LogContext.event().put(LogContext.STATUS, LogContext.STATUS_KO);
       fields.put(LogContext.ERROR_MESSAGE, Arrays.stream(errors)
           .map(SAXParseException::getMessage)

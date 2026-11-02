@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.config.feign;
+package it.gov.pagopa.payments.config.logging;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import feign.Capability;
@@ -6,13 +6,16 @@ import feign.Client;
 import feign.RequestTemplate;
 import feign.Response;
 import it.gov.pagopa.payments.client.GpdClient;
-import it.gov.pagopa.payments.config.LogContext;
-import it.gov.pagopa.payments.config.LogMessages;
+import it.gov.pagopa.payments.client.ApiConfigCacheClient;
+
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 /** Decorates the configured transport without reading or replacing response bodies. */
 public final class FeignLoggingCapability implements Capability {
@@ -20,6 +23,17 @@ public final class FeignLoggingCapability implements Capability {
   private static final String EMPTY_GPD_BODY = "GPD returned HTTP 200 with an empty response body";
   private static final String SEND_PAYMENT_OPTION_RECEIPT = "sendPaymentOptionReceipt";
   private static final String GET_PAYMENT_OPTION = "getPaymentOption";
+  private final Level expectedLogLevel;
+
+  public FeignLoggingCapability() {
+    this(Level.INFO);
+  }
+
+  @Autowired
+  public FeignLoggingCapability(
+      @Value("${logging.http.expected-level:INFO}") Level expectedLogLevel) {
+    this.expectedLogLevel = Objects.requireNonNull(expectedLogLevel, "expectedLogLevel");
+  }
 
   @Override
   public Client enrich(Client client) {
@@ -27,6 +41,7 @@ public final class FeignLoggingCapability implements Capability {
       ObjectNode fields = LogContext.event();
       RequestTemplate template = request.requestTemplate();
       String operation = template.methodMetadata().method().getName();
+      fields.put(LogContext.DEPENDENCY, dependencyName(template));
       ObjectNode dependency = fields.putObject(LogContext.CTX_DETAILS)
           .putObject(LogContext.DEPENDENCY)
           .put(LogContext.PATH, template.methodMetadata().template().path())
@@ -60,7 +75,18 @@ public final class FeignLoggingCapability implements Capability {
     };
   }
 
-  private static Level responseLevel(RequestTemplate template, String operation, int code) {
+  private static String dependencyName(RequestTemplate template) {
+    Class<?> type = template.feignTarget().type();
+    if (GpdClient.class.equals(type)) {
+      return LogDependencies.GPD;
+    }
+    if (ApiConfigCacheClient.class.equals(type)) {
+      return LogDependencies.CACHE;
+    }
+    return template.feignTarget().name();
+  }
+
+  private Level responseLevel(RequestTemplate template, String operation, int code) {
     if (code >= 500) {
       return Level.ERROR;
     }
@@ -69,10 +95,10 @@ public final class FeignLoggingCapability implements Capability {
         return Level.INFO;
       }
       if (GET_PAYMENT_OPTION.equals(operation) || SEND_PAYMENT_OPTION_RECEIPT.equals(operation)) {
-        return code == 200 ? Level.INFO : Level.WARN;
+        return code == 200 ? expectedLogLevel : Level.WARN;
       }
     }
-    return code >= 200 && code < 300 ? Level.INFO : Level.WARN;
+    return code >= 200 && code < 300 ? expectedLogLevel : Level.WARN;
   }
 
   private static void completed(ObjectNode fields, long started, Level level) {

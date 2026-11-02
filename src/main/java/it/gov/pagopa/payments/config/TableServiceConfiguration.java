@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.config;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
+import it.gov.pagopa.payments.config.logging.AzureLoggingPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,12 +24,13 @@ public class TableServiceConfiguration {
     }
 
     @Bean
-    public TableClient tableClientConfiguration() {
+    public TableClient tableClientConfiguration(
+            AzureLoggingPolicy.Factory loggingPolicyFactory) {
         return new TableClientBuilder()
                 .connectionString(CONNECTION_STRING)
                 .tableName(TABLE_NAME)
                 .addPolicy(AzureLoggingPolicy.correlationPolicy())
-                .addPolicy(new AzureLoggingPolicy(AzureLoggingPolicy.TABLES))
+                .addPolicy(loggingPolicyFactory.create(AzureLoggingPolicy.TABLES))
                 .buildClient();
     }
 }

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.servers.ServerVariable;
 import io.swagger.v3.oas.models.servers.ServerVariables;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import java.util.List;
 import java.util.Map;

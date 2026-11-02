@@ -24,7 +24,7 @@
         <springProperty name="ECS_SERVICE_VERSION" source="info.application.version"/>
         <springProperty name="ECS_SERVICE_ENVIRONMENT" source="ENV" defaultValue="${APPLICATION_ENVIRONMENT}"/>
         <appender name="ECS_JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="it.gov.pagopa.payments.config.JsonLogEncoder">
+            <encoder class="it.gov.pagopa.payments.config.logging.JsonLogEncoder">
                 <serviceName>${ECS_SERVICE_NAME}</serviceName>
                 <serviceVersion>${ECS_SERVICE_VERSION}</serviceVersion>
                 <serviceEnvironment>${ECS_SERVICE_ENVIRONMENT}</serviceEnvironment>

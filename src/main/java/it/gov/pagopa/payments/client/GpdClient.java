@@ -2,6 +2,7 @@ package it.gov.pagopa.payments.client;
 
 import feign.FeignException;
 import it.gov.pagopa.payments.config.feign.GPDFeignConfig;
+import it.gov.pagopa.payments.config.logging.LogDependencies;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
 import it.gov.pagopa.payments.model.PaymentOptionModelResponse;
 import it.gov.pagopa.payments.model.PaymentsModelResponse;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(value = "gpd", url = "${service.gpd.host}", configuration = GPDFeignConfig.class)
+@FeignClient(value = LogDependencies.GPD, url = "${service.gpd.host}", configuration = GPDFeignConfig.class)
 public interface GpdClient {
 
   @Retryable(

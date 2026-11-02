@@ -1,12 +1,13 @@
 package it.gov.pagopa.payments.config;
 
-import static it.gov.pagopa.payments.config.LogContext.*;
+import static it.gov.pagopa.payments.config.logging.LogContext.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.gov.pagopa.payments.config.logging.LogContext;
+import it.gov.pagopa.payments.config.logging.LoggingAspect;
 import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
 import it.gov.pagopa.payments.model.ProblemJson;
 import it.gov.pagopa.payments.model.partner.CtFaultBean;

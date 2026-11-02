@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.config;
+package it.gov.pagopa.payments.config.logging;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -2,7 +2,7 @@ package it.gov.pagopa.payments.consumers.cache;
 
 import it.gov.pagopa.payments.consumers.cache.model.CacheUpdateEvent;
 import it.gov.pagopa.payments.service.ConfigCacheService;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import it.gov.pagopa.payments.utils.SchedulerUtils;
 import java.util.Map;
 import java.util.UUID;
@@ -40,6 +40,7 @@ public class CacheConsumerConfig {
         try {
             MDC.clear();
             MDC.put(LogContext.CORRELATION_ID, UUID.randomUUID().toString());
+            MDC.put(LogContext.METHOD, CACHE_EVENT_CONSUMER);
             configCacheService.checkAndUpdateCache(cacheEventMessage.getPayload());
             SchedulerUtils.logCompletion(started, null);
         } catch (Exception e) {

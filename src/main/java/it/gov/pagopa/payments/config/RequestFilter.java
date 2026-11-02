@@ -1,22 +1,24 @@
 package it.gov.pagopa.payments.config;
 
-import static it.gov.pagopa.payments.config.LogContext.ARGS;
-import static it.gov.pagopa.payments.config.LogContext.CTX_CREDITOR_ID;
-import static it.gov.pagopa.payments.config.LogContext.CTX_IUV;
-import static it.gov.pagopa.payments.config.LogContext.CTX_NOTICE_NUMBER;
-import static it.gov.pagopa.payments.config.LogContext.CTX_SOAP_OUTCOME;
-import static it.gov.pagopa.payments.config.LogContext.FAULT_CODE;
-import static it.gov.pagopa.payments.config.LogContext.FAULT_DETAIL;
-import static it.gov.pagopa.payments.config.LogContext.HEADER_REQUEST_ID;
-import static it.gov.pagopa.payments.config.LogContext.HTTP_CODE;
-import static it.gov.pagopa.payments.config.LogContext.METHOD;
-import static it.gov.pagopa.payments.config.LogContext.RESPONSE_TIME;
-import static it.gov.pagopa.payments.config.LogContext.SERVICE_TYPE;
-import static it.gov.pagopa.payments.config.LogContext.STATUS;
-import static it.gov.pagopa.payments.config.LogContext.STATUS_KO;
-import static it.gov.pagopa.payments.config.LogContext.STATUS_OK;
+import static it.gov.pagopa.payments.config.logging.LogContext.ARGS;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_CREDITOR_ID;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_IUV;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_NOTICE_NUMBER;
+import static it.gov.pagopa.payments.config.logging.LogContext.CTX_SOAP_OUTCOME;
+import static it.gov.pagopa.payments.config.logging.LogContext.FAULT_CODE;
+import static it.gov.pagopa.payments.config.logging.LogContext.FAULT_DETAIL;
+import static it.gov.pagopa.payments.config.logging.LogContext.HEADER_REQUEST_ID;
+import static it.gov.pagopa.payments.config.logging.LogContext.HTTP_CODE;
+import static it.gov.pagopa.payments.config.logging.LogContext.METHOD;
+import static it.gov.pagopa.payments.config.logging.LogContext.RESPONSE_TIME;
+import static it.gov.pagopa.payments.config.logging.LogContext.SERVICE_TYPE;
+import static it.gov.pagopa.payments.config.logging.LogContext.STATUS;
+import static it.gov.pagopa.payments.config.logging.LogContext.STATUS_KO;
+import static it.gov.pagopa.payments.config.logging.LogContext.STATUS_OK;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import it.gov.pagopa.payments.config.logging.LogContext;
+import it.gov.pagopa.payments.config.logging.LogMessages;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import java.io.IOException;
@@ -50,7 +52,7 @@ import org.springframework.web.servlet.HandlerMapping;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Slf4j
 public class RequestFilter implements Filter {
-  static final String FAULT_STATUS = RequestFilter.class.getName() + ".faultStatus";
+  public static final String FAULT_STATUS = RequestFilter.class.getName() + ".faultStatus";
   private static final String START = RequestFilter.class.getName() + ".start";
   private static final String RESPONSE = RequestFilter.class.getName() + ".response";
   private static final String HEALTH_CHECK = "healthCheck";

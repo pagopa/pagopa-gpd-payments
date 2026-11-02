@@ -6,7 +6,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.junit.jupiter.api.Assertions.*;
 
 import it.gov.pagopa.payments.config.LogCapture;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import it.gov.pagopa.payments.service.SchedulerService;
 import it.gov.pagopa.payments.utils.SchedulerUtils;
 import java.util.Map;

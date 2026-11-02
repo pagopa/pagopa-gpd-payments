@@ -1,7 +1,7 @@
 package it.gov.pagopa.payments.scheduler;
 
 import it.gov.pagopa.payments.service.SchedulerService;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

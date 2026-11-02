@@ -1,7 +1,7 @@
 package it.gov.pagopa.payments.controller.receipt.impl;
 
-import it.gov.pagopa.payments.config.LogField;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.LogField;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.PaymentsResult;

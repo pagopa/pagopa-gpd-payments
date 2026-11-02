@@ -2,11 +2,14 @@ package it.gov.pagopa.payments.config.feign;
 
 import feign.RequestInterceptor;
 import feign.Logger;
-import it.gov.pagopa.payments.config.LogContext;
+import it.gov.pagopa.payments.config.logging.FeignLoggingCapability;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import it.gov.pagopa.payments.utils.CommonUtil;
 import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 
+@Import(FeignLoggingCapability.class)
 public abstract class AuthFeignConfig {
 
   protected String subscriptionKey;
@@ -21,11 +24,6 @@ public abstract class AuthFeignConfig {
         requestTemplate
             .header(HEADER_REQUEST_ID, MDC.get(LogContext.CORRELATION_ID))
             .header(HEADER_SUBSCRIBTION_KEY, subscriptionKey);
-  }
-
-  @Bean
-  public FeignLoggingCapability feignLoggingCapability() {
-    return new FeignLoggingCapability();
   }
 
   @Bean

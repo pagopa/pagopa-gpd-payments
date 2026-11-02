@@ -18,6 +18,10 @@ import com.azure.core.util.Context;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
 import java.util.Map;
+
+import it.gov.pagopa.payments.config.logging.AzureLoggingPolicy;
+import org.slf4j.event.Level;
+import it.gov.pagopa.payments.config.logging.LogContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +33,24 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 class AzureLoggingPolicyTest {
+  @ParameterizedTest
+  @CsvSource({"INFO,200,INFO", "DEBUG,200,DEBUG", "DEBUG,204,WARN", "DEBUG,500,ERROR"})
+  void configuredExpectedLevelOnlyChangesExpectedResponses(
+      Level configured, int code, String level) {
+    HttpClient client = mock(HttpClient.class);
+    HttpResponse response = response(code);
+    when(client.sendSync(any(HttpRequest.class), any(Context.class))).thenReturn(response);
+    HttpPipeline pipeline = new HttpPipelineBuilder().httpClient(client)
+        .policies(AzureLoggingPolicy.correlationPolicy(),
+            new AzureLoggingPolicy(AzureLoggingPolicy.TABLES, configured)).build();
+    try (LogCapture logs = new LogCapture(AzureLoggingPolicy.class)) {
+      assertSame(response, pipeline.sendSync(request(), Context.NONE));
+      assertEquals(1, logs.events().size());
+      assertEquals(level, logs.events().get(0).path("log.level").asText());
+      assertEquals(code, LogCapture.dependency(logs.events().get(0)).path("http_code").intValue());
+    }
+  }
+
   private static final Duration TIMEOUT = Duration.ofSeconds(5);
   private Map<String, String> originalMdc;
   private Map<String, String> callerMdc;
@@ -52,7 +74,7 @@ class AzureLoggingPolicyTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"200, DEBUG, OK", "204, WARN, OK", "302, WARN, OK", "400, WARN, KO",
+  @CsvSource({"200, INFO, OK", "204, WARN, OK", "302, WARN, OK", "400, WARN, KO",
       "401, WARN, KO", "403, WARN, KO", "404, WARN, KO", "409, WARN, KO",
       "429, WARN, KO", "500, ERROR, KO", "503, ERROR, KO"})
   void syncResponsesPreserveResultAndLogSafeTypedFields(int status, String level, String outcome) {
@@ -115,7 +137,7 @@ class AzureLoggingPolicyTest {
       JsonNode first = capture.events().get(0);
       JsonNode second = capture.events().get(1);
       assertResponse(first, 503, "ERROR", "KO");
-      assertResponse(second, 200, "DEBUG", "OK");
+      assertResponse(second, 200, "INFO", "OK");
       assertNotEquals(Thread.currentThread().getName(), first.path("process.thread.name").asText());
       assertEquals(workerMdc, Mono.fromCallable(MDC::getCopyOfContextMap)
           .subscribeOn(worker).block(TIMEOUT));
@@ -160,27 +182,27 @@ class AzureLoggingPolicyTest {
 
   @ParameterizedTest
   @CsvSource({
-      "azure-tables, GET, -, -, 200, DEBUG",
-      "azure-tables, POST, -, -, 201, DEBUG",
-      "azure-tables, POST, Prefer, return-no-content, 204, DEBUG",
+      "azure-tables, GET, -, -, 200, INFO",
+      "azure-tables, POST, -, -, 201, INFO",
+      "azure-tables, POST, Prefer, return-no-content, 204, INFO",
       "azure-tables, POST, Prefer, return-no-content, 201, WARN",
-      "azure-tables, POST, Prefer, return-content, 201, DEBUG",
+      "azure-tables, POST, Prefer, return-content, 201, INFO",
       "azure-tables, POST, -, -, 204, WARN",
-      "azure-tables, PATCH, -, -, 204, DEBUG",
-      "azure-tables, PUT, -, -, 204, DEBUG",
+      "azure-tables, PATCH, -, -, 204, INFO",
+      "azure-tables, PUT, -, -, 204, INFO",
       "azure-tables, PATCH, -, -, 200, WARN",
-      "azure-queue, GET, -, -, 200, DEBUG",
-      "azure-queue, POST, -, -, 201, DEBUG",
-      "azure-queue, PUT, -, -, 204, DEBUG",
-      "azure-queue, DELETE, -, -, 204, DEBUG",
+      "azure-queue, GET, -, -, 200, INFO",
+      "azure-queue, POST, -, -, 201, INFO",
+      "azure-queue, PUT, -, -, 204, INFO",
+      "azure-queue, DELETE, -, -, 204, INFO",
       "azure-queue, POST, -, -, 200, WARN",
-      "azure-blob, GET, -, -, 200, DEBUG",
-      "azure-blob, GET, Range, bytes=0-99, 206, DEBUG",
-      "azure-blob, GET, x-ms-range, bytes=0-99, 206, DEBUG",
+      "azure-blob, GET, -, -, 200, INFO",
+      "azure-blob, GET, Range, bytes=0-99, 206, INFO",
+      "azure-blob, GET, x-ms-range, bytes=0-99, 206, INFO",
       "azure-blob, GET, -, -, 206, WARN",
       "azure-blob, GET, Range, bytes=0-99, 200, WARN",
-      "azure-blob, HEAD, -, -, 200, DEBUG",
-      "azure-blob, PUT, -, -, 201, DEBUG",
+      "azure-blob, HEAD, -, -, 200, INFO",
+      "azure-blob, PUT, -, -, 201, INFO",
       "azure-blob, PUT, -, -, 200, WARN",
       "azure-blob, OPTIONS, -, -, 200, WARN"
   })
@@ -203,6 +225,7 @@ class AzureLoggingPolicyTest {
       assertEquals(level, event.path("log.level").asText());
       assertEquals(code, LogCapture.dependency(event).path("http_code").intValue());
       assertEquals(dependency + "." + method, LogCapture.dependency(event).path("name").asText());
+      assertEquals(dependency, event.path("dependency").textValue());
       assertFalse(event.path("ctx_details").has("attempt"));
       assertSafeOutput(logs);
     }
@@ -258,12 +281,13 @@ class AzureLoggingPolicyTest {
     assertEquals("iuv", event.path("ctx_iuv").asText());
     assertEquals("azure-tables.GET",
         LogCapture.dependency(event).path("name").asText());
+    assertEquals("azure-tables", event.path("dependency").textValue());
     assertFalse(LogCapture.dependency(event).has("path"));
     assertEquals("storage.example.test", event.path("ctx_details").path("host").asText());
     assertTrue(event.path("response_time").isIntegralNumber());
     assertTrue(event.path("response_time").longValue() >= 0);
     for (String forbidden : new String[] {
-        "method", "dependency", "http_code", "path", "url", "query", "body", "headers", "unrelated", "worker"}) {
+        "method", "http_code", "path", "url", "query", "body", "headers", "unrelated", "worker"}) {
       assertFalse(event.has(forbidden), forbidden);
     }
   }

@@ -2,13 +2,14 @@ package it.gov.pagopa.payments.client;
 
 import feign.FeignException;
 import it.gov.pagopa.payments.config.feign.ApiConfigFeignConfig;
+import it.gov.pagopa.payments.config.logging.LogDependencies;
 import it.gov.pagopa.payments.model.client.cache.ConfigDataV1;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(value = "cache", url = "${service.cache.host}", configuration = ApiConfigFeignConfig.class)
+@FeignClient(value = LogDependencies.CACHE, url = "${service.cache.host}", configuration = ApiConfigFeignConfig.class)
 public interface ApiConfigCacheClient {
 
     @Retryable(

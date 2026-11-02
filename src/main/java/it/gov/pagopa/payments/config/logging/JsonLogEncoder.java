@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.config;
+package it.gov.pagopa.payments.config.logging;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxy;
@@ -9,7 +9,36 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/** Preserves numeric and object fields alongside the existing ECS metadata. */
+/**
+ * Converts application logs into structured ECS JSON, ready for collection by ELK.
+ * Merges metadata, context and detail fields, preserving types and generating requestId and operationId aliases.
+ * Ensures a consistent output format; it neither chooses log levels nor sends logs directly to Elasticsearch.
+ *
+ * <p>For example, a GPD payment call returning HTTP 409 after 120 ms can produce the following
+ * fields (standard ECS metadata omitted):
+ * <pre>{@code
+ * {
+ *   "message": "Completed Feign HTTP attempt",
+ *   "correlation_id": "req-123",
+ *   "requestId": "req-123",
+ *   "dependency": "gpd",
+ *   "status": "KO",
+ *   "response_time": 120,
+ *   "ctx_details": {
+ *     "dependency": "{\"name\":\"gpd.sendPaymentOptionReceipt\",\"http_code\":409}"
+ *   }
+ * }
+ * }</pre>
+ * The producer supplies dependency, outcome, duration and details through {@link LogContext}.
+ * This encoder merges them into ECS JSON and derives requestId from correlation_id. It also
+ * removes the inherited API method from this I/O event, so operationId is absent.
+ *
+ * <p>Replacing this encoder with the standard {@link EcsEncoder} retains base ECS metadata and
+ * MDC, but loses the explicit application field merge and alias derivation. The message may
+ * still be logged, but an ELK filter such as {@code dependency: "gpd"} would no longer match it.
+ * Deleting this class without updating logback-spring.xml instead leaves the appender
+ * referencing an encoder that cannot be loaded.
+ */
 public final class JsonLogEncoder extends EcsEncoder {
   private static final String APPLICATION_LOGGER_PREFIX = "it.gov.pagopa.payments.";
   private static final ObjectMapper JSON = new ObjectMapper();

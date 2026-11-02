@@ -1,6 +1,8 @@
 package it.gov.pagopa.payments.config.feign;
 
-import static it.gov.pagopa.payments.config.LogContext.*;
+import org.slf4j.event.Level;
+
+import static it.gov.pagopa.payments.config.logging.LogContext.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -19,8 +21,9 @@ import feign.codec.Decoder;
 import it.gov.pagopa.payments.client.ApiConfigCacheClient;
 import it.gov.pagopa.payments.client.GpdClient;
 import it.gov.pagopa.payments.config.LogCapture;
-import it.gov.pagopa.payments.config.LogContext;
-import it.gov.pagopa.payments.config.LoggingAspect;
+import it.gov.pagopa.payments.config.logging.FeignLoggingCapability;
+import it.gov.pagopa.payments.config.logging.LogContext;
+import it.gov.pagopa.payments.config.logging.LoggingAspect;
 import it.gov.pagopa.payments.model.PaymentOptionModel;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +45,36 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 class FeignLoggingCapabilityTest {
+  @ParameterizedTest
+  @CsvSource({
+      "INFO,getPaymentOption,200,false,INFO",
+      "DEBUG,getPaymentOption,200,false,DEBUG",
+      "DEBUG,sendPaymentOptionReceipt,200,false,DEBUG",
+      "DEBUG,getCacheByKeys,200,false,DEBUG",
+      "DEBUG,getPaymentOption,200,true,WARN",
+      "DEBUG,getPaymentOption,204,false,WARN",
+      "DEBUG,sendPaymentOptionReceipt,409,false,INFO",
+      "DEBUG,getPaymentOption,500,false,ERROR"
+  })
+  void expectedLevelConfigurationPreservesSpecialCases(
+      Level configured,
+      String operation, int code, boolean empty, String level) throws IOException {
+    Class<?> type = operation.equals("getCacheByKeys") ? ApiConfigCacheClient.class : GpdClient.class;
+    Request request = requestWithMetadata(type, operation);
+    Response response = Response.builder().request(request).status(code).headers(Map.of())
+        .body(empty ? "" : "{}", StandardCharsets.UTF_8).build();
+    when(transport.execute(any(), any())).thenReturn(response);
+    try (LogCapture logs = new LogCapture(FeignLoggingCapability.class)) {
+      assertSame(response, new FeignLoggingCapability(configured)
+          .enrich(transport).execute(request, options));
+      assertEquals(1, logs.events().size());
+      JsonNode event = logs.events().get(0);
+      assertEquals(level, event.path(LOG_LEVEL).asText());
+      assertEquals(empty || code >= 400 ? STATUS_KO : STATUS_OK, event.path(STATUS).asText());
+      assertEquals(code, LogCapture.dependency(event).path(HTTP_CODE).intValue());
+    }
+  }
+
   private final Client transport = mock(Client.class);
   private final Decoder decoder = mock(Decoder.class);
   private final Request.Options options = new Request.Options();
@@ -61,7 +94,7 @@ class FeignLoggingCapabilityTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"200,DEBUG,OK", "201,WARN,OK", "204,WARN,OK", "404,WARN,KO",
+  @CsvSource({"200,INFO,OK", "201,WARN,OK", "204,WARN,OK", "404,WARN,KO",
       "409,WARN,KO", "429,WARN,KO", "500,ERROR,KO", "503,ERROR,KO"})
   void actualFeignResponseProducesExactlyOneHttpEvent(int code, String level, String outcome)
       throws IOException {
@@ -95,7 +128,7 @@ class FeignLoggingCapabilityTest {
       assertTrue(event.path(RESPONSE_TIME).isIntegralNumber());
       assertTrue(event.path(RESPONSE_TIME).longValue() >= 0);
       assertFalse(event.has(HTTP_CODE));
-      assertFalse(event.has(DEPENDENCY));
+      assertEquals("gpd", event.path(DEPENDENCY).textValue());
       assertFalse(event.has(METHOD));
       assertFalse(event.toString().contains("private-"));
       assertEquals("paVerifyPaymentNotice", MDC.get(METHOD));
@@ -123,6 +156,7 @@ class FeignLoggingCapabilityTest {
       assertEquals("WARN", event.path(LOG_LEVEL).asText());
       assertEquals(IOException.class.getName(), event.path(ERROR_TYPE).asText());
       assertEquals("Connection refused", event.path(ERROR_MESSAGE).asText());
+      assertEquals("gpd", event.path(DEPENDENCY).textValue());
       assertFalse(LogCapture.dependency(event).has(HTTP_CODE));
       assertFalse(event.has(HTTP_CODE));
     }
@@ -143,6 +177,7 @@ class FeignLoggingCapabilityTest {
       assertEquals("INFO", event.path(LOG_LEVEL).asText());
       assertEquals(STATUS_KO, event.path(STATUS).asText());
       assertEquals(409, LogCapture.dependency(event).path(HTTP_CODE).intValue());
+      assertEquals("gpd", event.path(DEPENDENCY).textValue());
     }
   }
 
@@ -164,10 +199,10 @@ class FeignLoggingCapabilityTest {
 
   @ParameterizedTest
   @CsvSource({
-      "getPaymentOption, 200, DEBUG", "getPaymentOption, 204, WARN",
+      "getPaymentOption, 200, INFO", "getPaymentOption, 204, WARN",
       "getPaymentOption, 302, WARN", "getPaymentOption, 404, WARN",
       "getPaymentOption, 409, WARN", "getPaymentOption, 500, ERROR",
-      "sendPaymentOptionReceipt, 200, DEBUG", "sendPaymentOptionReceipt, 201, WARN",
+      "sendPaymentOptionReceipt, 200, INFO", "sendPaymentOptionReceipt, 201, WARN",
       "sendPaymentOptionReceipt, 302, WARN", "sendPaymentOptionReceipt, 400, WARN",
       "sendPaymentOptionReceipt, 401, WARN", "sendPaymentOptionReceipt, 403, WARN",
       "sendPaymentOptionReceipt, 404, WARN", "sendPaymentOptionReceipt, 409, INFO",
@@ -195,6 +230,8 @@ class FeignLoggingCapabilityTest {
       JsonNode event = logs.events().get(0);
       assertEquals(level, event.path(LOG_LEVEL).asText());
       assertEquals(code, LogCapture.dependency(event).path(HTTP_CODE).intValue());
+      assertEquals(type == GpdClient.class ? "gpd" : "cache",
+          event.path(DEPENDENCY).textValue());
     }
   }
 
@@ -246,7 +283,7 @@ class FeignLoggingCapabilityTest {
     GpdClient target = Feign.builder().client(transport).contract(new SpringMvcContract())
         .decoder(decoder).options(options).retryer(retryer)
         .encoder((object, type, template) -> {})
-        .addCapability(new GPDFeignConfig("local-test").feignLoggingCapability())
+        .addCapability(new FeignLoggingCapability(Level.INFO))
         .target(new Target.HardCodedTarget<>(GpdClient.class, "gpd", "http://localhost"));
     AspectJProxyFactory factory = new AspectJProxyFactory(target);
     factory.setInterfaces(GpdClient.class);
@@ -257,9 +294,9 @@ class FeignLoggingCapabilityTest {
   @ParameterizedTest
   @CsvSource({
       "getPaymentOption,absent,WARN", "getPaymentOption,0,WARN",
-      "getPaymentOption,unknown,DEBUG", "getPaymentOption,2,DEBUG",
+      "getPaymentOption,unknown,INFO", "getPaymentOption,2,INFO",
       "sendPaymentOptionReceipt,absent,WARN", "sendPaymentOptionReceipt,0,WARN",
-      "sendPaymentOptionReceipt,unknown,DEBUG", "sendPaymentOptionReceipt,2,DEBUG",
+      "sendPaymentOptionReceipt,unknown,INFO", "sendPaymentOptionReceipt,2,INFO",
       "getCacheByKeys,absent,INFO", "getCacheByKeys,0,INFO",
       "getCacheByKeys,unknown,INFO", "getCacheByKeys,2,INFO"
   })

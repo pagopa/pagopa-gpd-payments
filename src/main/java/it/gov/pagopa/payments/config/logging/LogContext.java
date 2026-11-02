@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.config;
+package it.gov.pagopa.payments.config.logging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -52,7 +52,7 @@ public final class LogContext {
   public static final String SERVICE_VERSION = "service.version";
   public static final String SERVICE_ENVIRONMENT = "service.environment";
   public static final String THREAD_NAME = "process.thread.name";
-  static final String REQUEST_FIELDS = LogContext.class.getName();
+  public static final String REQUEST_FIELDS = LogContext.class.getName();
   static final Marker FIELDS = MarkerFactory.getMarker("APPLICATION_FIELDS");
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final Logger LOG = LoggerFactory.getLogger(LogContext.class);
