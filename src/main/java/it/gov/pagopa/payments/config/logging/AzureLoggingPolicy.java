@@ -181,9 +181,16 @@ public final class AzureLoggingPolicy implements HttpPipelinePolicy {
     if (failure != null) {
       fields.put(ERROR_TYPE, failure.getClass().getName());
     }
-    Level level = failure != null ? Level.WARN
-        : code >= 500 ? Level.ERROR
-        : code == expectedStatus(context.getHttpRequest()) ? expectedLogLevel : Level.WARN;
+    Level level;
+    if (failure != null) {
+      level = Level.WARN;
+    } else if (code >= 500) {
+      level = Level.ERROR;
+    } else if (code == expectedStatus(context.getHttpRequest())) {
+      level = expectedLogLevel;
+    } else {
+      level = Level.WARN;
+    }
     Map<String, String> previous = MDC.getCopyOfContextMap();
     try {
       MDC.clear();

@@ -393,9 +393,13 @@ class RequestLoggingTest {
 
   @Endpoint
   public static class SoapEndpoint {
-    public void paSendRT(JAXBElement<PaSendRTReq> request) {}
+    public void paSendRT(JAXBElement<PaSendRTReq> request) {
+      // No-op endpoint: these tests exercise logging in the surrounding aspect.
+    }
 
-    public void paSendRTV2(JAXBElement<PaSendRTV2Request> request) {}
+    public void paSendRTV2(JAXBElement<PaSendRTV2Request> request) {
+      // No-op endpoint: these tests exercise logging in the surrounding aspect.
+    }
 
     public JAXBElement<PaGetPaymentRes> paGetPayment(PaGetPaymentReq request) {
       assertNotNull(request.getQrCode(), "The test endpoint expects a payment notice");

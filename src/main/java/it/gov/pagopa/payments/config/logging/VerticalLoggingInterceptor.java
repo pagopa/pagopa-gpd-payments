@@ -52,8 +52,14 @@ public final class VerticalLoggingInterceptor implements ClientHttpRequestInterc
     }
     dependency.put(LogContext.HTTP_CODE, code);
     fields.put(LogContext.STATUS, code >= 400 ? LogContext.STATUS_KO : LogContext.STATUS_OK);
-    Level level = code >= 500 ? Level.ERROR
-        : code >= 200 && code < 300 ? expectedLogLevel : Level.WARN;
+    Level level;
+    if (code >= 500) {
+      level = Level.ERROR;
+    } else if (code >= 200 && code < 300) {
+      level = expectedLogLevel;
+    } else {
+      level = Level.WARN;
+    }
     completed(fields, started, level);
     return response;
   }

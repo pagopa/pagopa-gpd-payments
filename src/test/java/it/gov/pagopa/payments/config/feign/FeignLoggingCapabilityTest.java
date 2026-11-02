@@ -378,7 +378,7 @@ class FeignLoggingCapabilityTest {
   static class FeignTestConfiguration {
     @Bean
     Client client() {
-      return (request, options) -> {
+      return (request, requestOptions) -> {
         assertEquals(java.util.List.of("request-123"), request.headers().get(HEADER_REQUEST_ID));
         assertEquals(java.util.List.of("local-test"), request.headers().get("Ocp-Apim-Subscription-Key"));
         return Response.builder().request(request).status(204).headers(Map.of()).build();
