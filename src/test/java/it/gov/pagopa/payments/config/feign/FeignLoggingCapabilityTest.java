@@ -42,7 +42,6 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 import org.springframework.cloud.openfeign.support.SpringMvcContract;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 class FeignLoggingCapabilityTest {
   @ParameterizedTest
@@ -374,7 +373,7 @@ class FeignLoggingCapabilityTest {
         null, StandardCharsets.UTF_8, template);
   }
 
-  @Configuration(proxyBeanMethods = false)
+  // Registered explicitly by the runner, never through application component scanning.
   @EnableFeignClients(clients = {GpdClient.class, ApiConfigCacheClient.class})
   static class FeignTestConfiguration {
     @Bean
