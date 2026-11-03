@@ -1,10 +1,10 @@
 package it.gov.pagopa.payments.service;
 
+import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobStorageException;
 import it.gov.pagopa.payments.exception.ReceiptBlobNotFoundException;
-import java.io.ByteArrayInputStream;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +32,7 @@ public class ReceiptBlobStore {
       throw e;
     }
   }
+
   public void upload(
       String organizationFiscalCode,
       String iuv,
@@ -41,8 +42,6 @@ public class ReceiptBlobStore {
         container.getBlobClient(
             blobName(organizationFiscalCode, iuv));
 
-    blobClient.upload(
-        new ByteArrayInputStream(content),
-        content.length);
+    blobClient.upload(BinaryData.fromBytes(content), true);
   }
 }
