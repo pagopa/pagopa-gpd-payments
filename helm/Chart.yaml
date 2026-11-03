@@ -8,3 +8,7 @@ dependencies:
   - name: microservice-chart
     version: 8.0.2
     repository: "https://pagopa.github.io/aks-microservice-chart-blueprint"
+  - name: cron-chart
+    version: 3.0.0
+    repository: "https://pagopa.github.io/aks-cron-chart-blueprint"
+    alias: receipts-backfill-cron
