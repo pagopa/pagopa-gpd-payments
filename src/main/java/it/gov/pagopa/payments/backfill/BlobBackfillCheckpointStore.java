@@ -5,6 +5,7 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -30,12 +31,11 @@ public class BlobBackfillCheckpointStore
   }
 
   @Override
-  public Optional<BackfillCheckpoint> load(
-      String organizationFiscalCode) {
+  public Optional<BackfillCheckpoint> load(boolean dryRun) {
 
     BlobClient blobClient =
         container.getBlobClient(
-            checkpointBlobName(organizationFiscalCode));
+            checkpointBlobName(dryRun));
 
     try {
       byte[] content =
@@ -58,20 +58,20 @@ public class BlobBackfillCheckpointStore
 
     } catch (Exception e) {
       throw new IllegalStateException(
-          "Unable to deserialize backfill checkpoint for organizationFiscalCode="
-              + organizationFiscalCode,
+          "Unable to deserialize backfill checkpoint. dryRun="
+              + dryRun,
           e);
     }
   }
 
   @Override
   public void save(
-      BackfillCheckpoint checkpoint) {
+      BackfillCheckpoint checkpoint,
+      boolean dryRun) {
 
     BlobClient blobClient =
         container.getBlobClient(
-            checkpointBlobName(
-                checkpoint.getOrganizationFiscalCode()));
+            checkpointBlobName(dryRun));
 
     try {
       String json =
@@ -81,34 +81,35 @@ public class BlobBackfillCheckpointStore
           json.getBytes(StandardCharsets.UTF_8);
 
       blobClient.upload(
-          new java.io.ByteArrayInputStream(content),
+          new ByteArrayInputStream(content),
           content.length,
           true);
 
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(
-          "Unable to serialize backfill checkpoint for organizationFiscalCode="
-              + checkpoint.getOrganizationFiscalCode(),
+          "Unable to serialize backfill checkpoint. dryRun="
+              + dryRun,
           e);
     }
   }
 
   @Override
-  public void delete(
-      String organizationFiscalCode) {
+  public void delete(boolean dryRun) {
 
     BlobClient blobClient =
         container.getBlobClient(
-            checkpointBlobName(organizationFiscalCode));
+            checkpointBlobName(dryRun));
 
     blobClient.deleteIfExists();
   }
 
-  static String checkpointBlobName(
-      String organizationFiscalCode) {
+  static String checkpointBlobName(boolean dryRun) {
+
+    String mode =
+        dryRun ? "dry-run/" : "migration/";
 
     return CHECKPOINT_PREFIX
-        + organizationFiscalCode
-        + ".json";
+        + mode
+        + "checkpoint.json";
   }
 }

@@ -1,9 +1,9 @@
 package it.gov.pagopa.payments.backfill;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -20,15 +20,12 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
-import static org.mockito.ArgumentMatchers.anyLong;
 
 @ExtendWith(MockitoExtension.class)
 class BlobBackfillCheckpointStoreTest {
-
-  private static final String ORGANIZATION_CF = "80007580279";
 
   @Mock
   private BlobContainerClient container;
@@ -54,55 +51,50 @@ class BlobBackfillCheckpointStoreTest {
   }
 
   @Test
-  void shouldGenerateCheckpointBlobName() {
+  void shouldGenerateDryRunCheckpointBlobName() {
+
     String blobName =
-        BlobBackfillCheckpointStore.checkpointBlobName(
-            ORGANIZATION_CF);
+        BlobBackfillCheckpointStore.checkpointBlobName(true);
 
     assertEquals(
-        "backfill-checkpoints/80007580279.json",
+        "backfill-checkpoints/dry-run/checkpoint.json",
         blobName);
   }
 
   @Test
-  void shouldLoadCheckpoint() throws Exception {
+  void shouldGenerateMigrationCheckpointBlobName() {
+
+    String blobName =
+        BlobBackfillCheckpointStore.checkpointBlobName(false);
+
+    assertEquals(
+        "backfill-checkpoints/migration/checkpoint.json",
+        blobName);
+  }
+
+  @Test
+  void shouldLoadDryRunCheckpoint() throws Exception {
 
     when(container.getBlobClient(
-        "backfill-checkpoints/" + ORGANIZATION_CF + ".json"))
+        "backfill-checkpoints/dry-run/checkpoint.json"))
         .thenReturn(blobClient);
 
     BackfillCheckpoint expected =
-        new BackfillCheckpoint(
-            ORGANIZATION_CF,
-            "token-page-2",
-            100,
-            90,
-            5,
-            2,
-            1,
-            2,
-            OffsetDateTime.parse("2026-10-30T16:00:00Z"));
+        createCheckpoint();
 
     byte[] json =
         objectMapper.writeValueAsBytes(expected);
 
-    BinaryData binaryData =
-        BinaryData.fromBytes(json);
-
     when(blobClient.downloadContent())
-        .thenReturn(binaryData);
+        .thenReturn(BinaryData.fromBytes(json));
 
     Optional<BackfillCheckpoint> result =
-        checkpointStore.load(ORGANIZATION_CF);
+        checkpointStore.load(true);
 
     assertTrue(result.isPresent());
 
     BackfillCheckpoint actual =
         result.get();
-
-    assertEquals(
-        ORGANIZATION_CF,
-        actual.getOrganizationFiscalCode());
 
     assertEquals(
         "token-page-2",
@@ -116,14 +108,49 @@ class BlobBackfillCheckpointStoreTest {
     assertEquals(2, actual.getFailed());
 
     assertEquals(
+        BackfillStatus.IN_PROGRESS,
+        actual.getStatus());
+
+    assertEquals(
         OffsetDateTime.parse("2026-10-30T16:00:00Z"),
         actual.getUpdatedAt());
   }
 
   @Test
-  void shouldReturnEmptyWhenCheckpointDoesNotExist() {
+  void shouldLoadMigrationCheckpoint() throws Exception {
+
     when(container.getBlobClient(
-        "backfill-checkpoints/" + ORGANIZATION_CF + ".json"))
+        "backfill-checkpoints/migration/checkpoint.json"))
+        .thenReturn(blobClient);
+
+    BackfillCheckpoint expected =
+        createCheckpoint();
+
+    byte[] json =
+        objectMapper.writeValueAsBytes(expected);
+
+    when(blobClient.downloadContent())
+        .thenReturn(BinaryData.fromBytes(json));
+
+    Optional<BackfillCheckpoint> result =
+        checkpointStore.load(false);
+
+    assertTrue(result.isPresent());
+
+    assertEquals(
+        "token-page-2",
+        result.get().getContinuationToken());
+
+    assertEquals(
+        BackfillStatus.IN_PROGRESS,
+        result.get().getStatus());
+  }
+
+  @Test
+  void shouldReturnEmptyWhenDryRunCheckpointDoesNotExist() {
+
+    when(container.getBlobClient(
+        "backfill-checkpoints/dry-run/checkpoint.json"))
         .thenReturn(blobClient);
 
     BlobStorageException exception =
@@ -136,30 +163,24 @@ class BlobBackfillCheckpointStoreTest {
         .thenThrow(exception);
 
     Optional<BackfillCheckpoint> result =
-        checkpointStore.load(ORGANIZATION_CF);
+        checkpointStore.load(true);
 
     assertTrue(result.isEmpty());
   }
 
   @Test
-  void shouldSaveCheckpointWithOverwrite() {
+  void shouldSaveDryRunCheckpointWithOverwrite() {
+
     when(container.getBlobClient(
-        "backfill-checkpoints/" + ORGANIZATION_CF + ".json"))
+        "backfill-checkpoints/dry-run/checkpoint.json"))
         .thenReturn(blobClient);
 
     BackfillCheckpoint checkpoint =
-        new BackfillCheckpoint(
-            ORGANIZATION_CF,
-            "token-page-2",
-            100,
-            90,
-            5,
-            2,
-            1,
-            2,
-            OffsetDateTime.parse("2026-10-30T16:00:00Z"));
+        createCheckpoint();
 
-    checkpointStore.save(checkpoint);
+    checkpointStore.save(
+        checkpoint,
+        true);
 
     verify(blobClient)
         .upload(
@@ -169,17 +190,69 @@ class BlobBackfillCheckpointStoreTest {
   }
 
   @Test
-  void shouldDeleteCheckpoint() {
+  void shouldSaveMigrationCheckpointWithOverwrite() {
+
     when(container.getBlobClient(
-        "backfill-checkpoints/" + ORGANIZATION_CF + ".json"))
+        "backfill-checkpoints/migration/checkpoint.json"))
+        .thenReturn(blobClient);
+
+    BackfillCheckpoint checkpoint =
+        createCheckpoint();
+
+    checkpointStore.save(
+        checkpoint,
+        false);
+
+    verify(blobClient)
+        .upload(
+            any(InputStream.class),
+            anyLong(),
+            eq(true));
+  }
+
+  @Test
+  void shouldDeleteDryRunCheckpoint() {
+
+    when(container.getBlobClient(
+        "backfill-checkpoints/dry-run/checkpoint.json"))
         .thenReturn(blobClient);
 
     when(blobClient.deleteIfExists())
         .thenReturn(true);
 
-    checkpointStore.delete(ORGANIZATION_CF);
+    checkpointStore.delete(true);
 
     verify(blobClient)
         .deleteIfExists();
+  }
+
+  @Test
+  void shouldDeleteMigrationCheckpoint() {
+
+    when(container.getBlobClient(
+        "backfill-checkpoints/migration/checkpoint.json"))
+        .thenReturn(blobClient);
+
+    when(blobClient.deleteIfExists())
+        .thenReturn(true);
+
+    checkpointStore.delete(false);
+
+    verify(blobClient)
+        .deleteIfExists();
+  }
+
+  private BackfillCheckpoint createCheckpoint() {
+
+    return new BackfillCheckpoint(
+        "token-page-2",
+        100,
+        90,
+        5,
+        2,
+        1,
+        2,
+        BackfillStatus.IN_PROGRESS,
+        OffsetDateTime.parse("2026-10-30T16:00:00Z"));
   }
 }
