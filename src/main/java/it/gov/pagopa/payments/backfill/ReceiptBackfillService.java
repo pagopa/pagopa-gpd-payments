@@ -6,6 +6,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableEntityUpdateMode;
+import com.azure.data.tables.models.TableServiceException;
 import it.gov.pagopa.payments.service.ReceiptBlobStore;
 import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.nio.charset.StandardCharsets;
@@ -13,7 +14,6 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import com.azure.data.tables.models.TableServiceException;
 
 @Slf4j
 @Service
@@ -76,11 +76,10 @@ public class ReceiptBackfillService {
 
     try {
 
-        receiptBlobStore.upload(
-            organizationFiscalCode,
-            iuv,
-            document);
-
+      receiptBlobStore.upload(
+          organizationFiscalCode,
+          iuv,
+          document);
 
       byte[] storedDocument =
           receiptBlobStore.download(
@@ -120,32 +119,63 @@ public class ReceiptBackfillService {
       return MigrationResult.MIGRATED;
 
     } catch (TableServiceException e) {
-      if (e.getResponse() != null && e.getResponse().getStatusCode() == 412) {
-        log.warn("Receipt changed during migration, will be retried. organizationFiscalCode={}, iuv={}",
-            organizationFiscalCode, iuv);
+
+      if (e.getResponse() != null
+          && e.getResponse().getStatusCode() == 412) {
+
+        log.warn(
+            "Receipt changed during migration, will be retried. "
+                + "organizationFiscalCode={}, iuv={}",
+            organizationFiscalCode,
+            iuv);
+
         return MigrationResult.RETRYABLE_ERROR;
       }
-      log.error("Table error migrating receipt. organizationFiscalCode={}, iuv={}",
-          organizationFiscalCode, iuv, e);
+
+      log.error(
+          "Table error migrating receipt. organizationFiscalCode={}, iuv={}",
+          organizationFiscalCode,
+          iuv,
+          e);
+
       return MigrationResult.RETRYABLE_ERROR;
+
     } catch (Exception e) {
-      log.error("Error migrating receipt. organizationFiscalCode={}, iuv={}",
-          organizationFiscalCode, iuv, e);
+
+      log.error(
+          "Error migrating receipt. organizationFiscalCode={}, iuv={}",
+          organizationFiscalCode,
+          iuv,
+          e);
+
       return MigrationResult.RETRYABLE_ERROR;
     }
   }
 
-  public MigrationSummary migrateOrganization(
-      String organizationFiscalCode,
-      boolean dryRun) {
+  public MigrationSummary migrateAll(boolean dryRun) {
 
     log.info(
-        "Starting receipt backfill. organizationFiscalCode={}, dryRun={}",
-        organizationFiscalCode,
+        "Starting receipt backfill. dryRun={}",
         dryRun);
 
     Optional<BackfillCheckpoint> existingCheckpoint =
-        checkpointStore.load(organizationFiscalCode);
+        checkpointStore.load(dryRun);
+
+    /*
+     * Important: a null continuation token alone cannot distinguish
+     * "not started" from "completed".
+     */
+    if (existingCheckpoint.isPresent()
+        && existingCheckpoint.get().getStatus()
+        == BackfillStatus.COMPLETED) {
+
+      log.info(
+          "Receipt backfill already completed. dryRun={}",
+          dryRun);
+
+      return new MigrationSummary(
+          existingCheckpoint.get());
+    }
 
     MigrationSummary summary =
         existingCheckpoint
@@ -160,21 +190,18 @@ public class ReceiptBackfillService {
     if (continuationToken != null) {
       log.info(
           "Resuming receipt backfill from checkpoint. "
-              + "organizationFiscalCode={}, continuationToken={}, summary={}",
-          organizationFiscalCode,
+              + "continuationToken={}, summary={}",
           continuationToken,
           summary);
     }
 
-    String escapedCf =
-        organizationFiscalCode.replace("'", "''");
-
-    String filter =
-        "PartitionKey eq '" + escapedCf + "'";
-
+    /*
+     * No PartitionKey filter:
+     * scan the entire Table page by page.
+     */
     PagedIterable<TableEntity> entities =
         tableClient.listEntities(
-            new ListEntitiesOptions().setFilter(filter),
+            new ListEntitiesOptions(),
             null,
             null);
 
@@ -185,6 +212,10 @@ public class ReceiptBackfillService {
 
     for (PagedResponse<TableEntity> page : pages) {
 
+      /*
+       * If processPage throws because of a RETRYABLE_ERROR,
+       * execution stops here and the checkpoint is NOT advanced.
+       */
       processPage(
           page,
           summary,
@@ -193,9 +224,13 @@ public class ReceiptBackfillService {
       String nextContinuationToken =
           page.getContinuationToken();
 
+      BackfillStatus status =
+          nextContinuationToken == null
+              ? BackfillStatus.COMPLETED
+              : BackfillStatus.IN_PROGRESS;
+
       BackfillCheckpoint checkpoint =
           new BackfillCheckpoint(
-              organizationFiscalCode,
               nextContinuationToken,
               summary.getScanned(),
               summary.getMigrated(),
@@ -203,22 +238,23 @@ public class ReceiptBackfillService {
               summary.getInconsistent(),
               summary.getHashMismatch(),
               summary.getFailed(),
+              status,
               OffsetDateTime.now());
 
-      checkpointStore.save(checkpoint);
+      checkpointStore.save(
+          checkpoint,
+          dryRun);
 
       log.info(
           "Receipt backfill page completed. "
-              + "organizationFiscalCode={}, continuationToken={}, summary={}",
-          organizationFiscalCode,
+              + "continuationToken={}, status={}, summary={}",
           nextContinuationToken,
+          status,
           summary);
     }
 
     log.info(
-        "Receipt backfill completed. "
-            + "organizationFiscalCode={}, dryRun={}, summary={}",
-        organizationFiscalCode,
+        "Receipt backfill completed. dryRun={}, summary={}",
         dryRun,
         summary);
 
@@ -230,19 +266,25 @@ public class ReceiptBackfillService {
       MigrationSummary summary,
       boolean dryRun) {
 
-    for (TableEntity entity : page.getValue()) {
+    boolean pageFailed = false;
 
+    for (TableEntity entity : page.getValue()) {
       summary.incrementScanned();
 
-      MigrationResult result;
-
-      if (dryRun) {
-        result = analyze(entity);
-      } else {
-        result = migrateOne(entity);
-      }
+      MigrationResult result =
+          dryRun ? analyze(entity) : migrateOne(entity);
 
       summary.increment(result);
+
+      if (result == MigrationResult.RETRYABLE_ERROR
+          || result == MigrationResult.HASH_MISMATCH) {
+        pageFailed = true;
+      }
+    }
+
+    if (pageFailed) {
+      throw new IllegalStateException(
+          "Errors occurred while processing the backfill page");
     }
   }
 
@@ -254,7 +296,9 @@ public class ReceiptBackfillService {
     Object contentHashProperty =
         entity.getProperty(CONTENT_HASH_PROPERTY);
 
-    if (documentProperty == null && contentHashProperty != null) {
+    if (documentProperty == null
+        && contentHashProperty != null) {
+
       return MigrationResult.ALREADY_MIGRATED;
     }
 

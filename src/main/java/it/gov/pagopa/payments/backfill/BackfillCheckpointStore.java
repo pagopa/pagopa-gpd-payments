@@ -4,12 +4,11 @@ import java.util.Optional;
 
 public interface BackfillCheckpointStore {
 
-  Optional<BackfillCheckpoint> load(
-      String organizationFiscalCode);
+  Optional<BackfillCheckpoint> load(boolean dryRun);
 
   void save(
-      BackfillCheckpoint checkpoint);
+      BackfillCheckpoint checkpoint,
+      boolean dryRun);
 
-  void delete(
-      String organizationFiscalCode);
+  void delete(boolean dryRun);
 }
