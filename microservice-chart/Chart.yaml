@@ -1,6 +1,0 @@
-apiVersion: v2
-appVersion: 0.0.0
-description: A Helm chart for PagoPA microservice
-name: microservice-chart
-type: application
-version: 8.0.2
