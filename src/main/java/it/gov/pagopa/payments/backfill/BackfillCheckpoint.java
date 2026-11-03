@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BackfillCheckpoint {
 
-  private String organizationFiscalCode;
   private String continuationToken;
 
   private long scanned;
@@ -19,6 +18,6 @@ public class BackfillCheckpoint {
   private long inconsistent;
   private long hashMismatch;
   private long failed;
-
+  private BackfillStatus status;
   private OffsetDateTime updatedAt;
 }
