@@ -140,12 +140,12 @@ public class PaymentsService {
                 checkedReceipts.add(
                         ConvertTableEntityToReceiptModelResponse.mapTableEntityToReceiptModelResponse(tableEntity));
             } catch (FeignException.NotFound e) {
-                log.error(
+                log.warn(
                         "[getGPDCheckedReceiptsList] Non-blocking error: "
                                 + "get not found exception in the recovery of payment options",
                         e);
             } catch (AppException e) {
-                log.error(
+                log.warn(
                         "[getGPDCheckedReceiptsList] Non-blocking error: Receipt is not in an eligible state on"
                                 + " GPD in order to be returned to the caller",
                         e);

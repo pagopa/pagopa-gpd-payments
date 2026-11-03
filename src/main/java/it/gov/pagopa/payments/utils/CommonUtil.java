@@ -27,6 +27,8 @@ import org.xml.sax.SAXException;
 public class CommonUtil {
 
   public static final String SERVICE_TYPE_HEADER = "X-Client-Service-Type";
+  public static final String SUBSCRIPTION_KEY_HEADER = "Ocp-Apim-Subscription-Key";
+  public static final String DEFAULT_SERVICE_TYPE = "GPD";
 
   /**
    * @param xml file XML to validate
@@ -77,8 +79,8 @@ public class CommonUtil {
 
   /**
    * The function permits to extract the <i>serviceType</i> value from header
-   * <b>X-Caller-Service-Type</b> in request. If no header is found with that
-   * name, the value <i>"GPD"</i> is returned as default.
+   * <b>{@value #SERVICE_TYPE_HEADER}</b> in request. If no header is found with that
+   * name, the value <i>{@value #DEFAULT_SERVICE_TYPE}</i> is returned as default.
    *
    * @return the service type value
    */
@@ -87,6 +89,6 @@ public class CommonUtil {
             TransportContextHolder.getTransportContext().getConnection())
             .getHttpServletRequest();
     String serviceType = servletRequest.getHeader(SERVICE_TYPE_HEADER);
-    return Objects.requireNonNullElse(serviceType, "GPD");
+    return Objects.requireNonNullElse(serviceType, DEFAULT_SERVICE_TYPE);
   }
 }

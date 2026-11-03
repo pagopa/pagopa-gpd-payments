@@ -15,11 +15,10 @@ public class SoapFaultDefinitionExceptionResolver implements EndpointExceptionRe
 
   public boolean resolveException(MessageContext messageContext, Object endpoint, Exception ex) {
 
-    log.error("an Error occurred: {}", ex.getMessage(), ex);
-
     if (ex instanceof PartnerValidationException partnerValidationException) {
       throw partnerValidationException;
     }
+    log.error("SOAP endpoint failed", ex);
     return false;
   }
 }

@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.9-2"
+    tag: "0.13.10-7-logging-oer-aspect-based"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -80,6 +80,7 @@ microservice-chart:
     RETRY_MULTIPLIER: "2"
     CONNECTION_TIMEOUT: "3000"
     LOGGING_LEVEL: "INFO"
+    LOGGING_LEVEL_EXPECTED_RESULT: "INFO"
     FEIGN_LOG_LEVEL: "BASIC"
     CACHE_SIZE: "1000"
     CACHE_EXPIRATION_TIME: "1d"

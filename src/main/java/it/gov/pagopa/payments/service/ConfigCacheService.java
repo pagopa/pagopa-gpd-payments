@@ -73,7 +73,7 @@ public class ConfigCacheService {
             try {
                 configDataV1 = apiConfigCacheClient.getCacheByKeys("creditorInstitutionStations,maintenanceStations,version");
             } catch (FeignException feignException) {
-                log.error("[apiconfig-cache-update] Feign Exception while download cache {}: {}", feignException.getClass(), feignException.getMessage());
+                log.warn("Configuration cache download failed; existing state retained", feignException);
                 return;
             }
 

@@ -87,10 +87,7 @@ public class SchedulerService {
         	    try {
         	        handlingXml(getMessageContent(message), xpath, message);
         	    } catch (XPathExpressionException e) {
-        	        log.error(
-        	                "[paSendRT] XML error during retry process [messageId={},popReceipt={}]",
-        	                message.getMessageId(),
-        	                message.getPopReceipt());
+                log.error("Retry message XML could not be parsed", e);
         	    }
         	} else {
         	    moveToDeadLetter(message);
