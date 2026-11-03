@@ -7,6 +7,7 @@ import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.service.PaymentsService;
+import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ public class PaymentsController implements IPaymentsController {
   private static final String SEGREGATION_CODES_SEPARATOR = ",";
 
   @Autowired private PaymentsService paymentsService;
+  @Autowired private ReceiptPayloadReader payloadReader;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(
@@ -40,7 +42,7 @@ public class PaymentsController implements IPaymentsController {
             : null;
     ReceiptEntity receipt =
         paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv, segCodesList);
-    return new ResponseEntity<>(receipt.getDocument(), HttpStatus.OK);
+    return new ResponseEntity<>(payloadReader.readDocument(receipt), HttpStatus.OK);
   }
 
   @Override
