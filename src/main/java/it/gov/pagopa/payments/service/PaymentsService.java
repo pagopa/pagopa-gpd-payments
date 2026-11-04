@@ -97,7 +97,6 @@ public class PaymentsService {
             if(e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND){
                 throw new AppException(AppError.RECEIPT_NOT_FOUND, organizationFiscalCode, iuv);
             }
-            log.error("Error in organization table connection", e);
             throw new AppException(AppError.DB_ERROR);
         }
     }

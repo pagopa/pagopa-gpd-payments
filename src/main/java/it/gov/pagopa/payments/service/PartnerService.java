@@ -858,10 +858,6 @@ public class PartnerService {
       return this.getReceiptPaymentOption(
           noticeNumber, organizationFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity);
     } catch (RetryableException e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Not Reachable [noticeNumber={}]",
-          noticeNumber,
-          e);
       queueClient.sendMessageWithResponse(
           receiptEntity.getDocument(),
           Duration.ofSeconds(queueSendInvisibilityTime),
@@ -870,10 +866,6 @@ public class PartnerService {
           Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     } catch (FeignException e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_SEMANTICA: GPD Error Response [noticeNumber={}]",
-          noticeNumber,
-          e);
       queueClient.sendMessageWithResponse(
           receiptEntity.getDocument(),
           Duration.ofSeconds(queueSendInvisibilityTime),
@@ -882,10 +874,6 @@ public class PartnerService {
           Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
     } catch (StorageException e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Storage exception [noticeNumber={}]",
-          noticeNumber,
-          e);
       queueClient.sendMessageWithResponse(
           receiptEntity.getDocument(),
           Duration.ofSeconds(queueSendInvisibilityTime),
@@ -899,10 +887,6 @@ public class PartnerService {
     } catch (Exception e) {
       // no retry because the long-term retry is enabled only when there is a gpd-core error
       // response or a storage communication failure
-      log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Generic Error [noticeNumber={}]",
-          noticeNumber,
-          e);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
   }
@@ -942,9 +926,6 @@ public class PartnerService {
     } catch (FeignException.Conflict e) {
       // if PO is already paid on GPD --> checks and in case creates the receipt in PAID status.
       try {
-        log.debug(
-            "[getReceiptPaymentOption] PAA_RECEIPT_DUPLICATA: GPD Conflict Error Response [noticeNumber={}]",
-            noticeNumber);
         boolean receiptNotFoundInStorage = this.getReceipt(organizationFiscalCode, creditorReferenceId) == null;
 
         boolean isNotACA = true; // default GPD -> it isn't ACA
