@@ -158,8 +158,8 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
 
     if (ex.getCause() != null) {
       log.warn(
-            "App Exception raised: " + ex.getMessage() + "\nCause of the App Exception: ",
-            ex.getCause());
+          "App Exception raised: " + ex.getMessage() + "\nCause of the App Exception: ",
+          ex.getCause());
     } else {
       if (ex.getHttpStatus() != HttpStatus.NOT_FOUND)
         log.warn("App Exception raised: " + ex.getMessage());
@@ -195,7 +195,8 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler(ConstraintViolationException.class)
-  protected ResponseEntity<String> handleConstraintViolationError(final ConstraintViolationException exception) {
+  protected ResponseEntity<String> handleConstraintViolationError(
+      final ConstraintViolationException exception) {
     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
   }
 
@@ -207,5 +208,22 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
             .detail(errorMsg)
             .build();
     return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler({
+    ReceiptBlobNotFoundException.class,
+    ReceiptHashMismatchException.class,
+    ReceiptInconsistentException.class
+  })
+  public ResponseEntity<ProblemJson> handleReceiptStorageException(
+      final RuntimeException ex, final WebRequest request) {
+    log.error("Receipt document unavailable or inconsistent: ", ex);
+    var errorResponse =
+        ProblemJson.builder()
+            .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+            .title(INTERNAL_SERVER_ERROR)
+            .detail("The receipt document is not available.")
+            .build();
+    return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }
