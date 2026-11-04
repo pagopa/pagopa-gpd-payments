@@ -16,6 +16,9 @@ public class SoapFaultDefinitionExceptionResolver implements EndpointExceptionRe
   public boolean resolveException(MessageContext messageContext, Object endpoint, Exception ex) {
 
     if (ex instanceof PartnerValidationException partnerValidationException) {
+      if (partnerValidationException.getCause() != null) {
+        log.error("SOAP endpoint failed", partnerValidationException);
+      }
       throw partnerValidationException;
     }
     log.error("SOAP endpoint failed", ex);

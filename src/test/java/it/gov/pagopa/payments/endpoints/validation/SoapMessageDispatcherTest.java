@@ -17,11 +17,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import it.gov.pagopa.payments.config.logging.LogContext;
+import it.gov.pagopa.payments.config.LogCapture;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.model.PaaErrorEnum;
 import it.gov.pagopa.payments.model.partner.CtResponse;
@@ -283,6 +285,49 @@ class SoapMessageDispatcherTest {
     return Stream.of(PA_GET_PAYMENT, "unknown", null)
         .flatMap(action -> Stream.of(true, false)
             .map(context -> Arguments.of(action, context)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void resolverLogsTechnicalCauseOnceWithoutChangingSoapFault(boolean technical) throws Exception {
+    var servletRequest = new MockHttpServletRequest();
+    var servletResponse = new MockHttpServletResponse();
+    ObjectNode fields = attachFields(servletRequest);
+    servletRequest.addHeader(TransportConstants.HEADER_SOAP_ACTION, PA_SEND_RT);
+    var dispatcher = spy(new SoapMessageDispatcher(factoryUtil, "broker-id"));
+    var failure = technical
+        ? new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR,
+            new IOException("storage unavailable"))
+        : new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+    doAnswer(invocation -> {
+      new SoapFaultDefinitionExceptionResolver().resolveException(null, null, failure);
+      return null;
+    }).when(dispatcher).callService(servletRequest, servletResponse);
+
+    MDC.put(LogContext.CORRELATION_ID, "request-id");
+    try (var resolverLogs = new LogCapture(SoapFaultDefinitionExceptionResolver.class);
+        var dispatcherLogs = new LogCapture(SoapMessageDispatcher.class)) {
+      dispatcher.doService(servletRequest, servletResponse);
+
+      assertEquals(technical ? 1 : 0, resolverLogs.events().size());
+      assertEquals(0, dispatcherLogs.events().size());
+      if (technical) {
+        var diagnostic = resolverLogs.events().get(0);
+        assertEquals("SOAP endpoint failed", diagnostic.path(LogContext.MESSAGE).asText());
+        assertEquals("ERROR", diagnostic.path(LogContext.LOG_LEVEL).asText());
+        assertEquals("request-id", diagnostic.path(LogContext.CORRELATION_ID).asText());
+        assertEquals("java.io.IOException", diagnostic.path(LogContext.ERROR_TYPE).asText());
+        assertEquals("storage unavailable", diagnostic.path(LogContext.ERROR_MESSAGE).asText());
+        assertTrue(
+            diagnostic.path(LogContext.ERROR_STACK_TRACE).asText()
+                .contains("Root cause: java.io.IOException: storage unavailable"));
+      }
+    }
+    assertEquals(200, servletResponse.getStatus());
+    assertEquals(LogContext.STATUS_KO, fields.path(LogContext.STATUS).asText());
+    assertEquals(LogContext.STATUS_KO, fields.path(LogContext.CTX_SOAP_OUTCOME).asText());
+    assertEquals("PAA_SYSTEM_ERROR", fields.path(LogContext.FAULT_CODE).asText());
+    assertFalse(servletResponse.getContentAsString().contains("storage unavailable"));
   }
 
   @ParameterizedTest
