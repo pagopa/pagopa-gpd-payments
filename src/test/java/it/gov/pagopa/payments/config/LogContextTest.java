@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -130,7 +131,7 @@ class LogContextTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
-  void diagnosticsKeepOriginalMessageAndBoundedRootOrCycle(boolean cyclic) {
+  void diagnosticsUseRootCauseOrOriginalFailureForCyclesWithBoundedStack(boolean cyclic) {
     IllegalArgumentException root = new IllegalArgumentException("Root failure");
     IllegalStateException failure = new IllegalStateException("Original failure", root);
     StackTraceElement[] frames = new StackTraceElement[5];
@@ -145,14 +146,61 @@ class LogContextTest {
     try (LogCapture logs = new LogCapture(LogContextTest.class)) {
       LoggerFactory.getLogger(LogContextTest.class).error("Failed", failure);
       JsonNode event = logs.events().get(0);
-      assertEquals(IllegalStateException.class.getName(), event.path(ERROR_TYPE).asText());
-      assertEquals("Original failure", event.path(ERROR_MESSAGE).asText());
+      assertEquals(cyclic ? IllegalStateException.class.getName() : IllegalArgumentException.class.getName(),
+          event.path(ERROR_TYPE).asText());
+      assertEquals(cyclic ? "Original failure" : "Root failure", event.path(ERROR_MESSAGE).asText());
       String stack = event.path(ERROR_STACK_TRACE).asText();
       assertTrue(stack.contains("frame2"));
       assertFalse(stack.contains("frame3"));
       assertTrue(stack.contains("2 frames omitted"));
       assertEquals(cyclic, stack.contains("[circular cause chain]"));
       assertEquals(!cyclic, stack.contains("Root cause:"));
+      assertTrue(stack.startsWith("java.lang.IllegalStateException: Original failure"));
+      assertEquals(!cyclic, stack.contains("java.lang.IllegalArgumentException: Root failure"));
+    }
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {"Storage unavailable", "Storage \"unavailable\"\nPlease retry"})
+  void rootMessageIsPreservedForOrdinaryAndStructuredDiagnostics(String rootMessage) {
+    var root = new IllegalArgumentException(rootMessage);
+    var failure = new IllegalStateException("Generic failure",
+        new RuntimeException("Intermediate failure", root));
+    try (LogCapture logs = new LogCapture(LogContextTest.class)) {
+      var logger = LoggerFactory.getLogger(LogContextTest.class);
+      logger.error("Failed", failure);
+      LogContext.diagnostic(logger, Level.ERROR, "Failed", failure);
+
+      assertEquals(2, logs.events().size());
+      for (JsonNode event : logs.events()) {
+        assertEquals(IllegalArgumentException.class.getName(), event.path(ERROR_TYPE).asText());
+        assertEquals(rootMessage == null ? "Generic failure" : rootMessage,
+            event.path(ERROR_MESSAGE).asText());
+        String rootHeader = "Root cause: java.lang.IllegalArgumentException"
+            + (rootMessage == null ? "" : ": " + rootMessage);
+        assertTrue(event.path(ERROR_STACK_TRACE).asText().contains(rootHeader + "\n"));
+      }
+      for (String line : logs.lines()) {
+        assertTrue(line.endsWith("\n"));
+        assertFalse(line.substring(0, line.length() - 1).contains("\n"));
+      }
+    }
+
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void diagnosticsOmitMessageWhenNeitherOuterNorRootHasOne(boolean withCause) {
+    var failure = new IllegalStateException(null,
+        withCause ? new IllegalArgumentException() : null);
+    try (LogCapture logs = new LogCapture(LogContextTest.class)) {
+      LogContext.diagnostic(LoggerFactory.getLogger(LogContextTest.class), Level.ERROR,
+          "Failed", failure);
+      JsonNode event = logs.events().get(0);
+      assertEquals(withCause ? IllegalArgumentException.class.getName()
+          : IllegalStateException.class.getName(), event.path(ERROR_TYPE).asText());
+      assertFalse(event.has(ERROR_MESSAGE));
     }
   }
 }
