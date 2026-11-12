@@ -4,9 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
@@ -46,6 +48,7 @@ class ReceiptBackfillServiceTest {
   @Mock private TableClient tableClient;
   @Mock private ReceiptBlobStore receiptBlobStore;
   @Mock private BackfillCheckpointStore checkpointStore;
+  @Mock private BackfillAnomalyStore anomalyStore;
 
   private ReceiptBackfillService receiptBackfillService;
 
@@ -55,7 +58,8 @@ class ReceiptBackfillServiceTest {
         new ReceiptBackfillService(
             tableClient,
             receiptBlobStore,
-            checkpointStore);
+            checkpointStore,
+            anomalyStore);
   }
 
   @Test
@@ -773,4 +777,316 @@ class ReceiptBackfillServiceTest {
             any(BackfillCheckpoint.class),
             eq(false));
   }
+  @Test
+  void shouldContinueBackfillWhenInconsistentReceiptIsPersisted() {
+
+    TableEntity entity = new TableEntity(
+        "80007580279",
+        "123456789");
+
+    // Nessun document e nessun contentHash.
+
+    PagedResponse<TableEntity> page = mock(PagedResponse.class);
+
+    when(page.getValue())
+        .thenReturn(List.of(entity));
+
+    when(page.getContinuationToken())
+        .thenReturn(null);
+
+    when(checkpointStore.load(false))
+        .thenReturn(Optional.empty());
+
+    PagedIterable<TableEntity> iterable =
+        mock(PagedIterable.class);
+
+    when(tableClient.listEntities(
+        any(ListEntitiesOptions.class),
+        isNull(),
+        isNull()))
+        .thenReturn(iterable);
+
+    when(iterable.iterableByPage())
+        .thenReturn(List.of(page));
+
+    MigrationSummary summary =
+        receiptBackfillService.migrateAll(false);
+
+    verify(anomalyStore).saveInconsistent(
+        "80007580279",
+        "123456789",
+        false);
+
+    assertEquals(1, summary.getScanned());
+    assertEquals(1, summary.getInconsistent());
+
+    ArgumentCaptor<BackfillCheckpoint> checkpointCaptor =
+        ArgumentCaptor.forClass(BackfillCheckpoint.class);
+
+    verify(checkpointStore).save(
+        checkpointCaptor.capture(),
+        eq(false));
+
+    assertEquals(
+        BackfillStatus.COMPLETED,
+        checkpointCaptor.getValue().getStatus());
+  }
+
+  @Test
+  void shouldNotAdvanceCheckpointWhenAnomalyPersistenceFails() {
+
+    TableEntity entity = new TableEntity(
+        "80007580279",
+        "123456789");
+
+    PagedResponse<TableEntity> page = mock(PagedResponse.class);
+
+    when(page.getValue())
+        .thenReturn(List.of(entity));
+
+    when(checkpointStore.load(false))
+        .thenReturn(Optional.empty());
+
+    PagedIterable<TableEntity> iterable =
+        mock(PagedIterable.class);
+
+    when(tableClient.listEntities(
+        any(ListEntitiesOptions.class),
+        isNull(),
+        isNull()))
+        .thenReturn(iterable);
+
+    when(iterable.iterableByPage())
+        .thenReturn(List.of(page));
+
+    doThrow(new IllegalStateException("Blob unavailable"))
+        .when(anomalyStore)
+        .saveInconsistent(
+            "80007580279",
+            "123456789",
+            false);
+
+    assertThrows(
+        IllegalStateException.class,
+        () -> receiptBackfillService.migrateAll(false));
+
+    verify(checkpointStore, never()).save(
+        any(BackfillCheckpoint.class),
+        anyBoolean());
+  }
+
+  @Test
+  void shouldProcessMixedPageAndSaveCheckpointOnce() {
+
+    // GIVEN
+    String cf = "80007580279";
+
+    // Receipt to migrate
+    TableEntity toMigrate = new TableEntity(cf, "IUV001");
+    toMigrate.addProperty("document", "<receipt>test</receipt>");
+
+    // Already migrated receipt
+    TableEntity alreadyMigrated = new TableEntity(cf, "IUV002");
+    alreadyMigrated.addProperty("contentHash", "existing-hash");
+
+    // Inconsistent receipt
+    TableEntity inconsistent = new TableEntity(cf, "IUV003");
+
+    PagedResponse<TableEntity> page = mock(PagedResponse.class);
+
+    when(page.getValue()).thenReturn(
+        List.of(toMigrate, alreadyMigrated, inconsistent));
+
+    when(page.getContinuationToken()).thenReturn(null);
+
+    when(checkpointStore.load(true))
+        .thenReturn(Optional.empty());
+
+    PagedIterable<TableEntity> iterable = mock(PagedIterable.class);
+
+    when(tableClient.listEntities(
+        any(ListEntitiesOptions.class),
+        isNull(),
+        isNull()))
+        .thenReturn(iterable);
+
+    when(iterable.iterableByPage())
+        .thenReturn(List.of(page));
+
+    // WHEN
+    MigrationSummary summary =
+        receiptBackfillService.migrateAll(true);
+
+    // THEN - Summary
+    assertEquals(3, summary.getScanned());
+    assertEquals(1, summary.getMigrated());
+    assertEquals(1, summary.getAlreadyMigrated());
+    assertEquals(1, summary.getInconsistent());
+    assertEquals(0, summary.getHashMismatch());
+    assertEquals(0, summary.getFailed());
+
+    // THEN - Inconsistent receipt persisted
+    verify(anomalyStore, times(1))
+        .saveInconsistent(cf, "IUV003", true);
+
+    // THEN - Checkpoint saved exactly once
+    ArgumentCaptor<BackfillCheckpoint> checkpointCaptor =
+        ArgumentCaptor.forClass(BackfillCheckpoint.class);
+
+    verify(checkpointStore, times(1))
+        .save(checkpointCaptor.capture(), eq(true));
+
+    BackfillCheckpoint checkpoint = checkpointCaptor.getValue();
+
+    assertEquals(3, checkpoint.getScanned());
+    assertEquals(1, checkpoint.getMigrated());
+    assertEquals(1, checkpoint.getAlreadyMigrated());
+    assertEquals(1, checkpoint.getInconsistent());
+    assertEquals(0, checkpoint.getHashMismatch());
+    assertEquals(0, checkpoint.getFailed());
+
+    assertEquals(BackfillStatus.COMPLETED, checkpoint.getStatus());
+    assertNull(checkpoint.getContinuationToken());
+
+    // THEN - No actual migration in dry-run
+    verifyNoInteractions(receiptBlobStore);
+    verify(tableClient, never()).updateEntityWithResponse(
+        any(TableEntity.class),
+        any(TableEntityUpdateMode.class),
+        anyBoolean(),
+        any(),
+        any());
+  }
+
+  @Test
+  void shouldMigrateMixedPageAndSaveCheckpointOnce() {
+
+    // GIVEN
+    String cf = "80007580279";
+
+    String document = "<receipt>test</receipt>";
+    byte[] documentBytes = document.getBytes(StandardCharsets.UTF_8);
+
+    // 1. Receipt to migrate
+    TableEntity toMigrate = new TableEntity(cf, "IUV001");
+    toMigrate.addProperty("document", document);
+
+    // 2. Already migrated receipt
+    TableEntity alreadyMigrated = new TableEntity(cf, "IUV002");
+    alreadyMigrated.addProperty("contentHash", "existing-hash");
+
+    // 3. Inconsistent receipt
+    TableEntity inconsistent = new TableEntity(cf, "IUV003");
+
+    // Mock Blob upload/download
+    when(receiptBlobStore.download(cf, "IUV001"))
+        .thenReturn(documentBytes);
+
+    // Mock Cosmos Table page
+    PagedResponse<TableEntity> page = mock(PagedResponse.class);
+
+    when(page.getValue()).thenReturn(
+        List.of(toMigrate, alreadyMigrated, inconsistent));
+
+    when(page.getContinuationToken()).thenReturn(null);
+
+    when(checkpointStore.load(false))
+        .thenReturn(Optional.empty());
+
+    PagedIterable<TableEntity> iterable = mock(PagedIterable.class);
+
+    when(tableClient.listEntities(
+        any(ListEntitiesOptions.class),
+        isNull(),
+        isNull()))
+        .thenReturn(iterable);
+
+    when(iterable.iterableByPage())
+        .thenReturn(List.of(page));
+
+    // WHEN
+    MigrationSummary summary =
+        receiptBackfillService.migrateAll(false);
+
+    // THEN - Verify Blob upload
+    verify(receiptBlobStore, times(1))
+        .upload(
+            eq(cf),
+            eq("IUV001"),
+            aryEq(documentBytes));
+
+    // THEN - Verify Blob download
+    verify(receiptBlobStore, times(1))
+        .download(cf, "IUV001");
+
+    // THEN - Verify Table update
+    ArgumentCaptor<TableEntity> entityCaptor =
+        ArgumentCaptor.forClass(TableEntity.class);
+
+    verify(tableClient, times(1))
+        .updateEntityWithResponse(
+            entityCaptor.capture(),
+            eq(TableEntityUpdateMode.REPLACE),
+            eq(true),
+            isNull(),
+            isNull());
+
+    TableEntity updatedEntity = entityCaptor.getValue();
+
+    assertEquals(cf, updatedEntity.getPartitionKey());
+    assertEquals("IUV001", updatedEntity.getRowKey());
+
+    // Document removed after migration
+    assertNull(updatedEntity.getProperty("document"));
+
+    // SHA-256 persisted in Table
+    String expectedHash =
+        ReceiptPayloadReader.sha256Hex(documentBytes);
+
+    assertEquals(
+        expectedHash,
+        updatedEntity.getProperty("contentHash"));
+
+    // THEN - Verify inconsistent receipt persisted
+    verify(anomalyStore, times(1))
+        .saveInconsistent(cf, "IUV003", false);
+
+    // THEN - Verify summary
+    assertEquals(3, summary.getScanned());
+    assertEquals(1, summary.getMigrated());
+    assertEquals(1, summary.getAlreadyMigrated());
+    assertEquals(1, summary.getInconsistent());
+    assertEquals(0, summary.getHashMismatch());
+    assertEquals(0, summary.getFailed());
+
+    // THEN - Verify checkpoint saved exactly once
+    ArgumentCaptor<BackfillCheckpoint> checkpointCaptor =
+        ArgumentCaptor.forClass(BackfillCheckpoint.class);
+
+    verify(checkpointStore, times(1))
+        .save(checkpointCaptor.capture(), eq(false));
+
+    BackfillCheckpoint checkpoint = checkpointCaptor.getValue();
+
+    assertEquals(3, checkpoint.getScanned());
+    assertEquals(1, checkpoint.getMigrated());
+    assertEquals(1, checkpoint.getAlreadyMigrated());
+    assertEquals(1, checkpoint.getInconsistent());
+    assertEquals(0, checkpoint.getHashMismatch());
+    assertEquals(0, checkpoint.getFailed());
+
+    assertEquals(
+        BackfillStatus.COMPLETED,
+        checkpoint.getStatus());
+
+    assertNull(checkpoint.getContinuationToken());
+
+    // No upload for already migrated or inconsistent receipts
+    verify(receiptBlobStore, times(1))
+        .upload(anyString(), anyString(), any(byte[].class));
+
+    verify(receiptBlobStore, times(1))
+        .download(anyString(), anyString());
+  }
+
 }
