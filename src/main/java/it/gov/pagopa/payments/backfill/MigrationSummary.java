@@ -59,6 +59,15 @@ public class MigrationSummary {
     return failed;
   }
 
+  public void add(MigrationSummary other) {
+    this.scanned += other.scanned;
+    this.migrated += other.migrated;
+    this.alreadyMigrated += other.alreadyMigrated;
+    this.inconsistent += other.inconsistent;
+    this.hashMismatch += other.hashMismatch;
+    this.failed += other.failed;
+  }
+
   @Override
   public String toString() {
     return "MigrationSummary{"
