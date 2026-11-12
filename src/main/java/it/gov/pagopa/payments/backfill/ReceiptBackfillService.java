@@ -25,15 +25,19 @@ public class ReceiptBackfillService {
   private final TableClient tableClient;
   private final ReceiptBlobStore receiptBlobStore;
   private final BackfillCheckpointStore checkpointStore;
+  private final BackfillAnomalyStore anomalyStore;
+
 
   public ReceiptBackfillService(
       TableClient tableClient,
       ReceiptBlobStore receiptBlobStore,
-      BackfillCheckpointStore checkpointStore) {
+      BackfillCheckpointStore checkpointStore,
+      BackfillAnomalyStore anomalyStore) {
 
     this.tableClient = tableClient;
     this.receiptBlobStore = receiptBlobStore;
     this.checkpointStore = checkpointStore;
+    this.anomalyStore = anomalyStore;
   }
 
   public MigrationResult migrateOne(TableEntity entity) {
@@ -212,14 +216,9 @@ public class ReceiptBackfillService {
 
     for (PagedResponse<TableEntity> page : pages) {
 
-      /*
-       * If processPage throws because of a RETRYABLE_ERROR,
-       * execution stops here and the checkpoint is NOT advanced.
-       */
-      processPage(
-          page,
-          summary,
-          dryRun);
+      MigrationSummary pageSummary = processPage(page, dryRun);
+
+      summary.add(pageSummary);
 
       String nextContinuationToken =
           page.getContinuationToken();
@@ -261,20 +260,34 @@ public class ReceiptBackfillService {
     return summary;
   }
 
-  private void processPage(
+  private MigrationSummary  processPage(
       PagedResponse<TableEntity> page,
-      MigrationSummary summary,
       boolean dryRun) {
+
+    MigrationSummary pageSummary = new MigrationSummary();
 
     boolean pageFailed = false;
 
     for (TableEntity entity : page.getValue()) {
-      summary.incrementScanned();
+      pageSummary.incrementScanned();
 
       MigrationResult result =
           dryRun ? analyze(entity) : migrateOne(entity);
 
-      summary.increment(result);
+      if (result == MigrationResult.INCONSISTENT) {
+        anomalyStore.saveInconsistent(
+            entity.getPartitionKey(),
+            entity.getRowKey(),
+            dryRun);
+
+        log.warn(
+            "Inconsistent receipt persisted. "
+                + "organizationFiscalCode={}, iuv={}",
+            entity.getPartitionKey(),
+            entity.getRowKey());
+      }
+
+      pageSummary.increment(result);
 
       if (result == MigrationResult.RETRYABLE_ERROR
           || result == MigrationResult.HASH_MISMATCH) {
@@ -286,6 +299,7 @@ public class ReceiptBackfillService {
       throw new IllegalStateException(
           "Errors occurred while processing the backfill page");
     }
+    return pageSummary;
   }
 
   private MigrationResult analyze(TableEntity entity) {
