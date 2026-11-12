@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.11"
+    tag: "0.13.12-PIDM-2540-write"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -109,7 +109,7 @@ microservice-chart:
     SUPPRESSED_ERRORS_STATIONS: "15376371009_11"
     SUPPRESSED_ERRORS_VALUES: "PAA_PAGAMENTO_SCONOSCIUTO,PAA_RECEIPT_DUPLICATA"
     RECEIPTS_BLOB_VERIFY_HASH: "true"
-    RECEIPTS_BLOB_WRITE_ENABLED:  "true"
+    RECEIPTS_BLOB_WRITE_ENABLED: "true"
   envSecret:
     # required
     APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-d-connection-string'

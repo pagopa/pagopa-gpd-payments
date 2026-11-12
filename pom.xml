@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.11</version>
+    <version>0.13.12-PIDM-2540-write</version>
     <name>Payments</name>
     <description>Payments</description>
 
