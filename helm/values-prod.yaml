@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.12"
+    tag: "0.13.12-PIDM-2540-write"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -79,7 +79,7 @@ microservice-chart:
     RETRY_MULTIPLIER: "2"
     CONNECTION_TIMEOUT: "3000"
     LOGGING_LEVEL: "INFO"
-    LOGGING_LEVEL_EXPECTED_RESULT: "DEBUG"
+    LOGGING_LEVEL_EXPECTED_RESULT: "INFO"
     FEIGN_LOG_LEVEL: "BASIC"
     CACHE_SIZE: "1000"
     CACHE_EXPIRATION_TIME: "1d"
