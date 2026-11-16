@@ -640,8 +640,14 @@ public class PartnerService {
       throws InvalidKeyException, URISyntaxException, StorageException {
     try {
       if (blobWriteEnabled) {
+        log.info("[saveReceipt] saving receipt on blob storage [organizationFiscalCode={}, iuv={}]",
+            receiptEntity.getOrganizationFiscalCode(),
+            receiptEntity.getIuv());
         saveReceiptWithBlob(receiptEntity);
       } else {
+        log.info("[saveReceipt] saving receipt on table storage [organizationFiscalCode={}, iuv={}]",
+            receiptEntity.getOrganizationFiscalCode(),
+            receiptEntity.getIuv());
         TableEntity tableEntity = getTableEntity(receiptEntity);
         tableClient.createEntity(tableEntity);
       }
