@@ -1,4 +1,4 @@
-microservice-chart:
+microservice-chart: &microservice-chart
   namespace: "gps"
   nameOverride: ""
   fullnameOverride: ""
@@ -65,11 +65,11 @@ microservice-chart:
     cooldownPeriod: 50 # seconds
     triggers:
       - type: cpu
+        metricType: Utilization # Allowed types are 'Utilization' or 'AverageValue'
         metadata:
           # Required
-          type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
           value: "75"
-  envConfig:
+  envConfig: &envConfig
     JAVA_TOOL_OPTIONS: "-XX:-UseBASE64Intrinsics"
     ENV: 'uat'
     WEBSITE_SITE_NAME: 'pagopa-u-gpd-payments-service'
