@@ -163,7 +163,7 @@ receipts-backfill-cron:
   concurrencyPolicy: "Forbid"
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.15-PIDM-2540-receipts-blob-backfill"
+    tag: "0.13.17-PIDM-2540-receipts-blob-backfill"
     pullPolicy: Always
   resources:
     requests:
