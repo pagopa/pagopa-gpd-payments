@@ -4,7 +4,7 @@ microservice-chart: &microservice-chart
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.17-PIDM-2540-receipts-blob-backfill"
+    tag: "0.13.18-PIDM-2540-receipts-blob-backfill"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -163,7 +163,7 @@ receipts-backfill-cron:
   concurrencyPolicy: "Forbid"
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.17-PIDM-2540-receipts-blob-backfill"
+    tag: "0.13.18-PIDM-2540-receipts-blob-backfill"
     pullPolicy: Always
   resources:
     requests:
