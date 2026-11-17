@@ -32,4 +32,17 @@ public class ReceiptBlobStore {
       throw e;
     }
   }
+  public void upload(
+      String organizationFiscalCode,
+      String iuv,
+      byte[] content) {
+
+    BlobClient blobClient =
+        container.getBlobClient(
+            blobName(organizationFiscalCode, iuv));
+
+    blobClient.upload(
+        new ByteArrayInputStream(content),
+        content.length);
+  }
 }
