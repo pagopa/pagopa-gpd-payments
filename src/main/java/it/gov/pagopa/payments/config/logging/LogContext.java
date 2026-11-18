@@ -103,10 +103,6 @@ public final class LogContext {
   }
 
   static ObjectNode diagnosticFields(Throwable failure) {
-    ObjectNode fields = event().put(ERROR_TYPE, failure.getClass().getName());
-    if (failure.getMessage() != null) {
-      fields.put(ERROR_MESSAGE, failure.getMessage());
-    }
     Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
     Throwable root = failure;
     seen.add(root);
@@ -114,6 +110,12 @@ public final class LogContext {
       root = root.getCause();
     }
     boolean cyclic = root.getCause() != null;
+    Throwable diagnostic = cyclic ? failure : root;
+    ObjectNode fields = event().put(ERROR_TYPE, diagnostic.getClass().getName());
+    String message = diagnostic.getMessage() != null ? diagnostic.getMessage() : failure.getMessage();
+    if (message != null) {
+      fields.put(ERROR_MESSAGE, message);
+    }
     StringBuilder stack = new StringBuilder();
     appendFrames(stack, failure);
     if (!cyclic && root != failure) {
@@ -129,6 +131,9 @@ public final class LogContext {
 
   private static void appendFrames(StringBuilder stack, Throwable failure) {
     stack.append(failure.getClass().getName());
+    if (failure.getMessage() != null) {
+      stack.append(": ").append(failure.getMessage());
+    }
     StackTraceElement[] frames = failure.getStackTrace();
     for (int i = 0; i < Math.min(3, frames.length); i++) {
       stack.append("\n\tat ").append(frames[i]);

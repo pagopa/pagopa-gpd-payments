@@ -11,7 +11,11 @@ public class PartnerValidationException extends IllegalArgumentException {
   private final PaaErrorEnum error;
 
   public PartnerValidationException(PaaErrorEnum error) {
-    super(String.format("%s, %s", error.getFaultCode(), error.getDescription()));
+    this(error, null);
+  }
+
+  public PartnerValidationException(PaaErrorEnum error, Throwable cause) {
+    super(String.format("%s, %s", error.getFaultCode(), error.getDescription()), cause);
     this.error = error;
   }
 }

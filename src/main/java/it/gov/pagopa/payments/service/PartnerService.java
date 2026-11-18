@@ -75,8 +75,6 @@ public class PartnerService {
 
   public static final String SERVICE_TYPE_ACA = "ACA";
 
-  private static final String DBERROR = "Error in organization table connection";
-
   private final Long queueSendInvisibilityTime;
 
   private final ObjectFactory factory;
@@ -143,11 +141,7 @@ public class PartnerService {
     } catch (PartnerValidationException e) {
       throw e;
     } catch (Exception e) {
-      log.error(
-          "[paVerifyPaymentNotice] GPD Generic Error [noticeNumber={}]",
-          request.getQrCode().getNoticeNumber(),
-          e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     }
 
     checkDebtPositionStatus(paymentOption);
@@ -261,8 +255,7 @@ public class PartnerService {
     } catch (FeignException.NotFound e) {
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
     } catch (Exception e) {
-      log.error("[paDemandPaymentNotice] Vertical Service Generic Error", e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     }
   }
 
@@ -632,8 +625,7 @@ public class PartnerService {
       if (e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
         throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
       }
-      log.error(DBERROR, e);
-      throw new AppException(AppError.DB_ERROR);
+      throw new AppException(AppError.DB_ERROR, e);
     }
   }
 
@@ -656,8 +648,7 @@ public class PartnerService {
       return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
     } catch (TableServiceException e) {
       if (e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) return null;
-      log.error(DBERROR, e);
-      throw new AppException(AppError.DB_ERROR);
+      throw new AppException(AppError.DB_ERROR, e);
     }
   }
 
@@ -721,11 +712,7 @@ public class PartnerService {
     } catch (PartnerValidationException e) {
       throw e;
     } catch (Exception e) {
-      log.error(
-          "[manageGetPaymentRequest] GPD Generic Error [noticeNumber={}]",
-          qrCode.getNoticeNumber(),
-          e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     }
     checkDebtPositionStatus(paymentOption);
     return paymentOption;
@@ -751,11 +738,7 @@ public class PartnerService {
     try {
       receiptEntity.setDocument(this.marshal(request));
     } catch (JAXBException e) {
-      log.error(
-          "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
-          request.getReceipt().getNoticeNumber(),
-          e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     }
 
     boolean isStandIn = request.getReceipt().isStandIn() != null ? request.getReceipt().isStandIn() : false;
@@ -808,11 +791,7 @@ public class PartnerService {
     try {
       receiptEntity.setDocument(this.marshalV2(request));
     } catch (JAXBException e) {
-      log.error(
-          "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
-          request.getReceipt().getNoticeNumber(),
-          e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     }
 
     boolean isStandIn = request.getReceipt().isStandIn() != null ? request.getReceipt().isStandIn() : false;
@@ -857,53 +836,29 @@ public class PartnerService {
     try {
       return this.getReceiptPaymentOption(
           noticeNumber, organizationFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity);
-    } catch (RetryableException e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Not Reachable [noticeNumber={}]",
-          noticeNumber,
-          e);
+    } catch (RetryableException | StorageException e) {
       queueClient.sendMessageWithResponse(
           receiptEntity.getDocument(),
           Duration.ofSeconds(queueSendInvisibilityTime),
           null,
           null,
           Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     } catch (FeignException e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_SEMANTICA: GPD Error Response [noticeNumber={}]",
-          noticeNumber,
-          e);
       queueClient.sendMessageWithResponse(
           receiptEntity.getDocument(),
           Duration.ofSeconds(queueSendInvisibilityTime),
           null,
           null,
           Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
-    } catch (StorageException e) {
-      log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Storage exception [noticeNumber={}]",
-          noticeNumber,
-          e);
-      queueClient.sendMessageWithResponse(
-          receiptEntity.getDocument(),
-          Duration.ofSeconds(queueSendInvisibilityTime),
-          null,
-          null,
-          Context.NONE);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA, e);
     } catch (PartnerValidationException e) {
       // { PAA_RECEIPT_DUPLICATA, PAA_PAGAMENTO_SCONOSCIUTO }
       throw e;
     } catch (Exception e) {
       // no retry because the long-term retry is enabled only when there is a gpd-core error
       // response or a storage communication failure
-      log.error(
-          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Generic Error [noticeNumber={}]",
-          noticeNumber,
-          e);
-      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR, e);
     }
   }
 
@@ -942,9 +897,6 @@ public class PartnerService {
     } catch (FeignException.Conflict e) {
       // if PO is already paid on GPD --> checks and in case creates the receipt in PAID status.
       try {
-        log.debug(
-            "[getReceiptPaymentOption] PAA_RECEIPT_DUPLICATA: GPD Conflict Error Response [noticeNumber={}]",
-            noticeNumber);
         boolean receiptNotFoundInStorage = this.getReceipt(organizationFiscalCode, creditorReferenceId) == null;
 
         boolean isNotACA = true; // default GPD -> it isn't ACA
