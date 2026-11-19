@@ -159,7 +159,7 @@ receipts-backfill-cron:
 
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.18-PIDM-2540-receipts-blob-backfill"
+    tag: "0.13.19-PIDM-2540-receipts-blob-backfill"
     pullPolicy: Always
 
   resources:

@@ -7,12 +7,17 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableEntityUpdateMode;
 import com.azure.data.tables.models.TableServiceException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.payments.service.ReceiptBlobStore;
 import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -27,6 +32,14 @@ public class ReceiptBackfillService {
   private final BackfillCheckpointStore checkpointStore;
   private final BackfillAnomalyStore anomalyStore;
 
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().findAndRegisterModules();
+
+  @Value("${receipts.backfill.test.stop-after-pages:0}")
+  private int stopAfterPages;
+
+  @Value("${receipts.backfill.test.stop-after-entities:0}")
+  private int stopAfterEntities;
 
   public ReceiptBackfillService(
       TableClient tableClient,
@@ -157,7 +170,6 @@ public class ReceiptBackfillService {
   }
 
   public MigrationSummary migrateAll(boolean dryRun) {
-
     log.info(
         "Starting receipt backfill. dryRun={}",
         dryRun);
@@ -165,10 +177,6 @@ public class ReceiptBackfillService {
     Optional<BackfillCheckpoint> existingCheckpoint =
         checkpointStore.load(dryRun);
 
-    /*
-     * Important: a null continuation token alone cannot distinguish
-     * "not started" from "completed".
-     */
     if (existingCheckpoint.isPresent()
         && existingCheckpoint.get().getStatus()
         == BackfillStatus.COMPLETED) {
@@ -199,10 +207,6 @@ public class ReceiptBackfillService {
           summary);
     }
 
-    /*
-     * No PartitionKey filter:
-     * scan the entire Table page by page.
-     */
     PagedIterable<TableEntity> entities =
         tableClient.listEntities(
             new ListEntitiesOptions(),
@@ -214,9 +218,13 @@ public class ReceiptBackfillService {
             ? entities.iterableByPage()
             : entities.iterableByPage(continuationToken);
 
+    Map<String, BackfillSizeStats> statsByCf = new LinkedHashMap<>();
+
+    int processedPages = 0;
+
     for (PagedResponse<TableEntity> page : pages) {
 
-      MigrationSummary pageSummary = processPage(page, dryRun);
+      MigrationSummary pageSummary = processPage(page, dryRun, statsByCf);
 
       summary.add(pageSummary);
 
@@ -250,6 +258,25 @@ public class ReceiptBackfillService {
           nextContinuationToken,
           status,
           summary);
+
+      processedPages++;
+
+      if (dryRun
+          && stopAfterPages > 0
+          && processedPages >= stopAfterPages
+          && status == BackfillStatus.IN_PROGRESS) {
+
+        log.warn(
+            "[DRY-RUN TEST] Simulated interruption after {} pages. "
+            + "Checkpoint saved. continuationToken={}, summary={}",
+            processedPages,
+            nextContinuationToken,
+            summary);
+
+        throw new IllegalStateException(
+            "Simulated dry-run interruption after "
+            + processedPages + " pages");
+      }
     }
 
     log.info(
@@ -257,12 +284,47 @@ public class ReceiptBackfillService {
         dryRun,
         summary);
 
+    if (dryRun) {
+      BackfillSizeStats total = new BackfillSizeStats();
+
+      statsByCf.forEach((cf, stats) -> {
+        total.merge(stats);
+
+        log.info(
+            "[DRY-RUN SIZE] CF={}, entities={}, toMigrate={}, "
+            + "currentBytes={}, xmlBytes={}, projectedBytes={}, "
+            + "savedBytes={}, reduction={}%",
+            cf,
+            stats.getEntityCount(),
+            stats.getReceiptsToMigrate(),
+            stats.getCurrentBytes(),
+            stats.getXmlBytes(),
+            stats.getProjectedBytes(),
+            stats.getSavedBytes(),
+            String.format(java.util.Locale.ROOT,
+                "%.2f", stats.getReductionPercentage()));
+      });
+
+      log.info(
+          "[DRY-RUN SIZE TOTAL] entities={}, toMigrate={}, "
+          + "currentBytes={}, xmlBytes={}, projectedBytes={}, "
+          + "savedBytes={}, reduction={}%",
+          total.getEntityCount(),
+          total.getReceiptsToMigrate(),
+          total.getCurrentBytes(),
+          total.getXmlBytes(),
+          total.getProjectedBytes(),
+          total.getSavedBytes(),
+          String.format(java.util.Locale.ROOT,
+              "%.2f", total.getReductionPercentage()));
+    }
     return summary;
   }
 
   private MigrationSummary  processPage(
       PagedResponse<TableEntity> page,
-      boolean dryRun) {
+      boolean dryRun,
+      Map<String, BackfillSizeStats> statsByCf) {
 
     MigrationSummary pageSummary = new MigrationSummary();
 
@@ -270,6 +332,14 @@ public class ReceiptBackfillService {
 
     for (TableEntity entity : page.getValue()) {
       pageSummary.incrementScanned();
+
+      if (dryRun) {
+        BackfillSizeStats stats = statsByCf.computeIfAbsent(
+            entity.getPartitionKey(),
+            key -> new BackfillSizeStats());
+
+        collectSizeStats(entity, stats);
+      }
 
       MigrationResult result =
           dryRun ? analyze(entity) : migrateOne(entity);
@@ -288,6 +358,24 @@ public class ReceiptBackfillService {
       }
 
       pageSummary.increment(result);
+
+      if (dryRun
+          && stopAfterEntities > 0
+          && pageSummary.getScanned() >= stopAfterEntities) {
+
+        log.warn(
+            "[DRY-RUN TEST] Simulated interruption inside page "
+            + "after {} entities. "
+            + "Page checkpoint NOT saved. "
+            + "pageSummary={}",
+            pageSummary.getScanned(),
+            pageSummary);
+
+        throw new IllegalStateException(
+            "Simulated dry-run interruption inside page after "
+            + pageSummary.getScanned()
+            + " entities");
+      }
 
       if (result == MigrationResult.RETRYABLE_ERROR
           || result == MigrationResult.HASH_MISMATCH) {
@@ -321,5 +409,53 @@ public class ReceiptBackfillService {
     }
 
     return MigrationResult.MIGRATED;
+  }
+
+  private long estimateEntitySize(TableEntity entity) {
+    try {
+      Map<String, Object> properties = new LinkedHashMap<>();
+
+      properties.put("PartitionKey", entity.getPartitionKey());
+      properties.put("RowKey", entity.getRowKey());
+      properties.putAll(entity.getProperties());
+
+      return objectMapper.writeValueAsBytes(properties).length;
+
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException(
+          "Cannot estimate entity size", e);
+    }
+  }
+
+  private void collectSizeStats(
+      TableEntity entity,
+      BackfillSizeStats stats) {
+
+    long currentSize = estimateEntitySize(entity);
+
+    Object documentProperty = entity.getProperty(DOCUMENT_PROPERTY);
+
+    if (documentProperty == null) {
+      stats.add(currentSize, currentSize, 0, false);
+      return;
+    }
+
+    byte[] document = documentProperty.toString()
+        .getBytes(StandardCharsets.UTF_8);
+
+    TableEntity projected = new TableEntity(
+        entity.getPartitionKey(),
+        entity.getRowKey());
+
+    projected.getProperties().putAll(entity.getProperties());
+    projected.getProperties().remove(DOCUMENT_PROPERTY);
+
+    projected.addProperty(
+        CONTENT_HASH_PROPERTY,
+        ReceiptPayloadReader.sha256Hex(document));
+
+    long projectedSize = estimateEntitySize(projected);
+
+    stats.add(currentSize, projectedSize, document.length, true);
   }
 }
