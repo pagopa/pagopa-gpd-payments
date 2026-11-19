@@ -153,10 +153,6 @@ receipts-backfill-cron:
   schedule: "0 0 1 1 *"
   timeZone: "Europe/Rome"
   concurrencyPolicy: "Forbid"
-  image:
-    repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.20-PIDM-2540-receipts-blob-backfill"
-    pullPolicy: Always
   resources:
     requests:
       memory: "512Mi"
