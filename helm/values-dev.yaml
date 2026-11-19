@@ -71,6 +71,7 @@ microservice-chart: &microservice-chart
         metadata:
           value: "75"
   envConfig: &envConfig
+    JAVA_TOOL_OPTIONS: "-XX:-UseBASE64Intrinsics"
     ENV: 'dev'
     WEBSITE_SITE_NAME: 'pagopa-d-gpd-payments-service'
     PAYMENTS_RECEIPTS_MONTHS_WINDOW: "3"
