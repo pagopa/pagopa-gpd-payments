@@ -4,7 +4,7 @@
     "title": "PagoPA API Payments",
     "description": "Payments",
     "termsOfService": "https://www.pagopa.gov.it/",
-    "version": "0.13.21-PIDM-2540-receipts-blob-backfill"
+    "version": "0.13.22-PIDM-2540-receipts-blob-backfill"
   },
   "servers": [
     {
