@@ -4,7 +4,7 @@ microservice-chart: &microservice-chart
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.20-PIDM-2540-receipts-blob-backfill"
+    tag: "0.13.21-PIDM-2540-receipts-blob-backfill"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -152,17 +152,14 @@ microservice-chart: &microservice-chart
     envSecret: {}
 receipts-backfill-cron:
   !!merge <<: *microservice-chart
-
   suspend: true
   schedule: "0 0 1 1 *"
   timeZone: "Europe/Rome"
   concurrencyPolicy: "Forbid"
-
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
     tag: "0.13.19-PIDM-2540-receipts-blob-backfill"
     pullPolicy: Always
-
   resources:
     requests:
       memory: "512Mi"
@@ -170,7 +167,6 @@ receipts-backfill-cron:
     limits:
       memory: "768Mi"
       cpu: "0.5"
-
   envConfig:
     !!merge <<: *envConfig
     SPRING_MAIN_WEB_APPLICATION_TYPE: "none"
@@ -179,6 +175,5 @@ receipts-backfill-cron:
     RECEIPTS_BLOB_WRITE_ENABLED: "false"
     RECEIPTS_BACKFILL_ENABLED: "true"
     RECEIPTS_BACKFILL_DRY_RUN: "true"
-
   envSecrets:
     !!merge <<: *envSecret
