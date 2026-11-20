@@ -156,6 +156,13 @@ receipts-backfill-cron:
   schedule: "0 0 1 1 *"
   timeZone: "Europe/Rome"
   concurrencyPolicy: "Forbid"
+  command:
+    - java
+
+  args:
+    - -cp
+    - "BOOT-INF/classes:BOOT-INF/lib/*"
+    - it.gov.pagopa.backfill.ReceiptBackfillApplication
   resources:
     requests:
       memory: "512Mi"
