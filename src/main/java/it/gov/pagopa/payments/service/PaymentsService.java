@@ -68,7 +68,7 @@ public class PaymentsService {
         	
             PageInfo filteredEntities = retrieveEntitiesByFilter(tableClient,
                     organizationFiscalCode, debtor, service, normalizedFrom, normalizedTo, pageNum, pageSize, segCodes, debtorOrIuv);
-            
+
             List<ReceiptModelResponse> checkedReceipts =
                     getGPDCheckedReceiptsList(filteredEntities.getReceiptsList());
             
@@ -132,13 +132,18 @@ public class PaymentsService {
     public List<ReceiptModelResponse> getGPDCheckedReceiptsList(List<TableEntity> result) {
         // for all the receipts in the azure table, only those that have been already PAID status or are
         // in PAID status on GPD are returned
+        log.info("[getGPDCheckedReceiptsList] Received {} receipts from Azure Table", result.size());
+
         List<ReceiptModelResponse> checkedReceipts = new ArrayList<>();
 
         for (TableEntity tableEntity : result) {
             try {
+                log.info("[getGPDCheckedReceiptsList] Received {} receipts from Azure Table", result.size());
                 this.checkGPDDebtPosStatus(tableEntity);
                 checkedReceipts.add(
                         ConvertTableEntityToReceiptModelResponse.mapTableEntityToReceiptModelResponse(tableEntity));
+                log.info("[getGPDCheckedReceiptsList] Receipt accepted. RK: {}",
+                    tableEntity.getRowKey());
             } catch (FeignException.NotFound e) {
                 log.warn(
                         "[getGPDCheckedReceiptsList] Non-blocking error: "
@@ -151,6 +156,11 @@ public class PaymentsService {
                         e);
             }
         }
+        log.info("[getGPDCheckedReceiptsList] Completed. Received: {}, returned: {}, discarded: {}",
+            result.size(),
+            checkedReceipts.size(),
+            result.size() - checkedReceipts.size());
+
 
         return checkedReceipts;
     }
@@ -167,6 +177,7 @@ public class PaymentsService {
     		String debtorOrIuv) {
 
     	List<String> filters = new ArrayList<>();
+
 
     	filters.add(String.format("PartitionKey eq '%s'", organizationFiscalCode));
 
@@ -197,6 +208,23 @@ public class PaymentsService {
     		}
     		filter = String.join(" or ", segCodesFilters);
     	}
+      log.info(
+          "[retrieveEntitiesByFilter] Starting query. table={}, pageNum={}, pageSize={}, "
+          + "debtorPresent={}, servicePresent={}, fromPresent={}, toPresent={}, "
+          + "segCodesCount={}, debtorOrIuvPresent={}",
+          tableClient.getTableName(),
+          pageNum,
+          pageSize,
+          debtor != null,
+          service != null,
+          from != null,
+          to != null,
+          segCodes != null ? segCodes.size() : 0,
+          debtorOrIuv != null
+      );
+
+      log.debug("[retrieveEntitiesByFilter] Azure Table filter: {}", filter);
+
 
     	Iterator<PagedResponse<TableEntity>> filteredReceiptIterator = tableClient
     			.listEntities(
@@ -224,6 +252,14 @@ public class PaymentsService {
     	if (totalPages <= pageNum) {
     		throw new AppException(AppError.PAGE_NUMBER_GREATER_THAN_TOTAL_PAGES);
     	}
+
+      log.info(
+          "[retrieveEntitiesByFilter] Query completed. totalPages={}, requestedPage={}, returnedReceipts={}",
+          totalPages,
+          pageNum,
+          filteredReceipts.size()
+      );
+
 
     	return PageInfo.builder()
     			.receiptsList(filteredReceipts)

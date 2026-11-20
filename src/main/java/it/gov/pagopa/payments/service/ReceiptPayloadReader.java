@@ -61,7 +61,7 @@ public class ReceiptPayloadReader {
     return document;
   }
 
-  static String sha256Hex(byte[] data) {
+  public static String sha256Hex(byte[] data) {
     try {
       return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
     } catch (NoSuchAlgorithmException e) {

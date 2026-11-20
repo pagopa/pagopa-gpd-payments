@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.12</version>
+    <version>0.13.24-PIDM-2540-receipts-blob-backfill</version>
     <name>Payments</name>
     <description>Payments</description>
 
@@ -313,6 +313,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>it.gov.pagopa.payments.PaymentsApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
