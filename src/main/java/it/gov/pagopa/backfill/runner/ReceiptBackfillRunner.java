@@ -61,7 +61,10 @@ public class ReceiptBackfillRunner implements ApplicationRunner {
             applicationContext,
             () -> finalExitCode);
 
-    System.exit(
-        finalExitCode != 0 ? finalExitCode : springExitCode);
+    exit(finalExitCode != 0 ? finalExitCode : springExitCode);
+  }
+
+  void exit(int code) {
+    System.exit(code);
   }
 }
