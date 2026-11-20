@@ -52,7 +52,7 @@ class ReceiptBackfillServiceTest {
   @Mock private ReceiptBlobStore receiptBlobStore;
   @Mock private BackfillCheckpointStore checkpointStore;
   @Mock private BackfillAnomalyStore anomalyStore;
-
+  @Mock private BlobBackfillMetricsStore metricsStore;
   private ReceiptBackfillService receiptBackfillService;
 
   @BeforeEach
@@ -62,7 +62,8 @@ class ReceiptBackfillServiceTest {
             tableClient,
             receiptBlobStore,
             checkpointStore,
-            anomalyStore);
+            anomalyStore,
+            metricsStore);
   }
 
   @Test
