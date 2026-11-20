@@ -4,7 +4,7 @@ microservice-chart: &microservice-chart
   fullnameOverride: ""
   image:
     repository: ghcr.io/pagopa/pagopa-gpd-payments
-    tag: "0.13.27-PIDM-2540-receipts-backfill-metrics"
+    tag: "0.13.28-PIDM-2540-receipts-backfill-metrics"
     pullPolicy: Always
   livenessProbe:
     httpGet:
