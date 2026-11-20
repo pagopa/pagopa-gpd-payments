@@ -13,7 +13,7 @@
 
     <groupId>it.gov.pagopa</groupId>
     <artifactId>payments</artifactId>
-    <version>0.13.26-PIDM-2540-receipts-backfill-metrics</version>
+    <version>0.13.27-PIDM-2540-receipts-backfill-metrics</version>
     <name>Payments</name>
     <description>Payments</description>
 
