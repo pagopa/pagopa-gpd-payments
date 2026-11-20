@@ -2,6 +2,7 @@ package it.gov.pagopa.backfill.service;
 import com.azure.storage.blob.BlobContainerClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.backfill.model.BackfillMetricsReport;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -15,7 +16,7 @@ public class BlobBackfillMetricsStore {
   private final ObjectMapper objectMapper;
 
   public BlobBackfillMetricsStore(
-      BlobContainerClient receiptsContainer,
+      @Qualifier("receiptsContainer") BlobContainerClient receiptsContainer,
       ObjectMapper objectMapper) {
     this.containerClient = receiptsContainer;
     this.objectMapper = objectMapper;
