@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.backfill;
+package it.gov.pagopa.backfill.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,13 +24,10 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableEntityUpdateMode;
-import it.gov.pagopa.backfill.service.BackfillAnomalyStore;
 import it.gov.pagopa.backfill.model.BackfillCheckpoint;
-import it.gov.pagopa.backfill.service.BackfillCheckpointStore;
 import it.gov.pagopa.backfill.model.BackfillStatus;
 import it.gov.pagopa.backfill.model.MigrationResult;
 import it.gov.pagopa.backfill.model.MigrationSummary;
-import it.gov.pagopa.backfill.service.ReceiptBackfillService;
 import it.gov.pagopa.payments.service.ReceiptBlobStore;
 import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.nio.charset.StandardCharsets;

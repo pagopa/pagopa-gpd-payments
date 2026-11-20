@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.backfill;
+package it.gov.pagopa.backfill.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,7 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import it.gov.pagopa.backfill.model.BackfillCheckpoint;
 import it.gov.pagopa.backfill.model.BackfillStatus;
-import it.gov.pagopa.backfill.service.BlobBackfillCheckpointStore;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Optional;
