@@ -7,6 +7,8 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableEntityUpdateMode;
 import com.azure.data.tables.models.TableServiceException;
+import com.azure.storage.blob.models.BlobErrorCode;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.backfill.model.BackfillCheckpoint;
@@ -119,6 +121,19 @@ public class ReceiptBackfillService {
             organizationFiscalCode,
             iuv,
             document);
+      } catch (BlobStorageException e) {
+          if (e.getStatusCode() == 409
+              && e.getErrorCode() == BlobErrorCode.BLOB_ALREADY_EXISTS) {
+
+            log.warn(
+                "Receipt Blob already exists, verifying content. "
+                + "organizationFiscalCode={}, iuv={}",
+                organizationFiscalCode,
+                iuv);
+
+          } else {
+            throw e;
+          }
       } finally {
         backfillMetrics.recordBlobUpload(
             System.nanoTime() - uploadStart);
@@ -161,7 +176,7 @@ public class ReceiptBackfillService {
         tableClient.updateEntityWithResponse(
             entity,
             TableEntityUpdateMode.REPLACE,
-            true,
+            false,
             null,
             null);
       } finally {
