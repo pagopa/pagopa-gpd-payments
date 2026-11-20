@@ -1,5 +1,5 @@
 
-package it.gov.pagopa.payments.backfill;
+package it.gov.pagopa.backfill;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
