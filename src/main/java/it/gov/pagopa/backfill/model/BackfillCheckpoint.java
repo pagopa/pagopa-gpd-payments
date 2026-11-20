@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.backfill;
+package it.gov.pagopa.backfill.model;
 
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;

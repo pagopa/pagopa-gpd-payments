@@ -1,4 +1,4 @@
-package it.gov.pagopa.payments.backfill;
+package it.gov.pagopa.backfill.service;
 
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.http.rest.PagedResponse;
@@ -9,6 +9,11 @@ import com.azure.data.tables.models.TableEntityUpdateMode;
 import com.azure.data.tables.models.TableServiceException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.gov.pagopa.backfill.model.BackfillCheckpoint;
+import it.gov.pagopa.backfill.model.BackfillSizeStats;
+import it.gov.pagopa.backfill.model.BackfillStatus;
+import it.gov.pagopa.backfill.model.MigrationResult;
+import it.gov.pagopa.backfill.model.MigrationSummary;
 import it.gov.pagopa.payments.service.ReceiptBlobStore;
 import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.nio.charset.StandardCharsets;
@@ -179,7 +184,7 @@ public class ReceiptBackfillService {
 
     if (existingCheckpoint.isPresent()
         && existingCheckpoint.get().getStatus()
-        == BackfillStatus.COMPLETED) {
+           == BackfillStatus.COMPLETED) {
 
       log.info(
           "Receipt backfill already completed. dryRun={}",
