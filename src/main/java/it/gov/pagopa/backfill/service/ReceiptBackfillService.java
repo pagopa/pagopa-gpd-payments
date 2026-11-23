@@ -7,9 +7,13 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableEntityUpdateMode;
 import com.azure.data.tables.models.TableServiceException;
+import com.azure.storage.blob.models.BlobErrorCode;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.backfill.model.BackfillCheckpoint;
+import it.gov.pagopa.backfill.model.BackfillMetrics;
+import it.gov.pagopa.backfill.model.BackfillMetricsReport;
 import it.gov.pagopa.backfill.model.BackfillSizeStats;
 import it.gov.pagopa.backfill.model.BackfillStatus;
 import it.gov.pagopa.backfill.model.MigrationResult;
@@ -18,9 +22,12 @@ import it.gov.pagopa.payments.service.ReceiptBlobStore;
 import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -46,19 +53,28 @@ public class ReceiptBackfillService {
   @Value("${receipts.backfill.test.stop-after-entities:0}")
   private int stopAfterEntities;
 
+  private final BackfillMetrics backfillMetrics = new BackfillMetrics();
+
+  private final BlobBackfillMetricsStore metricsStore;
+
+
   public ReceiptBackfillService(
       TableClient tableClient,
       ReceiptBlobStore receiptBlobStore,
       BackfillCheckpointStore checkpointStore,
-      BackfillAnomalyStore anomalyStore) {
+      BackfillAnomalyStore anomalyStore,
+      BlobBackfillMetricsStore metricsStore) {
 
     this.tableClient = tableClient;
     this.receiptBlobStore = receiptBlobStore;
     this.checkpointStore = checkpointStore;
     this.anomalyStore = anomalyStore;
+    this.metricsStore = metricsStore;
   }
 
   public MigrationResult migrateOne(TableEntity entity) {
+
+    long migrationStart = System.nanoTime();
 
     String organizationFiscalCode = entity.getPartitionKey();
     String iuv = entity.getRowKey();
@@ -98,15 +114,43 @@ public class ReceiptBackfillService {
 
     try {
 
-      receiptBlobStore.upload(
-          organizationFiscalCode,
-          iuv,
-          document);
+      long uploadStart = System.nanoTime();
 
-      byte[] storedDocument =
-          receiptBlobStore.download(
-              organizationFiscalCode,
-              iuv);
+      try {
+        receiptBlobStore.upload(
+            organizationFiscalCode,
+            iuv,
+            document);
+      } catch (BlobStorageException e) {
+          if (e.getStatusCode() == 409
+              && e.getErrorCode() == BlobErrorCode.BLOB_ALREADY_EXISTS) {
+
+            log.warn(
+                "Receipt Blob already exists, verifying content. "
+                + "organizationFiscalCode={}, iuv={}",
+                organizationFiscalCode,
+                iuv);
+
+          } else {
+            throw e;
+          }
+      } finally {
+        backfillMetrics.recordBlobUpload(
+            System.nanoTime() - uploadStart);
+      }
+
+      long downloadStart = System.nanoTime();
+
+      byte[] storedDocument;
+
+      try {
+        storedDocument = receiptBlobStore.download(
+            organizationFiscalCode,
+            iuv);
+      } finally {
+        backfillMetrics.recordBlobDownload(
+            System.nanoTime() - downloadStart);
+      }
 
       String actualHash =
           ReceiptPayloadReader.sha256Hex(storedDocument);
@@ -126,12 +170,19 @@ public class ReceiptBackfillService {
           CONTENT_HASH_PROPERTY,
           expectedHash);
 
-      tableClient.updateEntityWithResponse(
-          entity,
-          TableEntityUpdateMode.REPLACE,
-          true,
-          null,
-          null);
+      long tableUpdateStart = System.nanoTime();
+
+      try {
+        tableClient.updateEntityWithResponse(
+            entity,
+            TableEntityUpdateMode.REPLACE,
+            false,
+            null,
+            null);
+      } finally {
+        backfillMetrics.recordTableUpdate(
+            System.nanoTime() - tableUpdateStart);
+      }
 
       log.info(
           "Receipt migrated successfully. organizationFiscalCode={}, iuv={}",
@@ -171,160 +222,280 @@ public class ReceiptBackfillService {
           e);
 
       return MigrationResult.RETRYABLE_ERROR;
+    } finally {
+
+      backfillMetrics.recordMigrationDuration(
+          System.nanoTime() - migrationStart);
     }
   }
 
   public MigrationSummary migrateAll(boolean dryRun) {
-    log.info(
-        "Starting receipt backfill. dryRun={}",
-        dryRun);
 
-    Optional<BackfillCheckpoint> existingCheckpoint =
-        checkpointStore.load(dryRun);
+    String executionId = OffsetDateTime.now(ZoneOffset.UTC)
+                             .format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"))
+                         + "-" + UUID.randomUUID();
 
-    if (existingCheckpoint.isPresent()
-        && existingCheckpoint.get().getStatus()
-           == BackfillStatus.COMPLETED) {
+    long executionStart = System.nanoTime();
 
+    MigrationSummary executionSummary = new MigrationSummary();
+    MigrationSummary summary = null;
+
+    String executionStatus = "FAILED";
+    try {
       log.info(
-          "Receipt backfill already completed. dryRun={}",
+          "Starting receipt backfill. dryRun={}",
           dryRun);
 
-      return new MigrationSummary(
-          existingCheckpoint.get());
-    }
+      Optional<BackfillCheckpoint> existingCheckpoint =
+          checkpointStore.load(dryRun);
 
-    MigrationSummary summary =
-        existingCheckpoint
-            .map(MigrationSummary::new)
-            .orElseGet(MigrationSummary::new);
-
-    String continuationToken =
-        existingCheckpoint
-            .map(BackfillCheckpoint::getContinuationToken)
-            .orElse(null);
-
-    if (continuationToken != null) {
-      log.info(
-          "Resuming receipt backfill from checkpoint. "
-              + "continuationToken={}, summary={}",
-          continuationToken,
-          summary);
-    }
-
-    PagedIterable<TableEntity> entities =
-        tableClient.listEntities(
-            new ListEntitiesOptions(),
-            null,
-            null);
-
-    Iterable<PagedResponse<TableEntity>> pages =
-        continuationToken == null
-            ? entities.iterableByPage()
-            : entities.iterableByPage(continuationToken);
-
-    Map<String, BackfillSizeStats> statsByCf = new LinkedHashMap<>();
-
-    int processedPages = 0;
-
-    for (PagedResponse<TableEntity> page : pages) {
-
-      MigrationSummary pageSummary = processPage(page, dryRun, statsByCf);
-
-      summary.add(pageSummary);
-
-      String nextContinuationToken =
-          page.getContinuationToken();
-
-      BackfillStatus status =
-          nextContinuationToken == null
-              ? BackfillStatus.COMPLETED
-              : BackfillStatus.IN_PROGRESS;
-
-      BackfillCheckpoint checkpoint =
-          new BackfillCheckpoint(
-              nextContinuationToken,
-              summary.getScanned(),
-              summary.getMigrated(),
-              summary.getAlreadyMigrated(),
-              summary.getInconsistent(),
-              summary.getHashMismatch(),
-              summary.getFailed(),
-              status,
-              OffsetDateTime.now());
-
-      checkpointStore.save(
-          checkpoint,
-          dryRun);
-
-      log.info(
-          "Receipt backfill page completed. "
-              + "continuationToken={}, status={}, summary={}",
-          nextContinuationToken,
-          status,
-          summary);
-
-      processedPages++;
-
-      if (dryRun
-          && stopAfterPages > 0
-          && processedPages >= stopAfterPages
-          && status == BackfillStatus.IN_PROGRESS) {
-
-        log.warn(
-            "[DRY-RUN TEST] Simulated interruption after {} pages. "
-            + "Checkpoint saved. continuationToken={}, summary={}",
-            processedPages,
-            nextContinuationToken,
-            summary);
-
-        throw new IllegalStateException(
-            "Simulated dry-run interruption after "
-            + processedPages + " pages");
-      }
-    }
-
-    log.info(
-        "Receipt backfill completed. dryRun={}, summary={}",
-        dryRun,
-        summary);
-
-    if (dryRun) {
-      BackfillSizeStats total = new BackfillSizeStats();
-
-      statsByCf.forEach((cf, stats) -> {
-        total.merge(stats);
+      if (existingCheckpoint.isPresent()
+          && existingCheckpoint.get().getStatus()
+             == BackfillStatus.COMPLETED) {
 
         log.info(
-            "[DRY-RUN SIZE] CF={}, entities={}, toMigrate={}, "
-            + "currentBytes={}, xmlBytes={}, projectedBytes={}, "
-            + "savedBytes={}, reduction={}%",
-            cf,
-            stats.getEntityCount(),
-            stats.getReceiptsToMigrate(),
-            stats.getCurrentBytes(),
-            stats.getXmlBytes(),
-            stats.getProjectedBytes(),
-            stats.getSavedBytes(),
-            String.format(java.util.Locale.ROOT,
-                "%.2f", stats.getReductionPercentage()));
-      });
+            "Receipt backfill already completed. dryRun={}",
+            dryRun);
+
+        summary = new MigrationSummary(existingCheckpoint.get());
+        executionStatus = "ALREADY_COMPLETED";
+
+        return summary;
+      }
+
+      summary =
+          existingCheckpoint
+              .map(MigrationSummary::new)
+              .orElseGet(MigrationSummary::new);
+
+      String continuationToken =
+          existingCheckpoint
+              .map(BackfillCheckpoint::getContinuationToken)
+              .orElse(null);
+
+      if (continuationToken != null) {
+        log.info(
+            "Resuming receipt backfill from checkpoint. "
+            + "continuationToken={}, summary={}",
+            continuationToken,
+            summary);
+      }
+
+      PagedIterable<TableEntity> entities =
+          tableClient.listEntities(
+              new ListEntitiesOptions(),
+              null,
+              null);
+
+      Iterable<PagedResponse<TableEntity>> pages =
+          continuationToken == null
+              ? entities.iterableByPage()
+              : entities.iterableByPage(continuationToken);
+
+      Map<String, BackfillSizeStats> statsByCf = new LinkedHashMap<>();
+
+      int processedPages = 0;
+
+      for (PagedResponse<TableEntity> page : pages) {
+
+        MigrationSummary pageSummary = processPage(page, dryRun, statsByCf);
+
+        summary.add(pageSummary);
+
+        executionSummary.add(pageSummary);
+
+        String nextContinuationToken =
+            page.getContinuationToken();
+
+        BackfillStatus status =
+            nextContinuationToken == null
+                ? BackfillStatus.COMPLETED
+                : BackfillStatus.IN_PROGRESS;
+
+        BackfillCheckpoint checkpoint =
+            new BackfillCheckpoint(
+                nextContinuationToken,
+                summary.getScanned(),
+                summary.getMigrated(),
+                summary.getAlreadyMigrated(),
+                summary.getInconsistent(),
+                summary.getHashMismatch(),
+                summary.getFailed(),
+                status,
+                OffsetDateTime.now());
+
+        checkpointStore.save(
+            checkpoint,
+            dryRun);
+
+        log.info(
+            "Receipt backfill page completed. "
+            + "continuationToken={}, status={}, summary={}",
+            nextContinuationToken,
+            status,
+            summary);
+
+        processedPages++;
+
+        if (dryRun
+            && stopAfterPages > 0
+            && processedPages >= stopAfterPages
+            && status == BackfillStatus.IN_PROGRESS) {
+
+          log.warn(
+              "[DRY-RUN TEST] Simulated interruption after {} pages. "
+              + "Checkpoint saved. continuationToken={}, summary={}",
+              processedPages,
+              nextContinuationToken,
+              summary);
+
+          throw new IllegalStateException(
+              "Simulated dry-run interruption after "
+              + processedPages + " pages");
+        }
+      }
 
       log.info(
-          "[DRY-RUN SIZE TOTAL] entities={}, toMigrate={}, "
-          + "currentBytes={}, xmlBytes={}, projectedBytes={}, "
-          + "savedBytes={}, reduction={}%",
-          total.getEntityCount(),
-          total.getReceiptsToMigrate(),
-          total.getCurrentBytes(),
-          total.getXmlBytes(),
-          total.getProjectedBytes(),
-          total.getSavedBytes(),
-          String.format(java.util.Locale.ROOT,
-              "%.2f", total.getReductionPercentage()));
+          "Receipt backfill completed. dryRun={}, summary={}",
+          dryRun,
+          summary);
+
+      if (dryRun) {
+        BackfillSizeStats total = new BackfillSizeStats();
+
+        statsByCf.forEach((cf, stats) -> {
+          total.merge(stats);
+
+          log.info(
+              "[DRY-RUN SIZE] CF={}, entities={}, toMigrate={}, "
+              + "currentBytes={}, xmlBytes={}, projectedBytes={}, "
+              + "savedBytes={}, reduction={}%",
+              cf,
+              stats.getEntityCount(),
+              stats.getReceiptsToMigrate(),
+              stats.getCurrentBytes(),
+              stats.getXmlBytes(),
+              stats.getProjectedBytes(),
+              stats.getSavedBytes(),
+              String.format(java.util.Locale.ROOT,
+                  "%.2f", stats.getReductionPercentage()));
+        });
+
+        log.info(
+            "[DRY-RUN SIZE TOTAL] entities={}, toMigrate={}, "
+            + "currentBytes={}, xmlBytes={}, projectedBytes={}, "
+            + "savedBytes={}, reduction={}%",
+            total.getEntityCount(),
+            total.getReceiptsToMigrate(),
+            total.getCurrentBytes(),
+            total.getXmlBytes(),
+            total.getProjectedBytes(),
+            total.getSavedBytes(),
+            String.format(java.util.Locale.ROOT,
+                "%.2f", total.getReductionPercentage()));
+      }
+      executionStatus = "COMPLETED";
+      return summary;
+    } finally {
+
+      double durationSeconds =
+          (System.nanoTime() - executionStart)
+          / 1_000_000_000.0;
+
+      saveExecutionMetrics(
+          executionId,
+          dryRun,
+          executionStatus,
+          summary,
+          executionSummary,
+          durationSeconds);
     }
-    return summary;
   }
+
+
+  private void saveExecutionMetrics(
+      String executionId,
+      boolean dryRun,
+      String status,
+      MigrationSummary summary,
+      MigrationSummary executionSummary,
+      double durationSeconds) {
+
+    try {
+      long scanned = summary != null
+          ? summary.getScanned() : 0;
+
+      long migrated = summary != null
+          ? summary.getMigrated() : 0;
+
+      long executionScanned = executionSummary.getScanned();
+      long executionMigrated = executionSummary.getMigrated();
+
+      double scanRate = durationSeconds > 0
+          ? executionScanned / durationSeconds : 0;
+
+      double migrationRate = durationSeconds > 0
+          ? executionMigrated / durationSeconds : 0;
+
+      Double estimatedProductionHours =
+          !dryRun && migrationRate > 0
+              ? 12_200_000.0 / migrationRate / 3600.0
+              : null;
+
+      BackfillMetricsReport report =
+          BackfillMetricsReport.builder()
+              .executionId(executionId)
+              .dryRun(dryRun)
+              .status(status)
+              .scanned(scanned)
+              .migrated(migrated)
+              .alreadyMigrated(summary != null
+                  ? summary.getAlreadyMigrated() : 0)
+              .inconsistent(summary != null
+                  ? summary.getInconsistent() : 0)
+              .hashMismatch(summary != null
+                  ? summary.getHashMismatch() : 0)
+              .failed(summary != null
+                  ? summary.getFailed() : 0)
+              .executionScanned(executionScanned)
+              .executionMigrated(executionMigrated)
+              .durationSeconds(durationSeconds)
+              .scanRate(scanRate)
+              .migrationRate(migrationRate)
+              .blobUploadAvgMs(
+                  backfillMetrics.getAverageUploadMs())
+              .blobDownloadAvgMs(
+                  backfillMetrics.getAverageDownloadMs())
+              .tableUpdateAvgMs(
+                  backfillMetrics.getAverageTableUpdateMs())
+              .migrationAvgMs(
+                  backfillMetrics.getAverageMigrationMs())
+              .estimatedProductionHours(
+                  estimatedProductionHours)
+              .build();
+
+      metricsStore.save(executionId, dryRun, report);
+
+      log.info(
+          "[BACKFILL METRICS] executionId={}, status={}, "
+          + "durationSeconds={}, executionScanned={}, "
+          + "executionMigrated={}, migrationRate={}",
+          executionId,
+          status,
+          durationSeconds,
+          executionScanned,
+          executionMigrated,
+          migrationRate);
+
+    } catch (Exception e) {
+      log.error(
+          "Failed to persist backfill metrics. executionId={}",
+          executionId,
+          e);
+    }
+  }
+
+
 
   private MigrationSummary  processPage(
       PagedResponse<TableEntity> page,

@@ -61,6 +61,39 @@ public class ReceiptBackfillTestSeeder {
     HASH_WITHOUT_BLOB
   }
 
+  public void cleanupTestReceipts() {
+
+    long noticeNumber = 347414787621970000L;
+
+    Map<String, Integer> receiptsPerCf = new LinkedHashMap<>();
+    receiptsPerCf.put("77777777777", 1000);
+    receiptsPerCf.put("00112233445", 500);
+    receiptsPerCf.put("88888888888", 200);
+
+    for (Map.Entry<String, Integer> entry : receiptsPerCf.entrySet()) {
+
+      String cf = entry.getKey();
+
+      for (int i = 0; i < entry.getValue(); i++) {
+
+        String iuv = String.valueOf(noticeNumber++).substring(3);
+
+        try {
+          tableClient.deleteEntity(cf, iuv);
+
+          log.info("Deleted test receipt CF={}, IUV={}", cf, iuv);
+
+        } catch (TableServiceException e) {
+
+          if (e.getResponse() == null
+              || e.getResponse().getStatusCode() != 404) {
+            throw e;
+          }
+        }
+      }
+    }
+  }
+
   public void seed() {
 
     log.info("Starting receipts test seeding");

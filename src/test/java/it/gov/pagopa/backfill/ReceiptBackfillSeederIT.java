@@ -21,7 +21,7 @@ class ReceiptBackfillSeederIT {
   @Autowired
   private ReceiptBackfillTestSeeder seeder;
 
- // @Test
+  @Test
   void seedReceipts() {
     seeder.seed();
   }
