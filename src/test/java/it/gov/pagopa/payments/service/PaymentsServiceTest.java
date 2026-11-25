@@ -679,8 +679,8 @@ class PaymentsServiceTest {
     verifyNoInteractions(gpdClient);
   }
 
-  
-  
+
+
   // HELPER METHODS
   
   private PaymentsService buildPaymentsService() {

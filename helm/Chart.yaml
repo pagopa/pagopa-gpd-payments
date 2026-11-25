@@ -2,9 +2,13 @@ apiVersion: v2
 name: pagopa-gpd-payments
 description: Microservice that exposes API for payment receipts retrieving and other operations
 type: application
-version: 0.176.0
-appVersion: 0.13.12
+version: 0.187.0
+appVersion: 0.13.26-PIDM-2540-receipts-blob-backfill
 dependencies:
   - name: microservice-chart
     version: 8.0.2
     repository: "https://pagopa.github.io/aks-microservice-chart-blueprint"
+  - name: cron-chart
+    version: 3.0.0
+    repository: "https://pagopa.github.io/aks-cron-chart-blueprint"
+    alias: receipts-backfill-cron
