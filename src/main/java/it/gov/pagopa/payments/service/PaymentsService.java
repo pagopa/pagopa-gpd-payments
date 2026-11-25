@@ -68,7 +68,7 @@ public class PaymentsService {
         	
             PageInfo filteredEntities = retrieveEntitiesByFilter(tableClient,
                     organizationFiscalCode, debtor, service, normalizedFrom, normalizedTo, pageNum, pageSize, segCodes, debtorOrIuv);
-
+            
             List<ReceiptModelResponse> checkedReceipts =
                 mapReceiptsList(filteredEntities.getReceiptsList());
             

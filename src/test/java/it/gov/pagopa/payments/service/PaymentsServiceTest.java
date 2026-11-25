@@ -680,7 +680,7 @@ class PaymentsServiceTest {
   }
 
 
-  
+
   // HELPER METHODS
   
   private PaymentsService buildPaymentsService() {
