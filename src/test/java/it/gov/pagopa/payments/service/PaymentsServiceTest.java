@@ -2,10 +2,8 @@ package it.gov.pagopa.payments.service;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
+import static org.mockito.Mockito.verifyNoInteractions;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
@@ -18,8 +16,6 @@ import com.microsoft.azure.storage.table.TableRequestOptions;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppException;
-import it.gov.pagopa.payments.mock.MockUtil;
-import it.gov.pagopa.payments.model.PaymentsModelResponse;
 import it.gov.pagopa.payments.model.PaymentsResult;
 
 import java.time.LocalDate;
@@ -286,38 +282,20 @@ class PaymentsServiceTest {
   }
 
   @Test
-  void getOrganizationReceipts_CREATED_PO_PAID_service_filter()  {
-    PaymentsService paymentsService =
-        buildPaymentsService();
+  void getOrganizationReceipts_CREATED_service_filter() {
+    PaymentsService paymentsService = buildPaymentsService();
 
     PaymentsResult<ReceiptModelResponse> res =
         paymentsService.getOrganizationReceipts(
-                "org123456", null, "11", null, null, 0, 100, null, null);
+            "org123456", null, "11", null, null, 0, 100, null, null);
+
     assertNotNull(res);
     assertEquals(1, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
 
   @Test
-  void getOrganizationReceipts_CREATED_PO_UNPAID_service_filter() throws Exception {
-    PaymentsService paymentsService =
-        buildPaymentsService();
-
-    // precondition
-    PaymentsModelResponse paymentModel =
-        MockUtil.readModelFromFile("gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
-    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
-
-    PaymentsResult<ReceiptModelResponse> res =
-        paymentsService.getOrganizationReceipts(
-                "org123456", null, "11", null, null, 0, 100, null, null);
-    assertNotNull(res);
-    assertEquals(0, res.getResults().size());
-    assertEquals(0, res.getCurrentPageNumber());
-  }
-
-  @Test
-  void getOrganizationReceipts_CREATED_PO_PAID_debtorOrIuv_Iuv_filter()  {
+  void getOrganizationReceipts_debtorOrIuv_Iuv_filter()  {
     PaymentsService paymentsService =
             buildPaymentsService();
 
@@ -423,100 +401,6 @@ class PaymentsServiceTest {
     }
   }
 
-  /** GPD CHECK */
-  @Test
-  void getGPDCheckedReceiptsList() {
-    PaymentsService paymentsService =
-        buildPaymentsService();
-
-    Map<String, Object> properties = new HashMap<>();
-    properties.put(STATUS_PROPERTY, Status.PAID.name());
-
-    TableEntity te1 = new TableEntity("111", "aaa");
-    Map<String, Object> properties1 = new HashMap<>();
-    properties1.put(DEBTOR_PROPERTY, "debtor1");
-    properties1.put(DOCUMENT_PROPERTY, "XML1");
-    properties1.put(STATUS_PROPERTY, Status.PAID.name());
-    properties1.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
-    te1.setProperties(properties1);
-
-    TableEntity te2 = new TableEntity("222", "bbb");
-    Map<String, Object> properties2 = new HashMap<>();
-    properties2.put(DEBTOR_PROPERTY, "debtor2");
-    properties2.put(DOCUMENT_PROPERTY, "XML2");
-    properties2.put(STATUS_PROPERTY, Status.PAID.name());
-    properties2.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
-    te2.setProperties(properties2);
-
-    TableEntity te3 = new TableEntity("333", "ccc");
-    Map<String, Object> properties3 = new HashMap<>();
-    properties3.put(DEBTOR_PROPERTY, "debtor3");
-    properties3.put(DOCUMENT_PROPERTY, "XML3");
-    properties3.put(STATUS_PROPERTY, Status.PAID.name());
-    properties3.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
-    te3.setProperties(properties3);
-
-    List<TableEntity> receipts = new ArrayList<>();
-    receipts.add(te1);
-    receipts.add(te2);
-    receipts.add(te3);
-
-    List<ReceiptModelResponse> result =
-        paymentsService.getGPDCheckedReceiptsList(receipts);
-
-    assertEquals(receipts.size(), result.size());
-  }
-
-  @Test
-  void getGPDCheckedReceiptsList_GPDCheckFail() throws Exception {
-    PaymentsService paymentsService =
-        buildPaymentsService();
-
-    Map<String, Object> properties = new HashMap<>();
-    properties.put(STATUS_PROPERTY, Status.CREATED.name());
-
-    TableEntity te1 = new TableEntity("111", "aaa");
-    Map<String, Object> properties1 = new HashMap<>();
-    properties1.put(DEBTOR_PROPERTY, "debtor1");
-    properties1.put(DOCUMENT_PROPERTY, "XML1");
-    properties1.put(STATUS_PROPERTY, Status.CREATED.name());
-    properties1.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
-    te1.setProperties(properties1);
-
-    TableEntity te2 = new TableEntity("222", "bbb");
-    Map<String, Object> properties2 = new HashMap<>();
-    properties2.put(DEBTOR_PROPERTY, "debtor2");
-    properties2.put(DOCUMENT_PROPERTY, "XML2");
-    properties2.put(STATUS_PROPERTY, Status.CREATED.name());
-    properties2.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
-    te2.setProperties(properties2);
-
-    TableEntity te3 = new TableEntity("333", "ccc");
-    Map<String, Object> properties3 = new HashMap<>();
-    properties3.put(DEBTOR_PROPERTY, "debtor3");
-    properties3.put(DOCUMENT_PROPERTY, "XML3");
-    properties3.put(STATUS_PROPERTY, Status.CREATED.name());
-    properties3.put(PAYMENT_DATE_PROPERTY, "2022-10-01T17:48:22");
-    te3.setProperties(properties3);
-
-    List<TableEntity> receipts = new ArrayList<>();
-    receipts.add(te1);
-    receipts.add(te2);
-    receipts.add(te3);
-
-    // GPD risponde sempre UNPAID
-    PaymentsModelResponse paymentModel =
-        MockUtil.readModelFromFile(
-            "gpd/getPaymentOption_PO_UNPAID.json", PaymentsModelResponse.class);
-    when(gpdClient.getPaymentOption(anyString(), anyString())).thenReturn(paymentModel);
-
-    List<ReceiptModelResponse> result =
-        paymentsService.getGPDCheckedReceiptsList(receipts);
-
-    // tutte le ricevute sono state scartate
-    assertEquals(0, result.size());
-  }
-  
   @Test
   void getOrganizationReceipts_defaultLastMonthsWindow_fromAndToAreNull() {
     PaymentsService paymentsService =
@@ -779,6 +663,22 @@ class PaymentsServiceTest {
       assertEquals("Invalid date range", e.getTitle());
     }
   }
+
+  @Test
+  void getOrganizationReceipts_withoutGpdInteraction() {
+    PaymentsService paymentsService = buildPaymentsService();
+
+    PaymentsResult<ReceiptModelResponse> res =
+        paymentsService.getOrganizationReceipts(
+            "org123456", null, null, null, null, 0, 100, null, null);
+
+    assertNotNull(res);
+    assertEquals(15, res.getResults().size());
+    assertEquals(0, res.getCurrentPageNumber());
+
+    verifyNoInteractions(gpdClient);
+  }
+
   
   
   // HELPER METHODS
