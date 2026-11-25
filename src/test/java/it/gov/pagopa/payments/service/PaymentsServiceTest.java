@@ -679,7 +679,7 @@ class PaymentsServiceTest {
     verifyNoInteractions(gpdClient);
   }
 
-  
+
   
   // HELPER METHODS
   
