@@ -1,10 +1,12 @@
 package it.gov.pagopa.payments.api;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import it.gov.pagopa.payments.PaymentsApplication;
@@ -62,47 +64,65 @@ class PaymentsControllerTest {
   @Test
   void getReceiptByIUV_200() throws Exception {
     // precondition
-    ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
-    receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(
-            anyString(), anyString(), any(ArrayList.class)))
-        .thenReturn(receipt);
-    when(payloadReader.readDocument(receipt)).thenReturn("<xml/>");
+    String cf = "77777777777";
+    String iuv = "123456789012345";
+
+    when(payloadReader.readDocument(cf, iuv))
+        .thenReturn("<xml/>");
 
     ResponseEntity<String> res =
-        paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
+        paymentsController.getReceiptByIUV(cf, iuv, null);
+
     assertEquals(HttpStatus.OK, res.getStatusCode());
     assertEquals("<xml/>", res.getBody());
+
+    verify(paymentsService)
+        .validateSegregationCodes(cf, iuv, null);
+
+    verify(payloadReader).readDocument(cf, iuv);
   }
 
   /** GET RECEIPT BY IUV with segregation codes */
   @Test
   void getReceiptByIUV_200_SegregationCodes() throws Exception {
-    // precondition
-    ReceiptEntity receipt = new ReceiptEntity("mock", "mock");
-    receipt.setDebtor("XML");
-    when(paymentsService.getReceiptByOrganizationFCAndIUV(
-            anyString(), anyString(), any(ArrayList.class)))
-        .thenReturn(receipt);
-    when(payloadReader.readDocument(receipt)).thenReturn("<xml/>");
+    String cf = "77777777777";
+    String iuv = "123456789012345";
+
+    when(payloadReader.readDocument(cf, iuv))
+        .thenReturn("<xml/>");
 
     ResponseEntity<String> res =
-        paymentsController.getReceiptByIUV("77777777777", "123456789012345", "01,02");
+        paymentsController.getReceiptByIUV(cf, iuv, "12,02");
+
     assertEquals(HttpStatus.OK, res.getStatusCode());
     assertEquals("<xml/>", res.getBody());
+
+    verify(paymentsService)
+        .validateSegregationCodes(
+            cf, iuv, new ArrayList<>(Arrays.asList("12", "02")));
+
+    verify(payloadReader).readDocument(cf, iuv);
   }
 
   @Test
   void getReceiptByIUV_404() {
-    doThrow(new AppException(AppError.RECEIPT_NOT_FOUND, "111", "222"))
-        .when(paymentsService)
-        .getReceiptByOrganizationFCAndIUV(eq("77777777777"), eq("123456789012345"), isNull());
+    String cf = "77777777777";
+    String iuv = "123456789012345";
 
-    try {
-      paymentsController.getReceiptByIUV("77777777777", "123456789012345", null);
-    } catch (AppException e) {
-      assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
-    }
+    when(payloadReader.readDocument(cf, iuv))
+        .thenThrow(
+            new AppException(AppError.RECEIPT_NOT_FOUND, cf, iuv));
+
+    AppException exception = assertThrows(
+        AppException.class,
+        () -> paymentsController.getReceiptByIUV(cf, iuv, null));
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
+
+    verify(paymentsService)
+        .validateSegregationCodes(cf, iuv, null);
+
+    verify(payloadReader).readDocument(cf, iuv);
   }
 
   /** GET RECEIPTS */
@@ -327,4 +347,47 @@ class PaymentsControllerTest {
             isNull(),
             isNull());
   }
+
+  @Test
+  void getReceiptByIUV_403() {
+    String cf = "77777777777";
+    String iuv = "123456789012345";
+
+    doThrow(new AppException(
+        AppError.FORBIDDEN_SEGREGATION_CODE, "12", cf, iuv))
+        .when(paymentsService)
+        .validateSegregationCodes(
+            cf, iuv, new ArrayList<>(Arrays.asList("01", "02")));
+
+    AppException exception = assertThrows(
+        AppException.class,
+        () -> paymentsController.getReceiptByIUV(cf, iuv, "01,02"));
+
+    assertEquals(HttpStatus.FORBIDDEN, exception.getHttpStatus());
+
+    verifyNoInteractions(payloadReader);
+  }
+
+  @Test
+  void getReceiptByIUV_503() {
+    String cf = "77777777777";
+    String iuv = "123456789012345";
+
+    when(payloadReader.readDocument(cf, iuv))
+        .thenThrow(new AppException(AppError.DB_ERROR));
+
+    AppException exception = assertThrows(
+        AppException.class,
+        () -> paymentsController.getReceiptByIUV(cf, iuv, null));
+
+    assertEquals(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        exception.getHttpStatus());
+
+    verify(paymentsService)
+        .validateSegregationCodes(cf, iuv, null);
+
+    verify(payloadReader).readDocument(cf, iuv);
+  }
+
 }

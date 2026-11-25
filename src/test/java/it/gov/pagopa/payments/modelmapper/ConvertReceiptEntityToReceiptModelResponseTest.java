@@ -20,7 +20,6 @@ class ConvertReceiptEntityToReceiptModelResponseTest {
   void convert() {
     ReceiptEntity re = new ReceiptEntity("org", "iuv");
     re.setDebtor("debtor");
-    re.setDocument("XML");
 
     ReceiptModelResponse res = modelMapper.map(re, ReceiptModelResponse.class);
     assertNotNull(res);

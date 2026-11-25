@@ -45,8 +45,7 @@ public class PaymentsService {
     @Value("${payments.receipts.months-window:3}")
     private int receiptsMonthsWindow;
 
-    public PaymentsService(GpdClient gpdClient, TableClient tableClient) {
-        this.gpdClient = gpdClient;
+    public PaymentsService(TableClient tableClient) {
         this.tableClient = tableClient;
     }
 
@@ -62,7 +61,7 @@ public class PaymentsService {
             String debtorOrIuv) {
         try {
         	
-        	String[] normalizedDateRange = normalizeDateRange(from, to);
+        	  String[] normalizedDateRange = normalizeDateRange(from, to);
             String normalizedFrom = normalizedDateRange[0];
             String normalizedTo = normalizedDateRange[1];
         	
@@ -79,28 +78,6 @@ public class PaymentsService {
             throw new AppException(AppError.DB_ERROR, "ALL");
         }
     }
-
-    public ReceiptEntity getReceiptByOrganizationFCAndIUV(
-            @NotBlank String organizationFiscalCode, @NotBlank String iuv, List<String> validSegregationCodes) {
-
-        try {
-            if(validSegregationCodes != null && !validSegregationCodes.isEmpty() && iuv.length() > 1) {
-                String iuvSegregationCode = iuv.substring(0,2);
-                if(!isBrokerAuthorized(iuvSegregationCode, validSegregationCodes))
-                    throw new AppException(AppError.FORBIDDEN_SEGREGATION_CODE, iuvSegregationCode, organizationFiscalCode, iuv);
-            }
-
-            TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
-            return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
-        } catch (TableServiceException e) {
-            if(e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND){
-                throw new AppException(AppError.RECEIPT_NOT_FOUND, organizationFiscalCode, iuv);
-            }
-            log.error("Error in organization table connection", e);
-            throw new AppException(AppError.DB_ERROR);
-        }
-    }
-
 
     public List<ReceiptModelResponse> mapReceiptsList(List<TableEntity> result) {
         // for all the receipts in the azure table, only those that have been already PAID status or are
@@ -300,5 +277,24 @@ public class PaymentsService {
         };
     }
 
+    public void validateSegregationCodes(
+        String organizationFiscalCode,
+        String iuv,
+        List<String> validSegregationCodes) {
 
+      if (validSegregationCodes != null
+          && !validSegregationCodes.isEmpty()
+          && iuv.length() > 1) {
+
+        String iuvSegregationCode = iuv.substring(0, 2);
+
+        if (!validSegregationCodes.contains(iuvSegregationCode)) {
+          throw new AppException(
+              AppError.FORBIDDEN_SEGREGATION_CODE,
+              iuvSegregationCode,
+              organizationFiscalCode,
+              iuv);
+        }
+      }
+    }
 }

@@ -13,8 +13,6 @@ public class ReceiptEntity {
   private String debtor;
   private String paymentDateTime;
   private String status = Status.PAID.name();
-  private String document;
-  private String contentHash;
 
   public ReceiptEntity(String organizationFiscalCode, String iuv) {
     this.organizationFiscalCode = organizationFiscalCode;

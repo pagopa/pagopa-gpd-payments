@@ -3,14 +3,14 @@ package it.gov.pagopa.payments.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.azure.storage.blob.models.BlobStorageException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import it.gov.pagopa.payments.entity.ReceiptEntity;
+import it.gov.pagopa.payments.exception.AppError;
+import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.exception.ReceiptBlobNotFoundException;
-import it.gov.pagopa.payments.exception.ReceiptHashMismatchException;
-import it.gov.pagopa.payments.exception.ReceiptInconsistentException;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,79 +23,78 @@ class ReceiptPayloadReaderTest {
 
   private ReceiptBlobStore blobStore;
   private ReceiptPayloadReader reader;
+  private SimpleMeterRegistry meterRegistry;
 
   @BeforeEach
   void setUp() {
     blobStore = mock(ReceiptBlobStore.class);
-    reader = new ReceiptPayloadReader(blobStore, true, new SimpleMeterRegistry());
-  }
-
-  private ReceiptEntity entity(String document, String contentHash) {
-    ReceiptEntity e = new ReceiptEntity(CF, IUV);
-    e.setDocument(document);
-    e.setContentHash(contentHash);
-    return e;
+    meterRegistry = new SimpleMeterRegistry();
+    reader = new ReceiptPayloadReader(blobStore, meterRegistry);
   }
 
   @Test
-  void legacyEntityReturnsDocumentWithoutTouchingBlob() {
-    assertThat(reader.readDocument(entity(CONTENT, null))).isEqualTo(CONTENT);
-    verifyNoInteractions(blobStore);
-  }
-
-  @Test
-  void blankContentHashIsTreatedAsLegacy() {
-    assertThat(reader.readDocument(entity(CONTENT, " "))).isEqualTo(CONTENT);
-    verifyNoInteractions(blobStore);
-  }
-
-  @Test
-  void entityWithContentHashReadsFromBlob() {
-    byte[] data = CONTENT.getBytes(StandardCharsets.UTF_8);
-    when(blobStore.download(CF, IUV)).thenReturn(data);
-
-    String hash = ReceiptPayloadReader.sha256Hex(data);
-    assertThat(reader.readDocument(entity(null, hash))).isEqualTo(CONTENT);
-  }
-
-  @Test
-  void hashComparisonIsCaseInsensitive() {
-    byte[] data = CONTENT.getBytes(StandardCharsets.UTF_8);
-    when(blobStore.download(CF, IUV)).thenReturn(data);
-
-    String hash = ReceiptPayloadReader.sha256Hex(data).toUpperCase();
-    assertThat(reader.readDocument(entity(null, hash))).isEqualTo(CONTENT);
-  }
-
-  @Test
-  void hashMismatchThrows() {
-    when(blobStore.download(CF, IUV)).thenReturn(CONTENT.getBytes(StandardCharsets.UTF_8));
-
-    assertThatThrownBy(() -> reader.readDocument(entity(null, "deadbeef")))
-        .isInstanceOf(ReceiptHashMismatchException.class);
-  }
-
-  @Test
-  void hashMismatchIsIgnoredWhenVerificationDisabled() {
-    reader = new ReceiptPayloadReader(blobStore, false, new SimpleMeterRegistry());
-    when(blobStore.download(CF, IUV)).thenReturn(CONTENT.getBytes(StandardCharsets.UTF_8));
-
-    assertThat(reader.readDocument(entity(null, "deadbeef"))).isEqualTo(CONTENT);
-  }
-
-  @Test
-  void missingBlobIsPropagatedWithoutLegacyFallback() {
+  void readDocumentFromBlob() {
     when(blobStore.download(CF, IUV))
-        .thenThrow(new ReceiptBlobNotFoundException(CF, IUV, new RuntimeException()));
+        .thenReturn(CONTENT.getBytes(StandardCharsets.UTF_8));
 
-    // anche se l'entity avesse ancora il document, con contentHash il blob è la fonte
-    assertThatThrownBy(() -> reader.readDocument(entity(CONTENT, "abc")))
-        .isInstanceOf(ReceiptBlobNotFoundException.class);
+    assertThat(reader.readDocument(CF, IUV))
+        .isEqualTo(CONTENT);
+
+    verify(blobStore).download(CF, IUV);
   }
 
   @Test
-  void neitherContentHashNorDocumentThrows() {
-    assertThatThrownBy(() -> reader.readDocument(entity(null, null)))
-        .isInstanceOf(ReceiptInconsistentException.class);
+  void readDocumentShouldIncrementBlobMetric() {
+    when(blobStore.download(CF, IUV))
+        .thenReturn(CONTENT.getBytes(StandardCharsets.UTF_8));
+
+    reader.readDocument(CF, IUV);
+
+    assertThat(
+        meterRegistry.counter("receipt.read", "source", "blob").count())
+        .isEqualTo(1.0);
+  }
+
+  @Test
+  void missingBlobThrowsReceiptNotFound() {
+    when(blobStore.download(CF, IUV))
+        .thenThrow(
+            new ReceiptBlobNotFoundException(
+                CF, IUV, new RuntimeException()));
+
+    assertThatThrownBy(() -> reader.readDocument(CF, IUV))
+        .isInstanceOf(AppException.class)
+        .hasMessageContaining(
+            new AppException(AppError.RECEIPT_NOT_FOUND, CF, IUV)
+                .getMessage());
+  }
+
+  @Test
+  void blobStorageErrorThrowsDbError() {
+    BlobStorageException exception =
+        new BlobStorageException("Storage error", null, null);
+
+    when(blobStore.download(CF, IUV))
+        .thenThrow(exception);
+
+    assertThatThrownBy(() -> reader.readDocument(CF, IUV))
+        .isInstanceOf(AppException.class)
+        .hasMessageContaining(
+            new AppException(AppError.DB_ERROR).getMessage());
+  }
+
+  @Test
+  void failedReadShouldNotIncrementBlobMetric() {
+    when(blobStore.download(CF, IUV))
+        .thenThrow(
+            new ReceiptBlobNotFoundException(
+                CF, IUV, new RuntimeException()));
+
+    assertThatThrownBy(() -> reader.readDocument(CF, IUV))
+        .isInstanceOf(AppException.class);
+
+    assertThat(
+        meterRegistry.counter("receipt.read", "source", "blob").count())
+        .isZero();
   }
 }

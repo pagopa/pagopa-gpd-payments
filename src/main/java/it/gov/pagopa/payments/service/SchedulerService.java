@@ -1,9 +1,11 @@
 package it.gov.pagopa.payments.service;
 
 import com.azure.core.util.Context;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.models.QueueMessageItem;
 import com.microsoft.azure.storage.StorageException;
+import com.azure.data.tables.models.TableServiceException;
 import feign.FeignException;
 import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationException;
 import it.gov.pagopa.payments.entity.ReceiptEntity;
@@ -126,7 +128,6 @@ public class SchedulerService {
         receiptEntity.setDebtor(entityUniqueIdentifierValue);
         String paymentDateTimeIdentifier = Optional.ofNullable(paymentDateTime).orElse("");
         receiptEntity.setPaymentDateTime(paymentDateTimeIdentifier);
-        receiptEntity.setDocument(failureBody);
 
         LocalDateTime localPaymentDateTime = paymentDateTime != null ? LocalDateTime.parse(paymentDateTime) : null;
         PaymentOptionModel body =
@@ -145,9 +146,11 @@ public class SchedulerService {
                     creditorReferenceId,
                     Boolean.parseBoolean(standInString),
                     body,
-                    receiptEntity);
+                    receiptEntity,
+                    failureBody);
             queueClient.deleteMessage(queueMessageItem.getMessageId(), queueMessageItem.getPopReceipt());
-        } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException e) {
+        } catch (FeignException | URISyntaxException | InvalidKeyException | StorageException |
+                 BlobStorageException | TableServiceException e) {
 
             long retryDelay =
                     calculateRetryVisibilityTimeout(
@@ -164,7 +167,7 @@ public class SchedulerService {
             queueClient.updateMessageWithResponse(
                     queueMessageItem.getMessageId(),
                     queueMessageItem.getPopReceipt(),
-                    receiptEntity.getDocument(),
+                    failureBody,
                     Duration.ofSeconds(retryDelay),
                     null,
                     Context.NONE);

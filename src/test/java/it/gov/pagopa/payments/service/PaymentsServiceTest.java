@@ -1,9 +1,9 @@
 package it.gov.pagopa.payments.service;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyNoInteractions;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
@@ -13,7 +13,6 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.CloudTableClient;
 import com.microsoft.azure.storage.table.TableRequestOptions;
-import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.entity.Status;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentsResult;
@@ -23,16 +22,12 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
-import it.gov.pagopa.payments.client.GpdClient;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.GenericContainer;
@@ -41,14 +36,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
-@ExtendWith(MockitoExtension.class)
 class PaymentsServiceTest {
 
-  @Mock private GpdClient gpdClient;
-
   public static final String DEBTOR_PROPERTY = "debtor";
-
-  public static final String DOCUMENT_PROPERTY = "document";
 
   public static final String STATUS_PROPERTY = "status";
 
@@ -89,9 +79,9 @@ class PaymentsServiceTest {
       TableEntity tableEntity = new TableEntity("org123456", "0" + i + "1234567891011");
       Map<String, Object> properties = new HashMap<>();
       properties.put(DEBTOR_PROPERTY, "debtor" + i);
-      properties.put(DOCUMENT_PROPERTY, "XML" + i);
       properties.put(STATUS_PROPERTY, Status.PAID.name());
       properties.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
+      tableEntity.setProperties(properties);
       tableEntity.setProperties(properties);
       tableClientConfiguration().createEntity(tableEntity);
     }
@@ -99,7 +89,6 @@ class PaymentsServiceTest {
       TableEntity tableEntity = new TableEntity("org123456", i + "1234567891011");
       Map<String, Object> properties = new HashMap<>();
       properties.put(DEBTOR_PROPERTY, "debtor" + i);
-      properties.put(DOCUMENT_PROPERTY, "XML" + i);
       properties.put(STATUS_PROPERTY, Status.CREATED.name());
       properties.put(PAYMENT_DATE_PROPERTY, LocalDateTime.now().minusDays(10).toString());
       tableEntity.setProperties(properties);
@@ -115,18 +104,17 @@ class PaymentsServiceTest {
 
   /** GET RECEIPT BY IUV */
   @Test
-  void getReceiptByOrganizationFCAndIUV() {
+  void validateSegregationCodes() {
 
     PaymentsService paymentsService =
         buildPaymentsService();
 
-    ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("00", "89", "90"));
-    ReceiptEntity re =
-        paymentsService.getReceiptByOrganizationFCAndIUV(
-            "org123456", "001234567891011", validSegregationCodes);
-    assertEquals("org123456", re.getOrganizationFiscalCode());
-    assertEquals("001234567891011", re.getIuv());
-    assertEquals("debtor0", re.getDebtor());
+    ArrayList<String> validSegregationCodes =
+        new ArrayList<>(Arrays.asList("00", "89", "90"));
+
+    assertDoesNotThrow(
+        () -> paymentsService.validateSegregationCodes(
+            "org123456", "001234567891011", validSegregationCodes));
   }
 
   @Test
@@ -135,56 +123,19 @@ class PaymentsServiceTest {
     PaymentsService paymentsService =
         buildPaymentsService();
 
-    try {
-      ArrayList<String> validSegregationCodes = new ArrayList<>(Arrays.asList("47", "89", "90"));
-      paymentsService.getReceiptByOrganizationFCAndIUV(
-          "org123456", "0012345678910", validSegregationCodes);
-    } catch (AppException e) {
-      assertEquals(HttpStatus.FORBIDDEN, e.getHttpStatus());
-    }
-  }
+    ArrayList<String> validSegregationCodes =
+        new ArrayList<>(Arrays.asList("47", "89", "90"));
 
-  @Test
-  void getReceiptByOrganizationFCAndIUV_404() {
+    AppException e = assertThrows(
+        AppException.class,
+        () -> paymentsService.validateSegregationCodes(
+            "org123456", "0012345678910", validSegregationCodes));
 
-    PaymentsService paymentsService =
-        buildPaymentsService();
-
-    try {
-      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "3000000000000013", null);
-    } catch (AppException e) {
-      assertEquals(HttpStatus.NOT_FOUND, e.getHttpStatus());
-    }
-  }
-
-  @Test
-  void getReceiptByOrganizationFCAndIUV_500() {
-
-    try {
-      String wrongStorageConnectionString =
-          String.format(
-              "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://%s:%s/devstoreaccount1;QueueEndpoint=http://%s:%s/devstoreaccount1;BlobEndpoint=http://%s:%s/devstoreaccount1",
-              azurite.getContainerIpAddress(),
-              azurite.getMappedPort(10002),
-              azurite.getContainerIpAddress(),
-              azurite.getMappedPort(10001),
-              azurite.getContainerIpAddress(),
-              azurite.getMappedPort(10000));
-      TableClient tableClient =
-          new TableClientBuilder()
-              .connectionString(wrongStorageConnectionString)
-              .tableName("receiptsTable")
-              .buildClient();
-      PaymentsService paymentsService = buildPaymentsService(tableClient);
-
-      paymentsService.getReceiptByOrganizationFCAndIUV("org123456", "001234567891011", null);
-    } catch (AppException e) {
-      assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getHttpStatus());
-    }
+    assertEquals(HttpStatus.FORBIDDEN, e.getHttpStatus());
   }
 
   /** GET RECEIPTS */
-  
+
   @ParameterizedTest
   @CsvSource({
       "NULL, 100, 15",
@@ -423,7 +374,7 @@ class PaymentsServiceTest {
         .tableName("receiptsTable")
         .buildClient();
   }
-  
+
   @Test
   void getOrganizationReceipts_withExplicitValidRangeWithinConfiguredWindow(){
     PaymentsService paymentsService =
@@ -450,7 +401,7 @@ class PaymentsServiceTest {
     assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_explicitRangeLongerThanConfiguredWindow_isOk() {
     PaymentsService paymentsService = buildPaymentsService();
@@ -473,7 +424,7 @@ class PaymentsServiceTest {
     assertEquals(0, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_fromAfterTo_badRequest(){
     PaymentsService paymentsService =
@@ -496,7 +447,7 @@ class PaymentsServiceTest {
       assertEquals(HttpStatus.BAD_REQUEST, e.getHttpStatus());
     }
   }
-  
+
   @Test
   void getOrganizationReceipts_onlyFromProvided_resolvesCorrectly() {
     PaymentsService paymentsService =
@@ -522,7 +473,7 @@ class PaymentsServiceTest {
     assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_onlyToProvided_resolvesCorrectly() {
     PaymentsService paymentsService =
@@ -548,7 +499,7 @@ class PaymentsServiceTest {
     assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_withExplicitDateTimeRange() {
     PaymentsService paymentsService = buildPaymentsService();
@@ -572,7 +523,7 @@ class PaymentsServiceTest {
     assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_withMixedDateFormats() {
     PaymentsService paymentsService = buildPaymentsService();
@@ -596,7 +547,7 @@ class PaymentsServiceTest {
     assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_onlyFromDateTimeProvided() {
     PaymentsService paymentsService = buildPaymentsService();
@@ -619,7 +570,7 @@ class PaymentsServiceTest {
     assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_onlyToDateTimeProvided() {
     PaymentsService paymentsService = buildPaymentsService();
@@ -642,7 +593,7 @@ class PaymentsServiceTest {
     assertEquals(15, res.getResults().size());
     assertEquals(0, res.getCurrentPageNumber());
   }
-  
+
   @Test
   void getOrganizationReceipts_invalidDateTimeFormat_badRequest() {
     PaymentsService paymentsService = buildPaymentsService();
@@ -664,36 +615,18 @@ class PaymentsServiceTest {
     }
   }
 
-  @Test
-  void getOrganizationReceipts_withoutGpdInteraction() {
-    PaymentsService paymentsService = buildPaymentsService();
-
-    PaymentsResult<ReceiptModelResponse> res =
-        paymentsService.getOrganizationReceipts(
-            "org123456", null, null, null, null, 0, 100, null, null);
-
-    assertNotNull(res);
-    assertEquals(15, res.getResults().size());
-    assertEquals(0, res.getCurrentPageNumber());
-
-    verifyNoInteractions(gpdClient);
-  }
-
-  
-  
   // HELPER METHODS
-  
   private PaymentsService buildPaymentsService() {
-	  PaymentsService paymentsService =
-			  spy(new PaymentsService(gpdClient, tableClientConfiguration()));
-	  ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
-	  return paymentsService;
+    PaymentsService paymentsService =
+        new PaymentsService(tableClientConfiguration());
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+    return paymentsService;
   }
-  
+
   private PaymentsService buildPaymentsService(TableClient tableClient) {
-	  PaymentsService paymentsService =
-			  spy(new PaymentsService(gpdClient, tableClient));
-	  ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
-	  return paymentsService;
+    PaymentsService paymentsService =
+        new PaymentsService(tableClient);
+    ReflectionTestUtils.setField(paymentsService, "receiptsMonthsWindow", 3);
+    return paymentsService;
   }
 }
