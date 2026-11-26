@@ -8,10 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-
-import it.gov.pagopa.payments.PaymentsApplication;
 import it.gov.pagopa.payments.controller.receipt.impl.PaymentsController;
-import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
 import it.gov.pagopa.payments.model.PaymentsResult;
@@ -20,19 +17,13 @@ import it.gov.pagopa.payments.service.PaymentsService;
 import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import org.junit.ClassRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentsControllerTest {
