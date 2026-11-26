@@ -21,6 +21,7 @@ import it.gov.pagopa.payments.model.partner.PaSendRTReq;
 import it.gov.pagopa.payments.model.partner.PaSendRTV2Request;
 import it.gov.pagopa.payments.model.partner.StOutcome;
 import it.gov.pagopa.payments.service.PaymentsService;
+import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
@@ -71,7 +72,9 @@ class RequestLoggingTest {
 
   @Test
   void restSummaryUsesFinalStatusAndOnlyApprovedArguments() throws Exception {
-    PaymentsController target = new PaymentsController();
+    PaymentsController target =  new PaymentsController(
+        mock(PaymentsService.class),
+        mock(ReceiptPayloadReader.class));
     ReflectionTestUtils.setField(target, "paymentsService", mock(PaymentsService.class));
     PaymentsController controller = proxy(target);
     request.addHeader(HEADER_REQUEST_ID, "request-123");

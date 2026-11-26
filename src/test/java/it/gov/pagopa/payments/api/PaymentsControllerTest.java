@@ -34,8 +34,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-@SpringBootTest(classes = PaymentsApplication.class)
-@Testcontainers
 @ExtendWith(MockitoExtension.class)
 class PaymentsControllerTest {
 
@@ -43,22 +41,6 @@ class PaymentsControllerTest {
 
   @Mock private PaymentsService paymentsService;
   @Mock private ReceiptPayloadReader payloadReader;
-
-  @ClassRule @Container
-  public static GenericContainer<?> azurite =
-      new GenericContainer<>(
-              DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
-          .withExposedPorts(10001, 10002, 10000);
-
-  String storageConnectionString =
-      String.format(
-          "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://%s:%s/devstoreaccount1;QueueEndpoint=http://%s:%s/devstoreaccount1;BlobEndpoint=http://%s:%s/devstoreaccount1",
-          azurite.getContainerIpAddress(),
-          azurite.getMappedPort(10002),
-          azurite.getContainerIpAddress(),
-          azurite.getMappedPort(10001),
-          azurite.getContainerIpAddress(),
-          azurite.getMappedPort(10000));
 
   /** GET RECEIPT BY IUV */
   @Test
