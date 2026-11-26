@@ -1,7 +1,5 @@
 package it.gov.pagopa.payments.service;
 
-import com.azure.data.tables.models.TableErrorCode;
-import com.azure.data.tables.models.TableServiceException;
 import com.azure.storage.blob.models.BlobStorageException;
 import io.micrometer.core.instrument.MeterRegistry;
 import it.gov.pagopa.payments.exception.AppError;
@@ -37,10 +35,7 @@ public class ReceiptPayloadReader {
       throw new AppException(AppError.RECEIPT_NOT_FOUND, cf, iuv);
 
     } catch (BlobStorageException e) {
-      log.error(
-          "Error reading receipt from Blob Storage. organizationFiscalCode={}, iuv={}",
-          cf, iuv, e);
-
+      log.error("Error reading receipt from Blob Storage", e);
       throw new AppException(AppError.DB_ERROR);
     }
   }

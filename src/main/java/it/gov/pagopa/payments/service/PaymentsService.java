@@ -179,16 +179,6 @@ public class PaymentsService {
     			.totalPages(totalPages)
     			.build();
     }
-    
-    private boolean isBrokerAuthorized(String iuvSegregationCode, List<String> brokerSegregationCodes) {
-        // verify that IUV is linked with one of segregation code for which the broker is authorized
-        for(String code: brokerSegregationCodes) {
-            if(code.equals(iuvSegregationCode))
-                return true;
-        }
-
-        return false;
-    }
 
     private static String getStartsWithFilter(String field, String startsWith) {
         int length = startsWith.length() - 1;

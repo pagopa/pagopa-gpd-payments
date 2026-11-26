@@ -9,14 +9,14 @@ import it.gov.pagopa.payments.service.PaymentsService;
 import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 
 @Controller
 @Validated
+@RequiredArgsConstructor
 public class PaymentsController implements IPaymentsController {
   private static final String ARG_SEGREGATION_CODES = "segregationCodes";
   private static final String ARG_PAGE_NUMBER = "pageNum";
@@ -26,8 +26,8 @@ public class PaymentsController implements IPaymentsController {
   private static final String ARG_TO = "to";
   private static final String SEGREGATION_CODES_SEPARATOR = ",";
 
-  @Autowired private PaymentsService paymentsService;
-  @Autowired private ReceiptPayloadReader payloadReader;
+  private final PaymentsService paymentsService;
+  private final ReceiptPayloadReader payloadReader;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(

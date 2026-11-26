@@ -16,9 +16,4 @@ public class ConvertTableEntityToReceiptEntity {
         tableEntity.getProperty(PAYMENT_DATE_PROPERTY).toString(),
         tableEntity.getProperty(STATUS_PROPERTY).toString());
   }
-
-  private static String optionalProperty(TableEntity tableEntity, String name) {
-    Object value = tableEntity.getProperty(name);
-    return value == null ? null : value.toString();
-  }
 }
