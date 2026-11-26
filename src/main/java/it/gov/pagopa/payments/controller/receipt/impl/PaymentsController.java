@@ -3,20 +3,20 @@ package it.gov.pagopa.payments.controller.receipt.impl;
 import it.gov.pagopa.payments.config.logging.LogField;
 import it.gov.pagopa.payments.config.logging.LogContext;
 import it.gov.pagopa.payments.controller.receipt.IPaymentsController;
-import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.model.PaymentsResult;
 import it.gov.pagopa.payments.model.ReceiptModelResponse;
 import it.gov.pagopa.payments.service.PaymentsService;
+import it.gov.pagopa.payments.service.ReceiptPayloadReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 
 @Controller
 @Validated
+@RequiredArgsConstructor
 public class PaymentsController implements IPaymentsController {
   private static final String ARG_SEGREGATION_CODES = "segregationCodes";
   private static final String ARG_PAGE_NUMBER = "pageNum";
@@ -26,7 +26,8 @@ public class PaymentsController implements IPaymentsController {
   private static final String ARG_TO = "to";
   private static final String SEGREGATION_CODES_SEPARATOR = ",";
 
-  @Autowired private PaymentsService paymentsService;
+  private final PaymentsService paymentsService;
+  private final ReceiptPayloadReader payloadReader;
 
   @Override
   public ResponseEntity<String> getReceiptByIUV(
@@ -34,13 +35,9 @@ public class PaymentsController implements IPaymentsController {
       @LogField(LogContext.CTX_IUV) String iuv,
       @LogField(value = ARG_SEGREGATION_CODES, argument = true) String segregationCodes) {
 
-    ArrayList<String> segCodesList =
-        segregationCodes != null
-            ? new ArrayList<>(Arrays.asList(segregationCodes.split(SEGREGATION_CODES_SEPARATOR)))
-            : null;
-    ReceiptEntity receipt =
-        paymentsService.getReceiptByOrganizationFCAndIUV(organizationFiscalCode, iuv, segCodesList);
-    return new ResponseEntity<>(receipt.getDocument(), HttpStatus.OK);
+    paymentsService.validateSegregationCodes(organizationFiscalCode, iuv, parseSegregationCodes(segregationCodes));
+
+    return ResponseEntity.ok(payloadReader.readDocument(organizationFiscalCode, iuv));
   }
 
   @Override
@@ -55,10 +52,6 @@ public class PaymentsController implements IPaymentsController {
       @LogField(value = ARG_SEGREGATION_CODES, argument = true) String segregationCodes,
       String debtorOrIuv) {
 
-    ArrayList<String> segCodesList =
-        segregationCodes != null
-            ? new ArrayList<>(Arrays.asList(segregationCodes.split(SEGREGATION_CODES_SEPARATOR)))
-            : null;
     PaymentsResult<ReceiptModelResponse> receipts =
         paymentsService.getOrganizationReceipts(
             organizationFiscalCode,
@@ -68,8 +61,17 @@ public class PaymentsController implements IPaymentsController {
             to,
             pageNum,
             pageSize,
-            segCodesList,
+            parseSegregationCodes(segregationCodes),
             debtorOrIuv);
-    return new ResponseEntity<>(receipts, HttpStatus.OK);
+
+    return ResponseEntity.ok(receipts);
+  }
+
+  private ArrayList<String> parseSegregationCodes(String segregationCodes) {
+    return segregationCodes != null
+        ? new ArrayList<>(
+        Arrays.asList(
+            segregationCodes.split(SEGREGATION_CODES_SEPARATOR)))
+        : null;
   }
 }

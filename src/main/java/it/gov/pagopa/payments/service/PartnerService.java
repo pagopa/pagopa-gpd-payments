@@ -5,6 +5,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableErrorCode;
 import com.azure.data.tables.models.TableServiceException;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.queue.QueueClient;
 import com.microsoft.azure.storage.StorageException;
 import feign.FeignException;
@@ -16,7 +17,6 @@ import it.gov.pagopa.payments.endpoints.validation.exceptions.PartnerValidationE
 import it.gov.pagopa.payments.entity.ReceiptEntity;
 import it.gov.pagopa.payments.exception.AppError;
 import it.gov.pagopa.payments.exception.AppException;
-import it.gov.pagopa.payments.mapper.ConvertTableEntityToReceiptEntity;
 import it.gov.pagopa.payments.model.*;
 import it.gov.pagopa.payments.model.client.cache.ConfigCacheData;
 import it.gov.pagopa.payments.model.client.cache.MaintenanceStation;
@@ -27,6 +27,7 @@ import it.gov.pagopa.payments.utils.Validator;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.time.Instant;
@@ -65,8 +66,6 @@ public class PartnerService {
 
   public static final String DEBTOR_PROPERTY = "debtor";
 
-  public static final String DOCUMENT_PROPERTY = "document";
-
   public static final String STATUS_PROPERTY = "status";
 
   public static final String PAYMENT_DATE_PROPERTY = "paymentDate";
@@ -98,6 +97,9 @@ public class PartnerService {
   // PaaErrorEnum.java fault codes subset
   private final List<String> suppressedErrorsValues;
 
+  private final ReceiptBlobStore receiptBlobStore;
+
+
   public PartnerService(
       @Value(value = "${azure.queue.send.invisibilityTime}") Long queueSendInvisibilityTime,
       @Value(value = "${suppressedErrors.stations}") List<String> stationsWithSuppressedErrors,
@@ -108,7 +110,8 @@ public class PartnerService {
       QueueClient queueClient,
       CustomizedMapper customizedModelMapper,
       VerticalServicesConfig verticalServicesConfig,
-      RestTemplate restTemplate) {
+      RestTemplate restTemplate,
+      ReceiptBlobStore receiptBlobStore) {
     this.queueSendInvisibilityTime = queueSendInvisibilityTime;
     this.factory = factory;
     this.gpdClient = gpdClient;
@@ -119,6 +122,7 @@ public class PartnerService {
     this.customizedModelMapper = customizedModelMapper;
     this.stationsWithSuppressedErrors = stationsWithSuppressedErrors;
     this.suppressedErrorsValues = suppressedErrorsValues;
+    this.receiptBlobStore = receiptBlobStore;
   }
 
   @Transactional(readOnly = true)
@@ -623,41 +627,52 @@ public class PartnerService {
     return sw.toString();
   }
 
-  private void saveReceipt(ReceiptEntity receiptEntity)
-      throws InvalidKeyException, URISyntaxException, StorageException {
+  private void saveReceipt(ReceiptEntity receiptEntity, String documentStr) {
+
+      byte[] document = documentStr.getBytes(StandardCharsets.UTF_8);
+
+      receiptBlobStore.upload(
+          receiptEntity.getOrganizationFiscalCode(),
+          receiptEntity.getIuv(),
+          document);
     try {
-      TableEntity tableEntity = getTableEntity(receiptEntity);
+      TableEntity tableEntity =
+          getTableEntity(receiptEntity);
+
       tableClient.createEntity(tableEntity);
+
     } catch (TableServiceException e) {
-      if (e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
+      if (e.getValue() != null
+          && e.getValue().getErrorCode() == TableErrorCode.ENTITY_ALREADY_EXISTS) {
         throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
       }
       log.error(DBERROR, e);
-      throw new AppException(AppError.DB_ERROR);
+      throw e;
     }
   }
 
   private static TableEntity getTableEntity(ReceiptEntity receiptEntity) {
-    TableEntity tableEntity =
-        new TableEntity(receiptEntity.getOrganizationFiscalCode(), receiptEntity.getIuv());
-    Map<String, Object> properties = new HashMap<>();
-    properties.put(DEBTOR_PROPERTY, receiptEntity.getDebtor());
-    properties.put(DOCUMENT_PROPERTY, receiptEntity.getDocument());
-    properties.put(STATUS_PROPERTY, receiptEntity.getStatus());
-    properties.put(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
-    tableEntity.setProperties(properties);
-    return tableEntity;
+    return new TableEntity(
+        receiptEntity.getOrganizationFiscalCode(),
+        receiptEntity.getIuv())
+        .addProperty(DEBTOR_PROPERTY, receiptEntity.getDebtor())
+        .addProperty(STATUS_PROPERTY, receiptEntity.getStatus())
+        .addProperty(PAYMENT_DATE_PROPERTY, receiptEntity.getPaymentDateTime());
   }
 
-  private ReceiptEntity getReceipt(String organizationFiscalCode, String iuv)
-      throws InvalidKeyException, URISyntaxException, StorageException {
+  private boolean receiptExists(String organizationFiscalCode, String iuv) {
     try {
-      TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
-      return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
+      tableClient.getEntity(organizationFiscalCode, iuv);
+      return true;
+
     } catch (TableServiceException e) {
-      if (e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) return null;
+      if (e.getValue() != null
+          && e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND) {
+        return false;
+      }
+
       log.error(DBERROR, e);
-      throw new AppException(AppError.DB_ERROR);
+      throw e;
     }
   }
 
@@ -748,8 +763,10 @@ public class PartnerService {
             debtorIdentifier,
             request.getReceipt().getPaymentDateTime().toString());
 
+
+    String document = null;
     try {
-      receiptEntity.setDocument(this.marshal(request));
+      document = this.marshal(request);
     } catch (JAXBException e) {
       log.error(
           "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
@@ -758,7 +775,8 @@ public class PartnerService {
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
 
-    boolean isStandIn = request.getReceipt().isStandIn() != null ? request.getReceipt().isStandIn() : false;
+    boolean isStandIn = Boolean.TRUE.equals(request.getReceipt().isStandIn());
+
 
     LocalDateTime paymentDateTime =
         request.getReceipt().getPaymentDateTime() != null
@@ -786,7 +804,8 @@ public class PartnerService {
         request.getReceipt().getCreditorReferenceId(),
         isStandIn,
         body,
-        receiptEntity);
+        receiptEntity,
+        document);
   }
 
   private PaymentOptionModelResponse managePaSendRtRequest(PaSendRTV2Request request) {
@@ -805,8 +824,9 @@ public class PartnerService {
             request.getReceipt().getCreditorReferenceId(),
             debtorIdentifier,
             request.getReceipt().getPaymentDateTime().toString());
+    String document = null;
     try {
-      receiptEntity.setDocument(this.marshalV2(request));
+      document = this.marshalV2(request);
     } catch (JAXBException e) {
       log.error(
           "[managePaSendRtRequest] Error in receipt marshalling [noticeNumber={}]",
@@ -815,8 +835,7 @@ public class PartnerService {
       throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
     }
 
-    boolean isStandIn = request.getReceipt().isStandIn() != null ? request.getReceipt().isStandIn() : false;
-
+    boolean isStandIn = Boolean.TRUE.equals(request.getReceipt().isStandIn());
     LocalDateTime paymentDateTime =
         request.getReceipt().getPaymentDateTime() != null
             ? request
@@ -844,7 +863,8 @@ public class PartnerService {
         request.getReceipt().getCreditorReferenceId(),
         isStandIn,
         body,
-        receiptEntity);
+        receiptEntity,
+        document);
   }
 
   private PaymentOptionModelResponse getReceiptExceptionHandling(
@@ -853,17 +873,18 @@ public class PartnerService {
       String creditorReferenceId,
       boolean isStandIn,
       PaymentOptionModel body,
-      ReceiptEntity receiptEntity) {
+      ReceiptEntity receiptEntity,
+      String document) {
     try {
       return this.getReceiptPaymentOption(
-          noticeNumber, organizationFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity);
+          noticeNumber, organizationFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity, document);
     } catch (RetryableException e) {
       log.error(
           "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: GPD Not Reachable [noticeNumber={}]",
           noticeNumber,
           e);
       queueClient.sendMessageWithResponse(
-          receiptEntity.getDocument(),
+          document,
           Duration.ofSeconds(queueSendInvisibilityTime),
           null,
           null,
@@ -875,19 +896,34 @@ public class PartnerService {
           noticeNumber,
           e);
       queueClient.sendMessageWithResponse(
-          receiptEntity.getDocument(),
+          document,
           Duration.ofSeconds(queueSendInvisibilityTime),
           null,
           null,
           Context.NONE);
       throw new PartnerValidationException(PaaErrorEnum.PAA_SEMANTICA);
+    } catch (BlobStorageException | TableServiceException e) {
+      log.error(
+          "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Receipt storage exception [noticeNumber={}]",
+          noticeNumber,
+          e);
+
+      queueClient.sendMessageWithResponse(
+          document,
+          Duration.ofSeconds(queueSendInvisibilityTime),
+          null,
+          null,
+          Context.NONE);
+
+      throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
+
     } catch (StorageException e) {
       log.error(
           "[getReceiptPaymentOption] PAA_SYSTEM_ERROR: Storage exception [noticeNumber={}]",
           noticeNumber,
           e);
       queueClient.sendMessageWithResponse(
-          receiptEntity.getDocument(),
+          document,
           Duration.ofSeconds(queueSendInvisibilityTime),
           null,
           null,
@@ -922,22 +958,21 @@ public class PartnerService {
       String creditorReferenceId,
       boolean isStandIn,
       PaymentOptionModel body,
-      ReceiptEntity receiptEntity)
+      ReceiptEntity receiptEntity,
+      String document)
       throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
     PaymentOptionModelResponse paymentOption = new PaymentOptionModelResponse();
     try {
       paymentOption = gpdClient.sendPaymentOptionReceipt(organizationFiscalCode, noticeNumber, body);
 
       // To exclude receipts from being saved, it is necessary to know if a PD is not ACA.
-      boolean isNotACA = true; // default GPD -> it isn't ACA
-      if(paymentOption.getServiceType() != null) {
-        isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
-      }
+      boolean isNotACA =
+          !SERVICE_TYPE_ACA.equals(paymentOption.getServiceType());
 
       // Saving the receipt if the PaymentOption is in the PO_PAID status and service type isn't ACA,
       // includes all other service types ie GPD, WISP. ACA receipts are saved only if they are stand-in payments.
       if (PaymentOptionStatus.PO_PAID.equals(paymentOption.getStatus()) && (isNotACA || isStandIn)) {
-        this.saveReceipt(receiptEntity);
+        this.saveReceipt(receiptEntity, document);
       }
     } catch (FeignException.Conflict e) {
       // if PO is already paid on GPD --> checks and in case creates the receipt in PAID status.
@@ -945,43 +980,42 @@ public class PartnerService {
         log.debug(
             "[getReceiptPaymentOption] PAA_RECEIPT_DUPLICATA: GPD Conflict Error Response [noticeNumber={}]",
             noticeNumber);
-        boolean receiptNotFoundInStorage = this.getReceipt(organizationFiscalCode, creditorReferenceId) == null;
-
-        boolean isNotACA = true; // default GPD -> it isn't ACA
-        if(paymentOption.getServiceType() != null) {
-          isNotACA = !paymentOption.getServiceType().equals(SERVICE_TYPE_ACA);
-        }
+        boolean receiptNotFoundInStorage = !receiptExists(organizationFiscalCode, creditorReferenceId);
+        boolean isNotACA =
+            !SERVICE_TYPE_ACA.equals(paymentOption.getServiceType());
 
         if (receiptNotFoundInStorage && (isNotACA || isStandIn)) {
           // if receipt is not found, or it's a {GPD,WISP} payment, or it's an ACA payments paid in stand-in,
           // the receipt will be saved in the storage with the PAID status.
-          this.saveReceipt(receiptEntity);
+          this.saveReceipt(receiptEntity, document);
         }
+      } catch (BlobStorageException | TableServiceException | PartnerValidationException ex) {
+          throw ex;
       } catch (Exception ex) {
         log.error(
             "[getReceiptPaymentOption] GPD Generic Error [noticeNumber={}] during receipt status"
                 + " save",
             noticeNumber,
             ex);
+        throw new PartnerValidationException(PaaErrorEnum.PAA_SYSTEM_ERROR);
       }
       throw new PartnerValidationException(PaaErrorEnum.PAA_RECEIPT_DUPLICATA);
     } catch (FeignException.NotFound e) {
       throw new PartnerValidationException(PaaErrorEnum.PAA_PAGAMENTO_SCONOSCIUTO);
-    } catch (PartnerValidationException e) {
-      throw e;
     }
     return paymentOption;
   }
 
-  public PaymentOptionModelResponse getReceiptPaymentOptionScheduler(
+  public void getReceiptPaymentOptionScheduler(
       String noticeNumber,
       String receiptFiscalCode,
       String creditorReferenceId,
       boolean isStandIn,
       PaymentOptionModel body,
-      ReceiptEntity receiptEntity)
+      ReceiptEntity receiptEntity,
+      String document)
       throws FeignException, URISyntaxException, InvalidKeyException, StorageException {
-    return getReceiptPaymentOption(noticeNumber, receiptFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity);
+      getReceiptPaymentOption(noticeNumber, receiptFiscalCode, creditorReferenceId, isStandIn, body, receiptEntity, document);
   }
 
   private PaymentsModelResponse getAndValidatePaymentOption(

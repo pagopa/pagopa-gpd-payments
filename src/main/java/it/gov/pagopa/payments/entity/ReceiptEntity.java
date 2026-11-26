@@ -8,16 +8,14 @@ import lombok.*;
 @Getter
 public class ReceiptEntity {
 
-    private String organizationFiscalCode;
-    private String iuv;
-    private String debtor;
-    private String paymentDateTime;
-    private String status = Status.PAID.name();
-    private String document;
+  private String organizationFiscalCode;
+  private String iuv;
+  private String debtor;
+  private String paymentDateTime;
+  private String status = Status.PAID.name();
 
-    public ReceiptEntity(String organizationFiscalCode, String iuv){
-        this.organizationFiscalCode = organizationFiscalCode;
-        this.iuv = iuv;
-    }
-
+  public ReceiptEntity(String organizationFiscalCode, String iuv) {
+    this.organizationFiscalCode = organizationFiscalCode;
+    this.iuv = iuv;
+  }
 }

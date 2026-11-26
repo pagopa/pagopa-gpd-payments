@@ -76,7 +76,9 @@ class SchedulerServiceTest {
   @Mock private RestTemplate restTemplate;
 
   @Mock private DeadLetterService deadLetterService;
-  
+
+  @Mock private ReceiptBlobStore receiptBlobStore;
+
   @Value(value = "${azure.queue.send.invisibilityTime}")
   private Long queueSendInvisibilityTime;
   private final ObjectFactory factoryUtil = new ObjectFactory();
@@ -122,7 +124,8 @@ class SchedulerServiceTest {
                             queueClientConfiguration(),
                             customizedModelMapper,
                             verticalServicesConfig,
-                            restTemplate));
+                            restTemplate,
+                            receiptBlobStore));
 
     var schedService =
     		spy(new SchedulerService(
@@ -146,9 +149,7 @@ class SchedulerServiceTest {
                 anyString(), anyString(), nullable(PaymentOptionModel.class)))
         .thenThrow(e);
 
-    doReturn(
-            MockUtil.readModelFromFile(
-                "gpd/receiptPaymentOption.json", PaymentOptionModelResponse.class))
+    doNothing()
         .when(pService)
         .getReceiptPaymentOptionScheduler(
             anyString(),
@@ -156,7 +157,8 @@ class SchedulerServiceTest {
             anyString(),
             anyBoolean(),
             any(PaymentOptionModel.class),
-            any(ReceiptEntity.class));
+            any(ReceiptEntity.class),
+            anyString());
 
     try {
       CloudStorageAccount cloudStorageAccount =
@@ -255,7 +257,8 @@ class SchedulerServiceTest {
                             queueClientConfiguration(),
                             customizedModelMapper,
                             verticalServicesConfig,
-                            restTemplate));
+                            restTemplate,
+                            receiptBlobStore));
 
     var schedService =
     		spy(new SchedulerService(
@@ -288,7 +291,8 @@ class SchedulerServiceTest {
             anyString(),
             anyBoolean(),
             any(PaymentOptionModel.class),
-            any(ReceiptEntity.class));
+            any(ReceiptEntity.class),
+            anyString());
 
     try {
       CloudStorageAccount cloudStorageAccount =
@@ -387,7 +391,8 @@ class SchedulerServiceTest {
                             queueClientConfiguration(),
                             customizedModelMapper,
                             verticalServicesConfig,
-                            restTemplate));
+                            restTemplate,
+                            receiptBlobStore));
 
     var schedService =
     		spy(new SchedulerService(
@@ -547,7 +552,8 @@ class SchedulerServiceTest {
                 queueClientConfiguration(),
                 customizedModelMapper,
                 verticalServicesConfig,
-                restTemplate));
+                restTemplate,
+                receiptBlobStore));
 
     var schedService =
     		spy(new SchedulerService(

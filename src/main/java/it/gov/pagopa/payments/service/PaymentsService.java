@@ -45,8 +45,7 @@ public class PaymentsService {
     @Value("${payments.receipts.months-window:3}")
     private int receiptsMonthsWindow;
 
-    public PaymentsService(GpdClient gpdClient, TableClient tableClient) {
-        this.gpdClient = gpdClient;
+    public PaymentsService(TableClient tableClient) {
         this.tableClient = tableClient;
     }
 
@@ -62,7 +61,7 @@ public class PaymentsService {
             String debtorOrIuv) {
         try {
         	
-        	String[] normalizedDateRange = normalizeDateRange(from, to);
+        	  String[] normalizedDateRange = normalizeDateRange(from, to);
             String normalizedFrom = normalizedDateRange[0];
             String normalizedTo = normalizedDateRange[1];
         	
@@ -70,7 +69,7 @@ public class PaymentsService {
                     organizationFiscalCode, debtor, service, normalizedFrom, normalizedTo, pageNum, pageSize, segCodes, debtorOrIuv);
             
             List<ReceiptModelResponse> checkedReceipts =
-                    getGPDCheckedReceiptsList(filteredEntities.getReceiptsList());
+                mapReceiptsList(filteredEntities.getReceiptsList());
             
             return this.setReceiptsOutput(checkedReceipts, filteredEntities.getTotalPages(), pageNum);
 
@@ -80,73 +79,23 @@ public class PaymentsService {
         }
     }
 
-    public ReceiptEntity getReceiptByOrganizationFCAndIUV(
-            @NotBlank String organizationFiscalCode, @NotBlank String iuv, List<String> validSegregationCodes) {
-
-        try {
-            if(validSegregationCodes != null && !validSegregationCodes.isEmpty() && iuv.length() > 1) {
-                String iuvSegregationCode = iuv.substring(0,2);
-                if(!isBrokerAuthorized(iuvSegregationCode, validSegregationCodes))
-                    throw new AppException(AppError.FORBIDDEN_SEGREGATION_CODE, iuvSegregationCode, organizationFiscalCode, iuv);
-            }
-
-            TableEntity tableEntity = tableClient.getEntity(organizationFiscalCode, iuv);
-            this.checkGPDDebtPosStatus(tableEntity);
-            return ConvertTableEntityToReceiptEntity.mapTableEntityToReceiptEntity(tableEntity);
-        } catch (TableServiceException e) {
-            if(e.getValue().getErrorCode() == TableErrorCode.RESOURCE_NOT_FOUND){
-                throw new AppException(AppError.RECEIPT_NOT_FOUND, organizationFiscalCode, iuv);
-            }
-            log.error("Error in organization table connection", e);
-            throw new AppException(AppError.DB_ERROR);
-        }
-    }
-
-    public void checkGPDDebtPosStatus(TableEntity tableEntity) {
-        try {
-            Object statusProperty = tableEntity.getProperty(STATUS_PROPERTY);
-            String status = statusProperty != null ? statusProperty.toString().trim() : null;
-
-            // the check on GPD is necessary if the status of the receipt is different from PAID
-            if (!Status.PAID.name().equalsIgnoreCase(status)) {
-                PaymentsModelResponse paymentOption =
-                        gpdClient.getPaymentOption(tableEntity.getPartitionKey(), tableEntity.getRowKey());
-
-                if (paymentOption != null && paymentOption.getStatus().equals(PaymentOptionStatus.PO_UNPAID)) {
-                    throw new AppException(
-                            AppError.UNPROCESSABLE_RECEIPT,
-                            paymentOption.getStatus(),
-                            tableEntity.getPartitionKey(),
-                            tableEntity.getRowKey());
-                }
-
-                // if no exception is raised the status on GPD is correctly in PAID -> for congruence update receipt status
-                tableEntity.addProperty(STATUS_PROPERTY, Status.PAID.name());
-                tableClient.updateEntity(tableEntity);
-            }
-        } catch (TableServiceException e) {
-            throw new AppException(AppError.DB_ERROR, "Error when updating receipt status");
-        }
-    }
-    
-    public List<ReceiptModelResponse> getGPDCheckedReceiptsList(List<TableEntity> result) {
+    public List<ReceiptModelResponse> mapReceiptsList(List<TableEntity> result) {
         // for all the receipts in the azure table, only those that have been already PAID status or are
         // in PAID status on GPD are returned
         List<ReceiptModelResponse> checkedReceipts = new ArrayList<>();
 
         for (TableEntity tableEntity : result) {
             try {
-                this.checkGPDDebtPosStatus(tableEntity);
-                checkedReceipts.add(
+              checkedReceipts.add(
                         ConvertTableEntityToReceiptModelResponse.mapTableEntityToReceiptModelResponse(tableEntity));
             } catch (FeignException.NotFound e) {
                 log.warn(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: "
+                        "[mapReceiptsList] Non-blocking error: "
                                 + "get not found exception in the recovery of payment options",
                         e);
             } catch (AppException e) {
                 log.warn(
-                        "[getGPDCheckedReceiptsList] Non-blocking error: Receipt is not in an eligible state on"
+                        "[mapReceiptsList] Non-blocking error: Receipt is not in an eligible state on"
                                 + " GPD in order to be returned to the caller",
                         e);
             }
@@ -229,16 +178,6 @@ public class PaymentsService {
     			.receiptsList(filteredReceipts)
     			.totalPages(totalPages)
     			.build();
-    }
-    
-    private boolean isBrokerAuthorized(String iuvSegregationCode, List<String> brokerSegregationCodes) {
-        // verify that IUV is linked with one of segregation code for which the broker is authorized
-        for(String code: brokerSegregationCodes) {
-            if(code.equals(iuvSegregationCode))
-                return true;
-        }
-
-        return false;
     }
 
     private static String getStartsWithFilter(String field, String startsWith) {
@@ -328,5 +267,24 @@ public class PaymentsService {
         };
     }
 
+    public void validateSegregationCodes(
+        String organizationFiscalCode,
+        String iuv,
+        List<String> validSegregationCodes) {
 
+      if (validSegregationCodes != null
+          && !validSegregationCodes.isEmpty()
+          && iuv.length() > 1) {
+
+        String iuvSegregationCode = iuv.substring(0, 2);
+
+        if (!validSegregationCodes.contains(iuvSegregationCode)) {
+          throw new AppException(
+              AppError.FORBIDDEN_SEGREGATION_CODE,
+              iuvSegregationCode,
+              organizationFiscalCode,
+              iuv);
+        }
+      }
+    }
 }
